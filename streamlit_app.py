@@ -21,18 +21,63 @@ st.markdown(
         font-size: 0.8rem;
         color: gray;
     }
+    .fixed-header {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 200px;
+        background-color: white;
+        z-index: 100;
+        padding: 10px;
+        border: 1px solid #ddd;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# 숫자 형식 설정 함수
-def format_number(number):
-    return "{:,}원".format(number)
+# 예산 합계를 계산하여 표시하는 함수
+def update_total_budget():
+    st.session_state.total_budget = sum([
+        st.session_state.get('예산_홍보 전략', 0),
+        st.session_state.get('예산_파트너십 및 후원', 0),
+        st.session_state.get('예산_티켓 판매', 0),
+        st.session_state.get('예산_인력 섭외', 0),
+        st.session_state.get('예산_행사 진행', 0),
+        st.session_state.get('예산_평가 및 피드백', 0),
+        st.session_state.get('예산_영상 및 미디어', 0),
+        st.session_state.get('예산_특수 효과', 0),
+        st.session_state.get('예산_장비 대여', 0),
+        st.session_state.get('예산_VR/AR 기술', 0),
+        st.session_state.get('예산_전시 부스', 0),
+        st.session_state.get('예산_디자인', 0),
+        st.session_state.get('예산_콘텐츠 제작', 0),
+        st.session_state.get('예산_인플루언서', 0),
+        st.session_state.get('예산_행사 관리', 0),
+        st.session_state.get('예산_공연 및 행사', 0),
+        st.session_state.get('예산_체험 프로그램', 0),
+        st.session_state.get('예산_전시 및 홍보', 0),
+        st.session_state.get('예산_시설 관리', 0),
+        st.session_state.get('예산_안전 관리', 0),
+        st.session_state.get('예산_교통 및 주차', 0),
+        st.session_state.get('예산_청소 및 위생', 0)
+    ])
+
+# 전체 예산 섹션
+st.header("전체 예산")
+총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
+
+if 예상수익률 > 0:
+    예상수익금 = 총예산 * 예상수익률 / 100
+else:
+    예상수익금 = st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+
+# 예산 총합을 업데이트하고 표시
+update_total_budget()
+st.markdown(f'<div class="fixed-header">현재까지 입력된 예산 총합: {format_number(st.session_state.total_budget)}</div>', unsafe_allow_html=True)
 
 # 기본 정보 섹션
-st.title("행사 요구사항 설문지")
-
 st.header("기본 정보")
 용역명 = st.text_input("용역명이 무엇인가요?", value="")
 용역목적 = st.text_input("용역의 목적이 무엇인가요?", value="")
@@ -41,7 +86,6 @@ st.header("기본 정보")
 
 # 필수 섹션
 st.header("예산 관리")
-총예산 = st.number_input("용역의 예산은 얼마인가요?", min_value=0, value=0, step=1000, format="%d")
 부가세_포함 = st.radio("부가세 포함 여부를 선택해주세요.", ("포함", "별도"))
 
 # 예산 형식 설정
@@ -108,11 +152,12 @@ def input_section(title, options):
     st.header(title)
     for option in options:
         if option in selected_options:
-            상세기획정도 = st.radio(f"{option}에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-            if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+            상세기획정도 = st.radio(f"{option}에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+            예산 = st.number_input(f"{option}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{option}")
+            if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
                 st.text_area(f"{option}에 대한 세부 사항을 입력해주세요.")
             else:
-                st.markdown(f'<p class="small-text">예상 답변: {option} 관련 정보</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="small-text">현재의 기획 정도에 따른 예상 답변: {option} 관련 정보</p>', unsafe_allow_html=True)
 
 # 무대에 대한 세부 사항 입력 섹션
 if "공연 및 행사" in selected_options:
@@ -139,8 +184,9 @@ if "공연 및 행사" in selected_options:
 
 if "조명" in selected_options:
     st.header("조명")
-    상세기획정도 = st.radio("조명에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("조명에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("조명에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_조명")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         기본조명 = st.checkbox("기본 조명이 필요한가요?")
         특수조명 = st.checkbox("퍼포먼스를 돕는 특수 조명이 필요한가요?")
         트러스설치 = st.checkbox("트러스 설치가 필요한가요?")
@@ -150,16 +196,18 @@ if "조명" in selected_options:
 
 if "체험 프로그램" in selected_options:
     st.header("체험 프로그램")
-    상세기획정도 = st.radio("체험 프로그램에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("체험 프로그램에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("체험 프로그램에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_체험 프로그램")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         레크레이션 = st.text_area("어떤 레크레이션 프로그램을 계획하고 있나요?")
         게임부스 = st.text_area("어떤 게임 부스를 설치할 예정인가요?")
         체험부스 = st.text_area("어떤 체험 부스를 설치할 예정인가요?")
 
 if "전시 및 홍보" in selected_options:
     st.header("전시 및 홍보")
-    상세기획정도 = st.radio("전시 및 홍보에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("전시 및 홍보에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("전시 및 홍보에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_전시 및 홍보")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         전시회 = st.text_area("어떤 전시회를 계획하고 있나요?")
         전시회_세부 = st.checkbox("벽을 세워야 하나요?")
         전시회_작품수 = st.number_input("전시되는 작품 수는 몇 점인가요?", min_value=0, value=10)
@@ -169,8 +217,9 @@ if "전시 및 홍보" in selected_options:
 
 if "시설 관리" in selected_options:
     st.header("시설 관리")
-    상세기획정도 = st.radio("시설 관리에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("시설 관리에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("시설 관리에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_시설 관리")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         무대 = st.text_area("무대 설치에 필요한 사항이 있나요?")
         음향 = st.text_area("음향 장비에 필요한 사항이 있나요?")
         조명 = st.text_area("조명 설치에 필요한 사항이 있나요?")
@@ -179,61 +228,64 @@ if "시설 관리" in selected_options:
 
 if "안전 관리" in selected_options:
     st.header("안전 관리")
-    상세기획정도 = st.radio("안전 관리에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("안전 관리에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("안전 관리에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_안전 관리")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         응급처치소 = st.text_area("응급처치소 설치에 필요한 사항이 있나요?")
         안전요원 = st.number_input("안전 요원이 몇 명 필요한가요?", min_value=0, value=10)
         소방설비 = st.text_area("소방 설비에 필요한 사항이 있나요?")
 
 if "교통 및 주차" in selected_options:
     st.header("교통 및 주차")
-    상세기획정도 = st.radio("교통 및 주차에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("교통 및 주차에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("교통 및 주차에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_교통 및 주차")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         교통통제 = st.text_area("교통 통제에 필요한 사항이 있나요?")
         주차장확보 = st.text_area("주차장 확보에 필요한 사항이 있나요?")
         셔틀버스운영 = st.text_area("셔틀버스 운영 계획이 있나요?")
 
 if "청소 및 위생" in selected_options:
     st.header("청소 및 위생")
-    상세기획정도 = st.radio("청소 및 위생에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("청소 및 위생에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("청소 및 위생에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_청소 및 위생")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         쓰레기통배치 = st.text_area("쓰레기통 배치 계획이 있나요?")
         청소인력 = st.number_input("청소 인력이 몇 명 필요한가요?", min_value=0, value=5)
         화장실청결관리 = st.text_area("화장실 청결 관리를 어떻게 할 계획인가요?")
 
 if "홍보 전략" in selected_options:
     st.header("홍보 전략")
-    상세기획정도 = st.radio("홍보 전략에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("홍보 전략에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("홍보 전략에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_홍보 전략")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         홍보_옵션 = ["온라인 홍보", "오프라인 홍보", "SNS", "언론", "광고"]
         홍보_선택 = st.multiselect("어떤 홍보 전략이 필요한가요?", 홍보_옵션)
-        홍보_예산 = st.number_input("홍보 예산을 입력해주세요.", min_value=0, value=0, step=1000)
-        st.markdown(f'<p class="small-text">{format_number(홍보_예산)}</p>', unsafe_allow_html=True)
 
         for 옵션 in 홍보_선택:
             st.text_input(f"{옵션} 세부 사항을 입력해주세요.")
 
 if "파트너십 및 후원" in selected_options:
     st.header("파트너십 및 후원")
-    상세기획정도 = st.radio("파트너십 및 후원에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("파트너십 및 후원에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("파트너십 및 후원에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_파트너십 및 후원")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         스폰서모집 = st.text_area("스폰서를 어떻게 모집할 계획인가요?")
         후원계약 = st.text_area("후원 계약을 어떻게 진행할 예정인가요?")
         파트너십관리 = st.text_area("파트너십 관리를 어떻게 할 계획인가요?")
 
 if "티켓 판매" in selected_options:
     st.header("티켓 판매")
-    상세기획정도 = st.radio("티켓 판매에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
-        티켓가격 = st.number_input("티켓 가격을 어떻게 책정할 예정인가요?", min_value=0, value=10000, step=1000)
-        st.markdown(f'<p class="small-text">{format_number(티켓가격)}</p>', unsafe_allow_html=True)
+    상세기획정도 = st.radio("티켓 판매에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("티켓 판매에 배정된 예산을 입력해주세요.", min_value=0, value=10000, step=1000, format="%d", key="예산_티켓 판매")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         판매채널 = st.text_area("티켓을 어떤 채널을 통해 판매할 예정인가요?")
         예매관리 = st.text_area("예매 관리를 어떻게 진행할 예정인가요?")
 
 if "인력 섭외" in selected_options:
     st.header("인력 섭외")
-    상세기획정도 = st.radio("인력 섭외에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("인력 섭외에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("인력 섭외에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_인력 섭외")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         인력_옵션 = ["설치 인력", "의전 및 행사 도우미 인력", "단순 운영 인력", "기타"]
         인력_선택 = st.multiselect("어떤 인력이 필요한가요?", 인력_옵션)
 
@@ -246,24 +298,27 @@ if "인력 섭외" in selected_options:
 
 if "행사 진행" in selected_options:
     st.header("행사 진행")
-    상세기획정도 = st.radio("행사 진행에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("행사 진행에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("행사 진행에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_행사 진행")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         행사진행자 = st.text_area("행사 진행자를 어떻게 선정할 예정인가요?")
         진행계획 = st.text_area("행사 진행 계획을 어떻게 할 예정인가요?")
         진행순서 = st.text_area("행사 진행 순서를 어떻게 구성할 예정인가요?")
 
 if "평가 및 피드백" in selected_options:
     st.header("평가 및 피드백")
-    상세기획정도 = st.radio("평가 및 피드백에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("평가 및 피드백에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("평가 및 피드백에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_평가 및 피드백")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         참가자피드백 = st.text_area("참가자 피드백을 어떻게 수집할 예정인가요?")
         성과분석 = st.text_area("성과 분석을 어떻게 할 예정인가요?")
         개선사항도출 = st.text_area("개선 사항을 어떻게 도출할 예정인가요?")
 
 if "영상 및 미디어" in selected_options:
     st.header("영상 및 미디어")
-    상세기획정도 = st.radio("영상 및 미디어에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("영상 및 미디어에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("영상 및 미디어에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_영상 및 미디어")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         영상_옵션 = ["중계", "사전 영상 제작", "스케치 영상", "유튜브 연간 진행", "숏폼"]
         영상_선택 = st.multiselect("어떤 영상 제작이 필요한가요?", 영상_옵션)
         
@@ -273,7 +328,7 @@ if "영상 및 미디어" in selected_options:
             중계_공간 = st.text_area("중계 세팅 공간의 규모가 어떻게 되나요?")
             중계_카메라 = st.text_area("중계에 필요한 카메라 대수는 몇 대인가요?")
         
-        if "사전 영상 제작"에 대한 세부사항을 입력해주세요.")
+        if "사전 영상 제작" in 영상_선택:
             사전영상_편수 = st.number_input("사전 영상은 몇 편이 필요한가요?", min_value=0, value=1)
             사전영상_길이 = st.text_input("사전 영상의 예상 길이는 얼마인가요?")
             사전영상_출연진 = st.checkbox("출연진 섭외가 필요한가요?")
@@ -295,8 +350,9 @@ if "영상 및 미디어" in selected_options:
 
 if "특수 효과" in selected_options:
     st.header("특수 효과")
-    상세기획정도 = st.radio("특수 효과에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("특수 효과에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("특수 효과에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_특수 효과")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         무대특수효과 = st.text_area("무대 특수 효과 계획이 있나요?")
         특수효과_필요 = st.checkbox("특수효과가 정해졌나요?")
         if 특수효과_필요:
@@ -304,8 +360,9 @@ if "특수 효과" in selected_options:
 
 if "장비 대여" in selected_options:
     st.header("장비 대여")
-    상세기획정도 = st.radio("장비 대여에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("장비 대여에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("장비 대여에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_장비 대여")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         빔프로젝터 = st.text_area("빔 프로젝터 대여 계획이 있나요?")
         LEDPanels = st.text_area("LED 패널 대여 계획이 있나요?")
         장비_제작 = st.checkbox("장비 제작이 필요한가요?")
@@ -314,34 +371,39 @@ if "장비 대여" in selected_options:
 
 if "VR/AR 기술" in selected_options:
     st.header("VR/AR 기술")
-    상세기획정도 = st.radio("VR/AR 기술에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("VR/AR 기술에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("VR/AR 기술에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_VR/AR 기술")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         XRVR콘텐츠 = st.text_area("XR 및 VR 콘텐츠 계획이 있나요?")
 
 if "전시 부스" in selected_options:
     st.header("전시 부스")
-    상세기획정도 = st.radio("전시 부스에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("전시 부스에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("전시 부스에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_전시 부스")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         전시장부스 = st.text_area("전시장 부스(옥타놈/블록) 설치 계획이 있나요?")
         팝업부스 = st.text_area("팝업 부스 설치 계획이 있나요?")
 
 if "디자인" in selected_options:
     st.header("디자인")
-    상세기획정도 = st.radio("디자인에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("디자인에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("디자인에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_디자인")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         이디디자인 = st.text_area("2D 디자인 계획이 있나요?")
         쓰리디디자인 = st.text_area("3D 디자인 계획이 있나요?")
 
 if "콘텐츠 제작" in selected_options:
     st.header("콘텐츠 제작")
-    상세기획정도 = st.radio("콘텐츠 제작에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("콘텐츠 제작에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("콘텐츠 제작에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_콘텐츠 제작")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         교육콘텐츠 = st.text_area("교육 콘텐츠 개발 계획이 있나요?")
 
 if "인플루언서" in selected_options:
     st.header("인플루언서")
-    상세기획정도 = st.radio("인플루언서에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("인플루언서에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("인플루언서에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_인플루언서")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         인플루언서_팔로워 = st.number_input("인플루언서는 몇 명 이상의 팔로워를 가지고 있어야 하나요?", min_value=0, value=10000)
         인플루언서_발행 = st.number_input("인플루언서의 발행 건수는 몇 건이 필요한가요?", min_value=0, value=5)
         인플루언서_선호 = st.text_area("선호하는 인플루언서가 있나요?")
@@ -350,8 +412,9 @@ if "인플루언서" in selected_options:
 
 if "행사 관리" in selected_options:
     st.header("행사 관리")
-    상세기획정도 = st.radio("행사 관리에 대한 상세 기획 정도를 선택해주세요.", ("매우 그렇다", "그렇다", "보통이다", "모른다", "전혀 모른다"))
-    if 상세기획정도 in ["매우 그렇다", "그렇다", "보통이다"]:
+    상세기획정도 = st.radio("행사 관리에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
+    예산 = st.number_input("행사 관리에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key="예산_행사 관리")
+    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         행사보험 = st.text_area("행사 보험 가입 계획이 있나요?")
         등록매표 = st.text_area("등록 및 매표 시스템 계획이 있나요?")
 
@@ -374,6 +437,8 @@ data = {
     },
     "필수정보": {
         "총예산": format_number(총예산),
+        "예상수익률": 예상수익률,
+        "예상수익금": format_number(int(예상수익금)),
         "부가세_포함": 부가세_포함,
         "준비일정": 준비일정,
         "종료일정": 종료일정,
@@ -415,4 +480,32 @@ excel_data = save_data(data)
 
 if st.button("제출"):
     st.write("설문이 제출되었습니다. 감사합니다!")
-    st.download_button(label="발주요청서 다운로드", data=excel_data, file_name="발주요청서.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    st.download_button(label="발주요청서 다운로드", data=excel_data, file_name=f"{용역담당자}_{용역명}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    sender = "your_email@example.com"
+    receiver = "jay_jang@dnmd.com"
+    password = "your_password"
+    subject = f"새로운 발주 요청서 제출: {용역담당자}_{용역명}"
+
+    msg = MIMEMultipart()
+    msg['From'] = sender
+    msg['To'] = receiver
+    msg['Subject'] = subject
+
+    body = f"새로운 발주 요청서가 제출되었습니다.\n\n이름: {용역담당자}\n용역명: {용역명}\n\n설문지 내용을 확인하려면 아래 링크를 클릭하세요.\n\n[바로가기 링크]"
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP('smtp.example.com', 587)
+        server.starttls()
+        server.login(sender, password)
+        text = msg.as_string()
+        server.sendmail(sender, receiver, text)
+        server.quit()
+        st.success("알림 이메일이 발송되었습니다.")
+    except Exception as e:
+        st.error(f"이메일 발송 중 오류가 발생했습니다: {e}")
