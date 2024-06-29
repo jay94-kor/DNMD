@@ -53,6 +53,7 @@ def essential_info_section(총예산):
         원금 = 총예산
         총액 = 총예산 * 1.1
     st.write(f"부가세: {format_number(int(부가세))}, 원금: {format_number(int(원금))}, 총액: {format_number(int(총액))}")
+    return 부가세_포함
 
 def schedule_section():
     st.header("일정 계획")
@@ -117,7 +118,7 @@ st.markdown(f'<div class="fixed-header">현재까지 입력된 예산 총합: {f
 용역명, 용역목적, 목표인원, 용역담당자 = basic_info_section()
 
 # 필수 정보 입력
-essential_info_section(총예산)
+부가세_포함 = essential_info_section(총예산)
 
 # 일정 계획 입력
 준비일정, 종료일정, 셋업시간, 시작시간, 마감시간 = schedule_section()
