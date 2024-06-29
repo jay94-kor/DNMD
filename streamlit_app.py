@@ -23,7 +23,7 @@ def format_number(number):
 
 # 예산 합계를 계산하여 표시하는 함수
 def update_total_budget():
-    st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in selected_options)
+    st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in st.session_state['selected_options'])
 
 # 기본 정보 섹션
 def basic_info_section():
@@ -35,8 +35,9 @@ def basic_info_section():
     return 용역명, 용역목적, 목표인원, 용역담당자
 
 # 필수 정보 섹션
-def essential_info_section(총예산):
+def essential_info_section():
     st.header("예산 관리")
+    총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
     부가세_포함 = st.radio("부가세 포함 여부를 선택해주세요.", ("포함", "별도"))
     if 부가세_포함 == "포함":
         부가세 = 총예산 / 1.1 * 0.1
@@ -47,7 +48,15 @@ def essential_info_section(총예산):
         원금 = 총예산
         총액 = 총예산 * 1.1
     st.write(f"부가세: {format_number(int(부가세))}, 원금: {format_number(int(원금))}, 총액: {format_number(int(총액))}")
-    return 부가세_포함
+    return 총예산, 부가세_포함
+
+# 전체 예산 섹션
+def budget_section():
+    st.header("전체 예산")
+    예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
+    총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key='총예산')
+    예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+    return 예상수익률, 예상수익금
 
 def schedule_section():
     st.header("일정 계획")
@@ -86,13 +95,10 @@ def input_section(title):
 용역명, 용역목적, 목표인원, 용역담당자 = basic_info_section()
 
 # 필수 정보 입력
-부가세_포함 = essential_info_section(총예산)
+총예산, 부가세_포함 = essential_info_section()
 
-# 전체 예산 섹션
-st.header("전체 예산")
-총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
-예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
-예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+# 전체 예산 입력
+예상수익률, 예상수익금 = budget_section()
 
 # 필요한 요소 선택 섹션
 st.header("필요한 요소 선택")
@@ -105,7 +111,6 @@ for i, option in enumerate(options):
         if option not in selected_options:
             selected_options.append(option)
             st.session_state['selected_options'] = selected_options
-            st.session_state[f"예산_{option}"] = st.number_input(f"{option}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{option}")
 
 # 기타 항목 추가 기능
 if st.checkbox("기타 항목 추가"):
@@ -114,7 +119,6 @@ if st.checkbox("기타 항목 추가"):
         if new_option and new_option not in selected_options:
             selected_options.append(new_option)
             st.session_state['selected_options'] = selected_options
-            st.session_state[f"예산_{new_option}"] = st.number_input(f"{new_option}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{new_option}")
 
 # 예산 합계 업데이트
 if 'total_budget' not in st.session_state:
