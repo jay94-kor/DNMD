@@ -24,7 +24,7 @@ def format_number(number):
 # 예산 합계를 계산하여 표시하는 함수
 def update_total_budget():
     if 'selected_options' in st.session_state:
-        st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in st.session_state['selected_options'])
+        st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in st.session_state['selected_options'] if st.session_state.get(f"예산_{option}", 0) != "미정")
 
 # 기본 정보 섹션
 def basic_info_section():
@@ -38,27 +38,10 @@ def basic_info_section():
 # 필수 정보 섹션
 def essential_info_section():
     st.header("예산 관리")
-    총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
     부가세_포함 = st.radio("부가세 포함 여부를 선택해주세요.", ("포함", "별도"))
-    if 부가세_포함 == "포함":
-        부가세 = 총예산 / 1.1 * 0.1
-        원금 = 총예산 / 1.1
-        총액 = 총예산
-    else:
-        부가세 = 총예산 * 0.1
-        원금 = 총예산
-        총액 = 총예산 * 1.1
-    st.write(f"부가세: {format_number(int(부가세))}, 원금: {format_number(int(원금))}, 총액: {format_number(int(총액))}")
-    return 총예산, 부가세_포함
+    return 부가세_포함
 
-# 전체 예산 섹션
-def budget_section():
-    st.header("전체 예산")
-    예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
-    총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key='총예산')
-    예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
-    return 예상수익률, 예상수익금
-
+# 일정 계획 섹션
 def schedule_section():
     st.header("일정 계획")
     일정_미정 = st.checkbox("일정이 미정인가요?")
@@ -76,6 +59,7 @@ def schedule_section():
         마감시간 = st.time_input("마감 시간", time(18, 0))
     return 준비일정, 종료일정, 셋업시간, 시작시간, 마감시간
 
+# 장소 선정 섹션
 def venue_section():
     st.header("장소 선정")
     장소 = st.text_input("정해져있다면 행사의 장소를 알려주세요. (없음으로 기재 가능)", value="")
@@ -86,20 +70,23 @@ def venue_section():
 def input_section(title):
     st.header(title)
     상세기획정도 = st.radio(f"{title}에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
-    예산 = st.number_input(f"{title}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{title}")
+    if 상세기획정도 == "정해지지 않았다":
+        예산 = st.radio(f"{title}에 배정된 예산을 선택해주세요.", ("미정", "예산 입력"), key=f"예산선택_{title}")
+        if 예산 == "예산 입력":
+            예산 = st.number_input(f"{title}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{title}")
+    else:
+        예산 = st.number_input(f"{title}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{title}")
     if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
         st.text_area(f"{title}에 대한 세부 사항을 입력해주세요.")
     else:
         st.markdown(f'<p class="small-text">현재의 기획 정도에 따른 예상 답변: {title} 관련 정보</p>', unsafe_allow_html=True)
+    return 예산
 
 # 기본 정보 입력
 용역명, 용역목적, 목표인원, 용역담당자 = basic_info_section()
 
 # 필수 정보 입력
-총예산, 부가세_포함 = essential_info_section()
-
-# 전체 예산 입력
-예상수익률, 예상수익금 = budget_section()
+부가세_포함 = essential_info_section()
 
 # 초기화
 if 'selected_options' not in st.session_state:
@@ -122,6 +109,11 @@ if st.checkbox("기타 항목 추가"):
         if new_option and new_option not in st.session_state['selected_options']:
             st.session_state['selected_options'].append(new_option)
 
+# 선택된 옵션에 대해 예산 합계 업데이트 및 입력
+예산_항목들 = {}
+for option in st.session_state['selected_options']:
+    예산_항목들[option] = input_section(option)
+
 # 예산 합계 업데이트
 if 'total_budget' not in st.session_state:
     st.session_state.total_budget = 0
@@ -133,10 +125,6 @@ st.markdown(f'<div class="fixed-header">현재까지 입력된 예산 총합: {f
 
 # 장소 선정 입력
 장소, 장소특이사항 = venue_section()
-
-# 선택된 옵션에 대해 세부 사항 입력
-for option in st.session_state['selected_options']:
-    input_section(option)
 
 # 데이터 저장 및 다운로드
 def save_data(data):
@@ -154,9 +142,6 @@ data = {
         "용역담당자": 용역담당자,
     },
     "필수정보": {
-        "총예산": format_number(총예산),
-        "예상수익률": 예상수익률,
-        "예상수익금": format_number(int(예상수익금)),
         "부가세_포함": 부가세_포함,
         "준비일정": 준비일정,
         "종료일정": 종료일정,
@@ -170,8 +155,8 @@ data = {
 
 for option in st.session_state['selected_options']:
     data[option] = {
+        "예산": format_number(예산_항목들[option]) if 예산_항목들[option] != "미정" else "미정",
         "상세기획정도": st.session_state.get(f"상세기획정도_{option}", ""),
-        "예산": format_number(st.session_state.get(f"예산_{option}", 0)),
         "세부사항": st.session_state.get(f"세부사항_{option}", "")
     }
 
