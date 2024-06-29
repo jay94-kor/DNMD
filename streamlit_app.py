@@ -95,8 +95,6 @@ for i, option in enumerate(options):
             selected_options.append(option)
             st.session_state['selected_options'] = selected_options
 
-st.write("선택된 옵션:", selected_options)
-
 # 기타 항목 추가 기능
 if st.checkbox("기타 항목 추가"):
     new_option = st.text_input("추가할 항목을 입력하세요:")
@@ -104,9 +102,6 @@ if st.checkbox("기타 항목 추가"):
         if new_option and new_option not in selected_options:
             selected_options.append(new_option)
             st.session_state['selected_options'] = selected_options
-
-# 각 중분류별 상세 질문 (생략)
-# 나머지 코드를 여기에 추가...
 
 if "공연 및 행사" in selected_options:
     st.header("공연 및 행사")
