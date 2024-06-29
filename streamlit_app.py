@@ -74,6 +74,8 @@ else:
     예상수익금 = st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
 
 # 예산 총합을 업데이트하고 표시
+if 'total_budget' not in st.session_state:
+    st.session_state.total_budget = 0
 update_total_budget()
 st.markdown(f'<div class="fixed-header">현재까지 입력된 예산 총합: {format_number(st.session_state.total_budget)}</div>', unsafe_allow_html=True)
 
