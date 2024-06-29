@@ -25,11 +25,6 @@ def format_number(number):
 def update_total_budget():
     st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in selected_options)
 
-# 전체 예산 섹션
-st.header("전체 예산")
-총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
-예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
-예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
 
 # 기본 정보 섹션
 def basic_info_section():
@@ -39,6 +34,13 @@ def basic_info_section():
     목표인원 = st.number_input("목표인원은 몇 명인가요?", min_value=0, value=0)
     용역담당자 = st.text_input("용역 담당자의 이름을 적어주세요.", value="")
     return 용역명, 용역목적, 목표인원, 용역담당자
+
+# 전체 예산 섹션
+st.header("전체 예산")
+총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
+예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+
 
 # 필수 정보 섹션
 def essential_info_section(총예산):
