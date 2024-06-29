@@ -25,7 +25,6 @@ def format_number(number):
 def update_total_budget():
     st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in selected_options)
 
-
 # 기본 정보 섹션
 def basic_info_section():
     st.header("기본 정보")
@@ -34,13 +33,6 @@ def basic_info_section():
     목표인원 = st.number_input("목표인원은 몇 명인가요?", min_value=0, value=0)
     용역담당자 = st.text_input("용역 담당자의 이름을 적어주세요.", value="")
     return 용역명, 용역목적, 목표인원, 용역담당자
-
-# 전체 예산 섹션
-st.header("전체 예산")
-총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
-예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
-예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
-
 
 # 필수 정보 섹션
 def essential_info_section(총예산):
@@ -90,6 +82,18 @@ def input_section(title):
     else:
         st.markdown(f'<p class="small-text">현재의 기획 정도에 따른 예상 답변: {title} 관련 정보</p>', unsafe_allow_html=True)
 
+# 기본 정보 입력
+용역명, 용역목적, 목표인원, 용역담당자 = basic_info_section()
+
+# 필수 정보 입력
+부가세_포함 = essential_info_section(총예산)
+
+# 전체 예산 섹션
+st.header("전체 예산")
+총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
+예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+
 # 필요한 요소 선택 섹션
 st.header("필요한 요소 선택")
 options = ["홍보 전략", "파트너십 및 후원", "티켓 판매", "인력 섭외", "행사 진행", "평가 및 피드백", "영상 및 미디어", "특수 효과", "장비 대여", "VR/AR 기술", "전시 부스", "디자인", "콘텐츠 제작", "인플루언서", "행사 관리", "공연 및 행사", "체험 프로그램", "전시 및 홍보", "시설 관리", "안전 관리", "교통 및 주차", "청소 및 위생"]
@@ -101,6 +105,7 @@ for i, option in enumerate(options):
         if option not in selected_options:
             selected_options.append(option)
             st.session_state['selected_options'] = selected_options
+            st.session_state[f"예산_{option}"] = st.number_input(f"{option}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{option}")
 
 # 기타 항목 추가 기능
 if st.checkbox("기타 항목 추가"):
@@ -109,18 +114,13 @@ if st.checkbox("기타 항목 추가"):
         if new_option and new_option not in selected_options:
             selected_options.append(new_option)
             st.session_state['selected_options'] = selected_options
+            st.session_state[f"예산_{new_option}"] = st.number_input(f"{new_option}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{new_option}")
 
 # 예산 합계 업데이트
 if 'total_budget' not in st.session_state:
     st.session_state.total_budget = 0
 update_total_budget()
 st.markdown(f'<div class="fixed-header">현재까지 입력된 예산 총합: {format_number(st.session_state.total_budget)}</div>', unsafe_allow_html=True)
-
-# 기본 정보 입력
-용역명, 용역목적, 목표인원, 용역담당자 = basic_info_section()
-
-# 필수 정보 입력
-부가세_포함 = essential_info_section(총예산)
 
 # 일정 계획 입력
 준비일정, 종료일정, 셋업시간, 시작시간, 마감시간 = schedule_section()
@@ -135,11 +135,9 @@ for option in selected_options:
 # 데이터 저장 및 다운로드
 def save_data(data):
     output = StringIO()
-    writer = pd.ExcelWriter(output, engine='openpyxl')
     for key, value in data.items():
         df = pd.DataFrame.from_dict(value, orient='index', columns=['내용'])
-        df.to_excel(writer, sheet_name=key)
-    writer.save()
+        df.to_csv(output, encoding='utf-8-sig')
     return output.getvalue()
 
 data = {
@@ -171,15 +169,7 @@ for option in selected_options:
         "세부사항": st.session_state.get(f"세부사항_{option}", "")
     }
 
-# CSV로 데이터 저장
-def save_data_to_csv(data):
-    output = StringIO()
-    for key, value in data.items():
-        df = pd.DataFrame.from_dict(value, orient='index', columns=['내용'])
-        df.to_csv(output, encoding='utf-8-sig')
-    return output.getvalue()
-
-csv_data = save_data_to_csv(data)
+csv_data = save_data(data)
 
 if st.button("제출"):
     st.write("설문이 제출되었습니다. 감사합니다!")
