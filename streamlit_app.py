@@ -169,8 +169,16 @@ for option in selected_options:
         "세부사항": st.session_state.get(f"세부사항_{option}", "")
     }
 
-excel_data = save_data(data)
+# CSV로 데이터 저장
+def save_data_to_csv(data):
+    output = StringIO()
+    for key, value in data.items():
+        df = pd.DataFrame.from_dict(value, orient='index', columns=['내용'])
+        df.to_csv(output, encoding='utf-8-sig')
+    return output.getvalue()
+
+csv_data = save_data_to_csv(data)
 
 if st.button("제출"):
     st.write("설문이 제출되었습니다. 감사합니다!")
-    st.download_button(label="발주요청서 다운로드", data=excel_data, file_name=f"{용역담당자}_{용역명}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    st.download_button(label="발주요청서 다운로드", data=csv_data, file_name=f"{용역담당자}_{용역명}.csv", mime="text/csv")
