@@ -133,7 +133,7 @@ for option in selected_options:
 # 데이터 저장 및 다운로드
 def save_data(data):
     output = StringIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    writer = pd.ExcelWriter(output, engine='openpyxl')
     for key, value in data.items():
         df = pd.DataFrame.from_dict(value, orient='index', columns=['내용'])
         df.to_excel(writer, sheet_name=key)
