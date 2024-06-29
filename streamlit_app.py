@@ -1,7 +1,6 @@
 import streamlit as st
 from datetime import time, date
 import pandas as pd
-import csv
 from io import StringIO
 
 # CSS 스타일 추가
@@ -24,17 +23,13 @@ def format_number(number):
 
 # 예산 합계를 계산하여 표시하는 함수
 def update_total_budget():
-    st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in options)
+    st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in selected_options)
 
-# 필요한 요소 선택 섹션
-st.header("필요한 요소 선택")
-options = ["홍보 전략", "파트너십 및 후원", "티켓 판매", "인력 섭외", "행사 진행", "평가 및 피드백", "영상 및 미디어", "특수 효과", "장비 대여", "VR/AR 기술", "전시 부스", "디자인", "콘텐츠 제작", "인플루언서", "행사 관리", "공연 및 행사", "체험 프로그램", "전시 및 홍보", "시설 관리", "안전 관리", "교통 및 주차", "청소 및 위생"]
-
-# 예산 합계 업데이트
-if 'total_budget' not in st.session_state:
-    st.session_state.total_budget = 0
-update_total_budget()
-st.markdown(f'<div class="fixed-header">현재까지 입력된 예산 총합: {format_number(st.session_state.total_budget)}</div>', unsafe_allow_html=True)
+# 전체 예산 섹션
+st.header("전체 예산")
+총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
+예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
 
 # 기본 정보 섹션
 def basic_info_section():
@@ -92,11 +87,31 @@ def input_section(title):
     else:
         st.markdown(f'<p class="small-text">현재의 기획 정도에 따른 예상 답변: {title} 관련 정보</p>', unsafe_allow_html=True)
 
-# 전체 예산 섹션
-st.header("전체 예산")
-총예산 = st.number_input("전체 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
-예상수익률 = st.number_input("예상 수익률(%)을 입력해주세요.", min_value=0, value=0, step=1, format="%d")
-예상수익금 = 총예산 * 예상수익률 / 100 if 예상수익률 > 0 else st.number_input("예상 수익금을 입력해주세요.", min_value=0, value=0, step=1000, format="%d")
+# 필요한 요소 선택 섹션
+st.header("필요한 요소 선택")
+options = ["홍보 전략", "파트너십 및 후원", "티켓 판매", "인력 섭외", "행사 진행", "평가 및 피드백", "영상 및 미디어", "특수 효과", "장비 대여", "VR/AR 기술", "전시 부스", "디자인", "콘텐츠 제작", "인플루언서", "행사 관리", "공연 및 행사", "체험 프로그램", "전시 및 홍보", "시설 관리", "안전 관리", "교통 및 주차", "청소 및 위생"]
+
+selected_options = st.session_state.get('selected_options', [])
+cols = st.columns(5)
+for i, option in enumerate(options):
+    if cols[i % 5].button(option):
+        if option not in selected_options:
+            selected_options.append(option)
+            st.session_state['selected_options'] = selected_options
+
+# 기타 항목 추가 기능
+if st.checkbox("기타 항목 추가"):
+    new_option = st.text_input("추가할 항목을 입력하세요:")
+    if st.button("추가"):
+        if new_option and new_option not in selected_options:
+            selected_options.append(new_option)
+            st.session_state['selected_options'] = selected_options
+
+# 예산 합계 업데이트
+if 'total_budget' not in st.session_state:
+    st.session_state.total_budget = 0
+update_total_budget()
+st.markdown(f'<div class="fixed-header">현재까지 입력된 예산 총합: {format_number(st.session_state.total_budget)}</div>', unsafe_allow_html=True)
 
 # 기본 정보 입력
 용역명, 용역목적, 목표인원, 용역담당자 = basic_info_section()
@@ -111,7 +126,7 @@ essential_info_section(총예산)
 장소, 장소특이사항 = venue_section()
 
 # 선택된 옵션에 대해 세부 사항 입력
-for option in options:
+for option in selected_options:
     input_section(option)
 
 # 데이터 저장 및 다운로드
@@ -146,7 +161,7 @@ data = {
     },
 }
 
-for option in options:
+for option in selected_options:
     data[option] = {
         "상세기획정도": st.session_state.get(f"상세기획정도_{option}", ""),
         "예산": format_number(st.session_state.get(f"예산_{option}", 0)),
