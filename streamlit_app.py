@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import io
 
 # 페이지 구성 설정
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="이벤트 기획 도구")
 
 # CSS 스타일 적용
 st.markdown("""
@@ -40,10 +40,7 @@ st.markdown("""
         color: white;
         font-weight: bold;
     }
-    .stTextInput>div>div>input {
-        border-radius: 5px;
-    }
-    .stSelectbox>div>div>select {
+    .stTextInput>div>div>input, .stSelectbox>div>div>select {
         border-radius: 5px;
     }
     h1, h2, h3 {
@@ -95,50 +92,6 @@ def improved_schedule_input():
     st.session_state.data['event_duration'] = event_duration
     st.write(f"행사 기간: {event_duration}일")
 
-# 메인 함수
-def main():
-    # 세션 상태 초기화
-    if 'step' not in st.session_state:
-        st.session_state.step = 1
-    if 'data' not in st.session_state:
-        st.session_state.data = {}
-
-    # 단계 정의
-    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
-    total_steps = len(steps)
-
-    # 진행 상황 표시
-    display_progress(st.session_state.step, total_steps)
-
-    # 현재 단계 제목 표시
-    st.markdown(f"<h2 class='step-title'>{steps[st.session_state.step - 1]}</h2>", unsafe_allow_html=True)
-
-    # 메인 컨텐츠
-    if st.session_state.step == 1:
-        display_basic_info()
-    elif st.session_state.step == 2:
-        display_event_overview()
-    elif st.session_state.step == 3:
-        display_event_format_and_venue()
-    elif st.session_state.step == 4:
-        display_event_components()
-    elif st.session_state.step == 5:
-        finalize()
-
-    # 네비게이션 버튼
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.session_state.step > 1:
-            if st.button("이전"):
-                st.session_state.step -= 1
-    with col2:
-        if st.session_state.step < total_steps:
-            if st.button("다음"):
-                if validate_current_step():
-                    st.session_state.step += 1
-                else:
-                    st.error("모든 필수 항목을 채워주세요.")
-
 # 기본 정보 표시 함수
 def display_basic_info():
     st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
@@ -155,34 +108,12 @@ def display_basic_info():
 
     improved_schedule_input()
 
-    # 일정 및 시간 정보 입력
-    st.subheader("일정 및 시간 정보")
-    event_start_date, event_start_time = format_datetime_input("행사 시작", "event_start", datetime.now().date(), '12:00')
-    event_end_date, event_end_time = format_datetime_input("행사 마감", "event_end", datetime.now().date() + timedelta(days=1), '18:00')
-    setup_start_date, setup_start_time = format_datetime_input("셋업 시작", "setup_start", datetime.now().date(), '06:00')
-    rehearsal_start_date, rehearsal_start_time = format_datetime_input("리허설 시작", "rehearsal_start", datetime.now().date(), '09:00')
-    rehearsal_end_date, rehearsal_end_time = format_datetime_input("리허설 마감", "rehearsal_end", datetime.now().date(), '11:00')
-    teardown_end_date, teardown_end_time = format_datetime_input("철수 마무리", "teardown_end", datetime.now().date(), '20:00')
-
-    # 진행 일정 (일 수) 계산
-    if event_start_date and event_end_date:
-        delta = event_end_date - event_start_date
-        st.session_state.data['event_duration'] = delta.days + 1
-        st.write(f"진행 일정: {st.session_state.data['event_duration']}일")
-
-    # 휴식 시간 계산
-    if event_start_time > rehearsal_end_time:
-        st.write(f"휴식 시간: {rehearsal_end_time} - {event_start_time}")
-
-# 행사 개요 입력 섹션
+# 행사 개요 표시 함수
 def display_event_overview():
-    st.header("행사 개요")
-    st.session_state.data['event_purpose'] = st.multiselect("용역의 주요 목적은 무엇인가요?", 
-                                       ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", 
-                                        "수익 창출", "문화/예술 증진", "기타"], 
-                                       default=st.session_state.data.get('event_purpose', []))
+    st.session_state.data['event_purpose'] = st.multiselect("용역의 주요 목적", 
+        ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"],
+        default=st.session_state.data.get('event_purpose', []))
     
-    # 예상 참가자 수
     col1, col2 = st.columns(2)
     with col1:
         participants_undefined = st.checkbox("예상 참가자 수 미정", value=st.session_state.data.get('participants_undefined', False))
@@ -197,21 +128,23 @@ def display_event_overview():
     else:
         st.session_state.data['expected_participants'] = "미정"
 
-    st.session_state.data['contract_type'] = st.radio("계약 형태", ["수의계약", "입찰", "B2B"], index=["수의계약", "입찰", "B2B"].index(st.session_state.data.get('contract_type', '수의계약')))
-    st.session_state.data['budget_status'] = st.radio("예산 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
+    st.session_state.data['contract_type'] = st.selectbox("계약 형태", ["수의계약", "입찰", "B2B"], index=["수의계약", "입찰", "B2B"].index(st.session_state.data.get('contract_type', '수의계약')))
+    st.session_state.data['budget_status'] = st.selectbox("예산 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
                                                       index=["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"].index(st.session_state.data.get('budget_status', '협의 중')))
 
-# 행사 형태 및 장소 입력 섹션
+# 행사 형태 및 장소 표시 함수
 def display_event_format_and_venue():
-    st.header("행사 형태 및 장소")
-    st.session_state.data['event_format'] = st.radio("행사 형태", ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"], 
-                                                     index=["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"].index(st.session_state.data.get('event_format', '오프라인 행사')))
+    st.session_state.data['event_format'] = st.selectbox("행사 형태", 
+        ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"], 
+        index=["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"].index(st.session_state.data.get('event_format', '오프라인 행사')))
     
     if st.session_state.data['event_format'] in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
-        st.session_state.data['venue_type'] = st.radio("행사 장소 유형", ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"], 
-                                                       index=["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"].index(st.session_state.data.get('venue_type', '실내 (호텔, 컨벤션 센터 등)')))
-        st.session_state.data['venue_status'] = st.radio("행사 장소 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
-                                                         index=["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"].index(st.session_state.data.get('venue_status', '협의 중')))
+        st.session_state.data['venue_type'] = st.selectbox("행사 장소 유형", 
+            ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"], 
+            index=["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"].index(st.session_state.data.get('venue_type', '실내 (호텔, 컨벤션 센터 등)')))
+        st.session_state.data['venue_status'] = st.selectbox("행사 장소 협의 상태", 
+            ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
+            index=["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"].index(st.session_state.data.get('venue_status', '협의 중')))
         
         if st.session_state.data['venue_status'] in ["확정됨", "거의 확정됨"]:
             st.session_state.data['specific_venue'] = st.text_input("구체적인 장소", st.session_state.data.get('specific_venue', ''))
@@ -381,7 +314,7 @@ def setup_risk_management():
     if st.session_state.data['리스크 관리']['insurance_needed']:
         st.session_state.data['리스크 관리']['insurance_types'] = st.multiselect("필요한 보험 유형", ["행사 취소 보험", "책임 보험", "재산 보험", "기타"], default=st.session_state.data['리스크 관리'].get('insurance_types', []))
 
-# 설문 완료 섹션
+# 설문 완료 함수
 def finalize():
     st.header("설문 완료")
     st.write("수고하셨습니다! 모든 단계를 완료하셨습니다.")
@@ -410,6 +343,34 @@ def save_survey_data(data):
     # 예: 데이터베이스에 저장, 파일로 저장 등
     pass
 
+# 엑셀 파일 생성 함수
+def generate_excel_file(data, category):
+    output = io.BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    
+    # 공통 정보
+    common_info = pd.DataFrame({
+        '항목': ['이름', '근무 부서', '직급', '주로 기획하는 행사 유형', '용역명', '행사 시작일', '행사 마감일', '진행 일정 (일 수)',
+                 '셋업 시작 시간', '리허설 시작 시간', '리허설 마감 시간', '행사 시작 시간', '행사 마감 시간', '철수 마무리 시간',
+                 '행사 목적', '예상 참가자 수', '계약 형태', '예산 협의 상태', '행사 형태', '행사 장소 유형', '행사 장소'],
+        '내용': [data['name'], data['department'], data['position'], ', '.join(data['event_types']), data['event_name'],
+                data['event_start_date'], data['event_end_date'], data['event_duration'], data['setup_start_time'],
+                data['rehearsal_start_time'], data['rehearsal_end_time'], data['event_start_time'], data['event_end_time'],
+                data['teardown_end_time'], ', '.join(data['event_purpose']), data['expected_participants'],
+                data['contract_type'], data['budget_status'], data['event_format'], data.get('venue_type', 'N/A'),
+                data.get('specific_venue', data.get('expected_area', 'N/A'))]
+    })
+    common_info.to_excel(writer, sheet_name='기본 정보', index=False)
+    
+    # 카테고리별 정보
+    if category in data:
+        category_info = pd.DataFrame(data[category].items(), columns=['항목', '내용'])
+        category_info.to_excel(writer, sheet_name=category, index=False)
+    
+    writer.save()
+    output.seek(0)
+    return output
+
 # 메인 함수
 def main():
     # 세션 상태 초기화
@@ -418,19 +379,19 @@ def main():
     if 'data' not in st.session_state:
         st.session_state.data = {}
 
-    # 사이드바 네비게이션
-    st.sidebar.title("진행 상황")
+    # 단계 정의
     steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
-    for i, step in enumerate(steps, 1):
-        if st.sidebar.button(f"{i}. {step}", key=f"nav_{i}"):
-            if validate_current_step():
-                st.session_state.step = i
-            else:
-                st.error("현재 단계의 모든 필수 항목을 채워주세요.")
+    total_steps = len(steps)
+
+    # 진행 상황 표시
+    display_progress(st.session_state.step, total_steps)
+
+    # 현재 단계 제목 표시
+    st.markdown(f"<h2 class='step-title'>{steps[st.session_state.step - 1]}</h2>", unsafe_allow_html=True)
 
     # 메인 컨텐츠
     if st.session_state.step == 1:
-        display_basic_info_and_schedule()
+        display_basic_info()
     elif st.session_state.step == 2:
         display_event_overview()
     elif st.session_state.step == 3:
@@ -440,9 +401,6 @@ def main():
     elif st.session_state.step == 5:
         finalize()
 
-    # 진행 상황 바
-    st.sidebar.progress(st.session_state.step / len(steps))
-
     # 네비게이션 버튼
     col1, col2 = st.columns(2)
     with col1:
@@ -450,7 +408,7 @@ def main():
             if st.button("이전"):
                 st.session_state.step -= 1
     with col2:
-        if st.session_state.step < len(steps):
+        if st.session_state.step < total_steps:
             if st.button("다음"):
                 if validate_current_step():
                     st.session_state.step += 1
