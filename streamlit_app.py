@@ -65,8 +65,15 @@ def improved_schedule_input():
     col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input("행사 시작일", value=st.session_state.data.get('event_start_date', datetime.now().date()))
+    
+    # 종료일 자동 조정 로직
+    if 'event_end_date' not in st.session_state.data or st.session_state.data['event_end_date'] < start_date:
+        end_date = start_date
+    else:
+        end_date = st.session_state.data['event_end_date']
+    
     with col2:
-        end_date = st.date_input("행사 종료일", value=st.session_state.data.get('event_end_date', start_date), min_value=start_date)
+        end_date = st.date_input("행사 종료일", value=end_date, min_value=start_date)
     
     st.session_state.data['event_start_date'] = start_date
     st.session_state.data['event_end_date'] = end_date
