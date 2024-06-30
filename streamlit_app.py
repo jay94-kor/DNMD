@@ -85,9 +85,33 @@ def validate_current_step():
     required_fields = step_validations.get(st.session_state.step, [])
     return all(st.session_state.data.get(field) for field in required_fields)
 
-# 기본 정보 입력 섹션
-def display_basic_info():
-    st.header("기본 정보")
+# 날짜와 시간을 자동으로 형식화하는 함수
+def format_datetime_input(label, key, default_date, default_time):
+    col1, col2 = st.columns(2)
+    with col1:
+        date_input = st.date_input(f"{label} 날짜", value=st.session_state.data.get(f"{key}_date", default_date))
+    with col2:
+        time_input = st.text_input(f"{label} 시간 (HHMM)", value=st.session_state.data.get(f"{key}_time", default_time))
+
+        # 시간 형식 자동 변환
+        if len(time_input) == 2 and time_input.isdigit():
+            time_input = f"{time_input[:2]}:"
+        elif len(time_input) == 4 and time_input.isdigit():
+            time_input = f"{time_input[:2]}:{time_input[2:]}"
+        elif len(time_input) == 5 and time_input[2] == ":" and time_input.replace(":", "").isdigit():
+            pass
+        else:
+            time_input = default_time
+
+    st.session_state.data[f"{key}_date"] = date_input
+    st.session_state.data[f"{key}_time"] = time_input
+    return date_input, time_input
+
+# 기본 정보 및 일정 관련 정보 표시 함수
+def display_basic_info_and_schedule():
+    st.header("기본 정보 및 일정")
+
+    # 기본 정보 입력
     st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
@@ -97,58 +121,24 @@ def display_basic_info():
     st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"], default=st.session_state.data.get('event_types', []))
     st.session_state.data['event_name'] = st.text_input("용역명", st.session_state.data.get('event_name', ''))
 
-# 일정 및 시간 관련 정보 섹션
-def display_schedule_and_time_info():
-    st.subheader("일정 및 시간 관련 정보")
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.text_input("행사 시작일 (YYYY-MM-DD)", value=st.session_state.data.get('event_start_date', datetime.now().strftime('%Y-%m-%d')))
-    with col2:
-        end_date = st.text_input("행사 마감일 (YYYY-MM-DD)", value=st.session_state.data.get('event_end_date', (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')))
+    # 일정 및 시간 정보 입력
+    st.subheader("일정 및 시간 정보")
+    event_start_date, event_start_time = format_datetime_input("행사 시작", "event_start", datetime.now().date(), '12:00')
+    event_end_date, event_end_time = format_datetime_input("행사 마감", "event_end", datetime.now().date() + timedelta(days=1), '18:00')
+    setup_start_date, setup_start_time = format_datetime_input("셋업 시작", "setup_start", datetime.now().date(), '06:00')
+    rehearsal_start_date, rehearsal_start_time = format_datetime_input("리허설 시작", "rehearsal_start", datetime.now().date(), '09:00')
+    rehearsal_end_date, rehearsal_end_time = format_datetime_input("리허설 마감", "rehearsal_end", datetime.now().date(), '11:00')
+    teardown_end_date, teardown_end_time = format_datetime_input("철수 마무리", "teardown_end", datetime.now().date(), '20:00')
 
     # 진행 일정 (일 수) 계산
-    if start_date and end_date:
-        delta = datetime.strptime(end_date, '%Y-%m-%d') - datetime.strptime(start_date, '%Y-%m-%d')
+    if event_start_date and event_end_date:
+        delta = event_end_date - event_start_date
         st.session_state.data['event_duration'] = delta.days + 1
         st.write(f"진행 일정: {st.session_state.data['event_duration']}일")
 
-    # 셋업 시작 시간
-    setup_day = st.radio("셋업 시작일", ["전일", "당일"])
-    if setup_day == "전일":
-        setup_date = datetime.strptime(start_date, '%Y-%m-%d') - timedelta(days=1)
-    else:
-        setup_date = datetime.strptime(start_date, '%Y-%m-%d')
-
-    def format_time_input(label, key, default):
-        time_input = st.text_input(label, value=st.session_state.data.get(key, default))
-        if time_input.isdigit() and len(time_input) == 4:
-            time_input = f"{time_input[:2]}:{time_input[2:]}"
-        st.session_state.data[key] = time_input
-        return time_input
-
-    setup_start_time = format_time_input("셋업 시작 시간 (HH:MM)", 'setup_start_time', '0600')
-
-    # 리허설 시간
-    col1, col2 = st.columns(2)
-    with col1:
-        rehearsal_start = format_time_input("리허설 시작 시간 (HH:MM)", 'rehearsal_start_time', '0900')
-    with col2:
-        rehearsal_end = format_time_input("리허설 마감 시간 (HH:MM)", 'rehearsal_end_time', '1100')
-
-    # 행사 시작 및 마감 시간
-    col1, col2 = st.columns(2)
-    with col1:
-        event_start = format_time_input("행사 시작 시간 (HH:MM)", 'event_start_time', '1200')
-    with col2:
-        event_end = format_time_input("행사 마감 시간 (HH:MM)", 'event_end_time', '1800')
-
     # 휴식 시간 계산
-    if event_start > rehearsal_end:
-        st.write(f"휴식 시간: {rehearsal_end} - {event_start}")
-
-    # 철수 마무리 시간
-    teardown_end_time = format_time_input("철수 마무리 시간 (HH:MM)", 'teardown_end_time', '2000')
-
+    if event_start_time > rehearsal_end_time:
+        st.write(f"휴식 시간: {rehearsal_end_time} - {event_start_time}")
 
 # 행사 개요 입력 섹션
 def display_event_overview():
@@ -394,9 +384,6 @@ def main():
     if 'data' not in st.session_state:
         st.session_state.data = {}
 
-    # 일정 및 시간 관련 정보 섹션
-    display_schedule_and_time_info()
-
     # 사이드바 네비게이션
     st.sidebar.title("진행 상황")
     steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
@@ -409,7 +396,7 @@ def main():
 
     # 메인 컨텐츠
     if st.session_state.step == 1:
-        display_basic_info()
+        display_basic_info_and_schedule()
     elif st.session_state.step == 2:
         display_event_overview()
     elif st.session_state.step == 3:
