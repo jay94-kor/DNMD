@@ -1,167 +1,147 @@
 import streamlit as st
-from datetime import time, date
 import pandas as pd
-from io import StringIO
 
-# CSS 스타일 추가
-st.markdown("""
-    <style>
-    .block-container { padding: 1rem; }
-    .stButton button { width: 100%; height: 3rem; margin: 0.2rem; white-space: nowrap; }
-    .small-text { font-size: 0.8rem; color: gray; }
-    .fixed-header {
-        position: fixed; top: 0; right: 0; width: 200px;
-        background-color: white; z-index: 100;
-        padding: 10px; border: 1px solid #ddd;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+def main():
+    st.title("행사 기획 및 분리 발주 설문")
 
-# 숫자 형식 설정 함수
-def format_number(number):
-    return "{:,}원".format(number)
+    # 전역 변수로 사용할 데이터 저장소
+    if 'data' not in st.session_state:
+        st.session_state.data = {}
 
-# 예산 합계를 계산하여 표시하는 함수
-def update_total_budget():
-    if 'selected_options' in st.session_state:
-        st.session_state.total_budget = sum(st.session_state.get(f"예산_{option}", 0) for option in st.session_state['selected_options'] if st.session_state.get(f"예산_{option}", 0) != "미정")
+    st.header("1. 기본 정보")
+    st.session_state.data['name'] = st.text_input("이름")
+    st.session_state.data['email'] = st.text_input("이메일")
+    st.session_state.data['department'] = st.text_input("근무 부서")
+    st.session_state.data['position'] = st.selectbox("직급", ["사원", "대리", "과장", "차장", "부장", "기타"])
+    st.session_state.data['experience'] = st.number_input("행사 기획 경험 (년)", min_value=0, max_value=50)
+    st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"])
 
-# 기본 정보 섹션
-def basic_info_section():
-    st.header("기본 정보")
-    용역명 = st.text_input("용역명이 무엇인가요?", value="")
-    용역목적 = st.text_input("용역의 목적이 무엇인가요?", value="")
-    목표인원 = st.number_input("목표인원은 몇 명인가요?", min_value=0, value=0)
-    용역담당자 = st.text_input("용역 담당자의 이름을 적어주세요.", value="")
-    return 용역명, 용역목적, 목표인원, 용역담당자
+    st.header("2. 행사 개요")
+    st.session_state.data['has_current_event'] = st.radio("현재 계획 중인 행사가 있나요?", ["예", "아니오"])
+    if st.session_state.data['has_current_event'] == "예":
+        st.session_state.data['event_description'] = st.text_area("간단히 설명해주세요")
 
-# 필수 정보 섹션
-def essential_info_section():
-    st.header("예산 관리")
-    부가세_포함 = st.radio("부가세 포함 여부를 선택해주세요.", ("포함", "별도"))
-    return 부가세_포함
+    st.session_state.data['event_purpose'] = st.multiselect("행사의 주요 목적은 무엇인가요?", 
+                                   ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", 
+                                    "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"])
 
-# 일정 계획 섹션
-def schedule_section():
-    st.header("일정 계획")
-    일정_미정 = st.checkbox("일정이 미정인가요?")
-    if 일정_미정:
-        준비일정 = st.date_input("행사 시작일을 선택해주세요. (예상)", date.today())
-        종료일정 = st.date_input("행사 종료일을 선택해주세요. (예상)", date.today())
-        셋업시간 = st.time_input("셋업 시간 (예상)", time(9, 0))
-        시작시간 = st.time_input("시작 시간 (예상)", time(10, 0))
-        마감시간 = st.time_input("마감 시간 (예상)", time(18, 0))
+    st.session_state.data['expected_participants'] = st.select_slider("예상 참가자 수", 
+                                             options=["50명 미만", "50-100명", "101-500명", "501-1000명", "1000명 이상"])
+
+    st.session_state.data['budget_status'] = st.radio("예산 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"])
+    if st.session_state.data['budget_status'] in ["확정됨", "거의 확정됨"]:
+        st.session_state.data['budget_range'] = st.select_slider("행사 예산 범위", 
+                                    options=["1000만원 미만", "1000만원 - 5000만원", "5000만원 - 1억원", 
+                                             "1억원 - 5억원", "5억원 이상"])
     else:
-        준비일정 = st.date_input("행사 시작일을 선택해주세요.", date.today())
-        종료일정 = st.date_input("행사 종료일을 선택해주세요.", date.today())
-        셋업시간 = st.time_input("셋업 시간", time(9, 0))
-        시작시간 = st.time_input("시작 시간", time(10, 0))
-        마감시간 = st.time_input("마감 시간", time(18, 0))
-    return 준비일정, 종료일정, 셋업시간, 시작시간, 마감시간
+        st.info("예산이 확정되면 더 정확한 계획을 세울 수 있습니다.")
 
-# 장소 선정 섹션
-def venue_section():
-    st.header("장소 선정")
-    장소 = st.text_input("정해져있다면 행사의 장소를 알려주세요. (없음으로 기재 가능)", value="")
-    장소특이사항 = st.text_area("행사 장소의 특이사항이 있나요?", value="")
-    return 장소, 장소특이사항
+    st.header("3. 행사 형태 및 장소")
+    st.session_state.data['event_format'] = st.radio("행사 형태", ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", 
+                                        "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"])
 
-# 세부 사항 입력 섹션
-def input_section(title):
-    st.header(title)
-    상세기획정도 = st.radio(f"{title}에 대한 상세 기획 정도를 선택해주세요.", ("정해졌다", "거의 정해졌다", "정하는 중이다", "정해지지 않았다", "전혀 정해지지 않았다"))
-    if 상세기획정도 == "정해지지 않았다":
-        예산 = st.radio(f"{title}에 배정된 예산을 선택해주세요.", ("미정", "예산 입력"), key=f"예산선택_{title}")
-        if 예산 == "예산 입력":
-            예산 = st.number_input(f"{title}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{title}")
-    else:
-        예산 = st.number_input(f"{title}에 배정된 예산을 입력해주세요.", min_value=0, value=0, step=1000, format="%d", key=f"예산_{title}")
-    if 상세기획정도 in ["정해졌다", "거의 정해졌다", "정하는 중이다"]:
-        st.text_area(f"{title}에 대한 세부 사항을 입력해주세요.")
-    else:
-        st.markdown(f'<p class="small-text">현재의 기획 정도에 따른 예상 답변: {title} 관련 정보</p>', unsafe_allow_html=True)
-    return 예산
+    if st.session_state.data['event_format'] in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
+        st.session_state.data['venue_type'] = st.radio("행사 장소 유형", ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"])
+        st.session_state.data['venue_status'] = st.radio("행사 장소 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"])
+        if st.session_state.data['venue_status'] in ["확정됨", "거의 확정됨"]:
+            st.session_state.data['venue'] = st.text_input("구체적인 장소")
+        else:
+            st.session_state.data['region'] = st.text_input("예정 지역")
 
-# 기본 정보 입력
-용역명, 용역목적, 목표인원, 용역담당자 = basic_info_section()
+    st.header("4. 행사 구성 요소 및 업체 선택")
+    st.write("필요한 서비스를 선택하고 각 항목에 대한 세부 정보를 입력해주세요.")
 
-# 필수 정보 입력
-부가세_포함 = essential_info_section()
+    # 무대 및 장비
+    st.subheader("무대 및 장비")
+    st.session_state.data['stage_company'] = st.checkbox("무대 설치 업체")
+    if st.session_state.data['stage_company']:
+        st.session_state.data['stage_size_known'] = st.radio("무대 크기가 정해졌나요?", ["예", "아니오"])
+        if st.session_state.data['stage_size_known'] == "예":
+            st.session_state.data['stage_size'] = st.text_input("무대 크기 (예: 10m x 5m)")
+        else:
+            st.session_state.data['stage_capacity'] = st.slider("무대에 동시에 최대 몇 명이 올라갈 예정인가요?", 1, 100)
+            st.session_state.data['stage_performance'] = st.multiselect("무대에서 어떤 종류의 퍼포먼스가 있을 예정인가요?", 
+                                                           ["발표/연설", "음악 공연", "댄스 퍼포먼스", "연극", "기타"])
+        st.session_state.data['stage_design'] = st.text_area("특별한 무대 디자인 요구사항")
 
-# 초기화
-if 'selected_options' not in st.session_state:
-    st.session_state['selected_options'] = []
+    st.session_state.data['sound_company'] = st.checkbox("음향 시스템 업체")
+    if st.session_state.data['sound_company']:
+        st.session_state.data['mic_count'] = st.number_input("필요한 마이크 개수", min_value=1)
+        st.session_state.data['live_music'] = st.checkbox("라이브 음악 공연 포함")
+        st.session_state.data['sound_requirements'] = st.text_area("특별한 음향 요구사항")
 
-# 필요한 요소 선택 섹션
-st.header("필요한 요소 선택")
-options = ["홍보 전략", "파트너십 및 후원", "티켓 판매", "인력 섭외", "행사 진행", "평가 및 피드백", "영상 및 미디어", "특수 효과", "장비 대여", "VR/AR 기술", "전시 부스", "디자인", "콘텐츠 제작", "인플루언서", "행사 관리", "공연 및 행사", "체험 프로그램", "전시 및 홍보", "시설 관리", "안전 관리", "교통 및 주차", "청소 및 위생"]
+    st.session_state.data['lighting_company'] = st.checkbox("조명 장비 업체")
+    if st.session_state.data['lighting_company']:
+        st.session_state.data['special_lighting'] = st.checkbox("특수 조명 효과 필요")
+        st.session_state.data['lighting_requirements'] = st.text_area("조명에 대한 특별한 요구사항")
 
-cols = st.columns(5)
-for i, option in enumerate(options):
-    if cols[i % 5].button(option):
-        if option not in st.session_state['selected_options']:
-            st.session_state['selected_options'].append(option)
+    st.session_state.data['led_company'] = st.checkbox("LED 스크린 업체")
+    if st.session_state.data['led_company']:
+        st.session_state.data['led_size_known'] = st.radio("LED 스크린 크기가 정해졌나요?", ["예", "아니오"])
+        if st.session_state.data['led_size_known'] == "예":
+            st.session_state.data['led_size'] = st.text_input("LED 스크린 크기 (예: 5m x 3m)")
+        else:
+            st.session_state.data['led_purpose'] = st.multiselect("LED 스크린의 주요 용도는 무엇인가요?", 
+                                                     ["프레젠테이션 표시", "라이브 중계", "배경 그래픽", "기타"])
 
-# 기타 항목 추가 기능
-if st.checkbox("기타 항목 추가"):
-    new_option = st.text_input("추가할 항목을 입력하세요:")
-    if st.button("추가"):
-        if new_option and new_option not in st.session_state['selected_options']:
-            st.session_state['selected_options'].append(new_option)
+    # 통역 및 케이터링
+    st.subheader("통역 및 케이터링")
+    st.session_state.data['interpretation_company'] = st.checkbox("동시통역 시스템 업체")
+    if st.session_state.data['interpretation_company']:
+        st.session_state.data['languages'] = st.multiselect("필요한 언어", ["영어", "중국어", "일본어", "기타"])
+        st.session_state.data['interpreter_needed'] = st.checkbox("통역사 필요")
 
-# 선택된 옵션에 대해 예산 합계 업데이트 및 입력
-예산_항목들 = {}
-for option in st.session_state['selected_options']:
-    예산_항목들[option] = input_section(option)
+    st.session_state.data['catering_company'] = st.checkbox("케이터링 서비스 업체")
+    if st.session_state.data['catering_company']:
+        st.session_state.data['meal_type'] = st.radio("식사 유형", ["뷔페", "플레이티드 서비스", "칵테일 리셉션", "기타"])
+        st.session_state.data['special_diet'] = st.text_area("특별 식단 요구사항 (예: 채식, 할랄 등)")
 
-# 예산 합계 업데이트
-if 'total_budget' not in st.session_state:
-    st.session_state.total_budget = 0
-update_total_budget()
-st.markdown(f'<div class="fixed-header">현재까지 입력된 예산 총합: {format_number(st.session_state.total_budget)}</div>', unsafe_allow_html=True)
+    # 마케팅 및 홍보
+    st.subheader("마케팅 및 홍보")
+    st.session_state.data['marketing_channels'] = st.multiselect("사용할 홍보 채널", 
+                                        ["소셜 미디어", "이메일 마케팅", "언론 보도", "온라인 광고", 
+                                         "오프라인 광고 (현수막, 포스터 등)", "인플루언서 마케팅", "기타"])
+    
+    st.session_state.data['branding_status'] = st.radio("행사 브랜딩 계획 상태", ["확정됨", "거의 확정됨", "기획 중", "아직 시작 못함"])
+    if st.session_state.data['branding_status'] in ["확정됨", "거의 확정됨", "기획 중"]:
+        st.session_state.data['branding_plan'] = st.text_area("브랜딩 계획 설명")
 
-# 일정 계획 입력
-준비일정, 종료일정, 셋업시간, 시작시간, 마감시간 = schedule_section()
+    # 인력 관리
+    st.subheader("인력 관리")
+    st.session_state.data['staff_number'] = st.number_input("행사 당일 필요한 예상 인력", min_value=1)
+    st.session_state.data['external_staff'] = st.multiselect("외부에서 고용할 필요가 있는 인력", 
+                                    ["행사 진행 요원", "보안 요원", "기술 지원 인력", "MC 또는 사회자", 
+                                     "공연자 또는 연사", "촬영 및 영상 제작 팀", "기타"])
 
-# 장소 선정 입력
-장소, 장소특이사항 = venue_section()
+    # 공연자 또는 연사 정보 (무대 정보와 연계)
+    if "공연자 또는 연사" in st.session_state.data['external_staff']:
+        if 'stage_performance' in st.session_state.data:
+            st.write("선택하신 무대 퍼포먼스:", st.session_state.data['stage_performance'])
+        st.session_state.data['performer_count'] = st.number_input("공연자 또는 연사의 총 인원", min_value=1)
+        st.session_state.data['performer_details'] = st.text_area("공연자 또는 연사에 대한 추가 정보")
 
-# 데이터 저장 및 다운로드
-def save_data(data):
-    output = StringIO()
-    for key, value in data.items():
-        df = pd.DataFrame.from_dict(value, orient='index', columns=['내용'])
-        df.to_csv(output, encoding='utf-8-sig')
-    return output.getvalue()
+    # 기술 및 장비
+    st.subheader("기술 및 장비")
+    st.session_state.data['tech_requirements'] = st.multiselect("필요한 기술적 요구사항", 
+                                       ["와이파이 네트워크", "라이브 스트리밍 장비", "촬영 장비", 
+                                        "행사 관리 소프트웨어", "모바일 앱", "VR/AR 기술", "기타"])
 
-data = {
-    "기본정보": {
-        "용역명": 용역명,
-        "용역목적": 용역목적,
-        "목표인원": 목표인원,
-        "용역담당자": 용역담당자,
-    },
-    "필수정보": {
-        "부가세_포함": 부가세_포함,
-        "준비일정": 준비일정,
-        "종료일정": 종료일정,
-        "셋업시간": 셋업시간,
-        "시작시간": 시작시간,
-        "마감시간": 마감시간,
-        "장소": 장소,
-        "장소특이사항": 장소특이사항,
-    },
-}
+    # 예산 및 스폰서십
+    st.subheader("예산 및 스폰서십")
+    st.session_state.data['sponsorship_status'] = st.radio("스폰서 유치 계획 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"])
+    if st.session_state.data['sponsorship_status'] in ["확정됨", "거의 확정됨", "협의 중"]:
+        st.session_state.data['sponsorship_types'] = st.multiselect("고려 중인 스폰서십 유형", 
+                                           ["금전적 후원", "현물 협찬", "미디어 파트너십", "기술 파트너십", "기타"])
 
-for option in st.session_state['selected_options']:
-    data[option] = {
-        "예산": format_number(예산_항목들[option]) if 예산_항목들[option] != "미정" else "미정",
-        "상세기획정도": st.session_state.get(f"상세기획정도_{option}", ""),
-        "세부사항": st.session_state.get(f"세부사항_{option}", "")
-    }
+    # 리스크 관리
+    st.subheader("리스크 관리")
+    st.session_state.data['potential_risks'] = st.multiselect("우려되는 잠재적 리스크", 
+                                     ["날씨 (야외 행사의 경우)", "예산 초과", "참가자 수 미달", 
+                                      "기술적 문제", "안전 및 보안 문제", "기타"])
+    
+    st.session_state.data['risk_mitigation_status'] = st.radio("리스크 대비책 수립 상태", ["완료", "진행 중", "시작 전", "도움 필요"])
+    if st.session_state.data['risk_mitigation_status'] in ["완료", "진행 중"]:
+        st.session_state.data['risk_mitigation_plan'] = st.text_area("리스크 대비책 설명")
 
-csv_data = save_data(data)
-
-if st.button("제출"):
-    st.write("설문이 제출되었습니다. 감사합니다!")
-    st.download_button(label="발주요청서 다운로드", data=csv_data, file_name=f"{용역담당자}_{용역명}.csv", mime="text/csv")
+    # 평가 및 피드백
+    st.subheader
