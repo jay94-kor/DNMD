@@ -99,12 +99,12 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         if st.session_state.step > 1:
-            if button("이전", key=f"prev_{st.session_state.step}"):
+            if st.button("이전", key="prev_button"):
                 st.session_state.step -= 1
                 st.experimental_rerun()
     with col2:
         if st.session_state.step < total_steps:
-            if button("다음", key=f"next_{st.session_state.step}"):
+            if st.button("다음", key="next_button"):
                 if validate_current_step():
                     st.session_state.step += 1
                     st.experimental_rerun()
