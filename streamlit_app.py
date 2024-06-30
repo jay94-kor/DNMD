@@ -15,16 +15,29 @@ def main():
     collect_tech_and_equipment()
     collect_budget_and_sponsorship()
     collect_risk_management()
-    calculate_net_profit()
 
 def collect_basic_info():
     st.header("1. 기본 정보")
-    st.session_state.data['name'] = st.text_input("이름")
-    st.session_state.data['email'] = st.text_input("이메일")
-    st.session_state.data['department'] = st.text_input("근무 부서")
-    st.session_state.data['position'] = st.radio("직급", ["사원", "대리", "과장", "차장", "부장", "기타"])
-    st.session_state.data['experience'] = st.number_input("행사 기획 경험 (년)", min_value=0, max_value=50)
-    st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"])
+    st.session_state.data['project_name'] = st.text_input("용역명")
+    st.session_state.data['overview'] = st.text_area("개요")
+    st.session_state.data['project_amount'] = st.text_input("용역 금액 (원)")
+
+    st.session_state.data['net_profit'] = st.number_input("순이익 설정 (원)", min_value=0, step=1000)
+    if st.session_state.data['project_amount']:
+        project_amount = float(st.session_state.data['project_amount'])
+        net_profit = float(st.session_state.data['net_profit'])
+        st.session_state.data['net_profit_percentage'] = (net_profit / project_amount) * 100
+        st.write(f"순이익률: {st.session_state.data['net_profit_percentage']:.2f} %")
+    
+    st.session_state.data['event_format'] = st.radio("행사 형태", ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", 
+                                        "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"])
+    if st.session_state.data['event_format'] in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
+        st.session_state.data['venue_type'] = st.radio("행사 장소 유형", ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"])
+        st.session_state.data['venue_status'] = st.radio("행사 장소 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"])
+        if st.session_state.data['venue_status'] in ["확정됨", "거의 확정됨"]:
+            st.session_state.data['venue'] = st.text_input("구체적인 장소")
+        else:
+            st.session_state.data['region'] = st.text_input("예정 지역")
 
 def collect_event_overview():
     st.header("2. 행사 개요")
@@ -33,16 +46,9 @@ def collect_event_overview():
                                    ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", 
                                     "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"])
     st.session_state.data['expected_participants'] = st.text_input("예상 참가자 수")
-    st.session_state.data['budget_status'] = st.radio("예산 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"])
-    if st.session_state.data['budget_status'] in ["확정됨", "거의 확정됨"]:
-        st.session_state.data['budget'] = st.text_input("행사 예산 (원)")
-    else:
-        st.info("예산이 확정되면 더 정확한 계획을 세울 수 있습니다.")
 
 def collect_event_format_and_venue():
     st.header("3. 행사 형태 및 장소")
-    st.session_state.data['event_format'] = st.radio("행사 형태", ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", 
-                                        "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"])
     if st.session_state.data['event_format'] in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
         st.session_state.data['venue_type'] = st.radio("행사 장소 유형", ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"])
         st.session_state.data['venue_status'] = st.radio("행사 장소 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"])
@@ -98,19 +104,6 @@ def collect_risk_management():
     st.session_state.data['risk_mitigation_status'] = st.radio("리스크 대비책 수립 상태", ["완료", "진행 중", "시작 전", "도움 필요"])
     if st.session_state.data['risk_mitigation_status'] in ["완료", "진행 중"]:
         st.session_state.data['risk_mitigation_plan'] = st.text_area("리스크 대비책 설명")
-
-def calculate_net_profit():
-    st.header("10. 순이익률 설정")
-    if 'budget' in st.session_state.data:
-        budget = float(st.session_state.data['budget'])
-        st.session_state.data['net_profit_percentage'] = st.number_input("순이익률 (%)", min_value=0.0, step=0.1)
-        st.session_state.data['net_profit'] = budget * st.session_state.data['net_profit_percentage'] / 100
-        st.write(f"예상 순이익: {st.session_state.data['net_profit']} 원")
-
-    elif 'net_profit' in st.session_state.data:
-        net_profit = float(st.session_state.data['net_profit'])
-        st.session_state.data['net_profit_percentage'] = net_profit / float(st.session_state.data['budget']) * 100
-        st.write(f"순이익률: {st.session_state.data['net_profit_percentage']} %")
 
 if __name__ == "__main__":
     main()
