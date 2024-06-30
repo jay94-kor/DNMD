@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 
+# 페이지 구성 설정
 st.set_page_config(layout="wide")
 
-
-# CSS를 사용하여 앱의 스타일을 개선합니다.
+# CSS 스타일
 st.markdown("""
 <style>
     .stApp {
@@ -75,7 +75,7 @@ def main():
     if 'data' not in st.session_state:
         st.session_state.data = {}
 
-    # 사이드바 (오른쪽)에 네비게이션 배치
+    # 사이드바 네비게이션
     st.sidebar.title("진행 상황")
     steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
     for i, step in enumerate(steps, 1):
@@ -143,15 +143,61 @@ def basic_info():
     st.session_state.data['position'] = st.radio("직급", position_options, index=position_index)
     st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"], default=st.session_state.data.get('event_types', []))
     st.session_state.data['event_name'] = st.text_input("용역명", st.session_state.data.get('event_name', ''))
-    st.session_state.data['event_start_date'] = st.date_input("행사 시작일", value=st.session_state.data.get('event_start_date', datetime.now().date()))
-    st.session_state.data['event_end_date'] = st.date_input("행사 마감일", value=st.session_state.data.get('event_end_date', datetime.now().date()))
-    st.session_state.data['event_duration'] = st.text_input("진행 일정 (일 수)", st.session_state.data.get('event_duration', ''))
+
+    # 일정 관련 정보
+    st.subheader("일정 관련 정보")
+    schedule_status = st.radio("일정 상태", ["확정", "예상"], key="schedule_status")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        start_date = st.date_input("행사 시작일", value=st.session_state.data.get('event_start_date', datetime.now().date()))
+    with col2:
+        end_date = st.date_input("행사 마감일", value=st.session_state.data.get('event_end_date', start_date), min_value=start_date)
+
+    st.session_state.data['event_start_date'] = start_date
+    st.session_state.data['event_end_date'] = end_date
+    
+    # 진행 일정 (일 수) 계산
+    delta = end_date - start_date
+    st.session_state.data['event_duration'] = delta.days + 1
+    st.write(f"진행 일정: {st.session_state.data['event_duration']}일")
+
+    # 셋업 시작 시간
+    setup_day = st.radio("셋업 시작일", ["전일", "당일"])
+    if setup_day == "전일":
+        setup_date = start_date - timedelta(days=1)
+    else:
+        setup_date = start_date
+    
     st.session_state.data['setup_start_time'] = st.time_input("셋업 시작 시간", value=st.session_state.data.get('setup_start_time', datetime.now().time()))
-    st.session_state.data['rehearsal_start_time'] = st.time_input("리허설 시작 시간", value=st.session_state.data.get('rehearsal_start_time', datetime.now().time()))
-    st.session_state.data['rehearsal_end_time'] = st.time_input("리허설 마감 시간", value=st.session_state.data.get('rehearsal_end_time', datetime.now().time()))
-    st.session_state.data['event_start_time'] = st.time_input("행사 시작 시간", value=st.session_state.data.get('event_start_time', datetime.now().time()))
-    st.session_state.data['event_end_time'] = st.time_input("행사 마감 시간", value=st.session_state.data.get('event_end_time', datetime.now().time()))
-    st.session_state.data['teardown_end_time'] = st.time_input("철수 마무리 시간", value=st.session_state.data.get('teardown_end_time', datetime.now().time()))
+
+    # 리허설 시간
+    col1, col2 = st.columns(2)
+    with col1:
+        rehearsal_start = st.time_input("리허설 시작 시간", value=st.session_state.data.get('rehearsal_start_time', datetime.now().time()))
+    with col2:
+        rehearsal_end = st.time_input("리허설 마감 시간", value=st.session_state.data.get('rehearsal_end_time', (datetime.combine(datetime.today(), rehearsal_start) + timedelta(hours=1)).time()))
+
+    st.session_state.data['rehearsal_start_time'] = rehearsal_start
+    st.session_state.data['rehearsal_end_time'] = rehearsal_end
+
+    # 행사 시작 및 마감 시간
+    col1, col2 = st.columns(2)
+    with col1:
+        event_start = st.time_input("행사 시작 시간", value=st.session_state.data.get('event_start_time', rehearsal_end))
+    with col2:
+        event_end = st.time_input("행사 마감 시간", value=st.session_state.data.get('event_end_time', (datetime.combine(datetime.today(), event_start) + timedelta(hours=2)).time()))
+
+    st.session_state.data['event_start_time'] = event_start
+    st.session_state.data['event_end_time'] = event_end
+
+    # 휴식 시간 계산
+    if event_start > rehearsal_end:
+        st.write(f"휴식 시간: {rehearsal_end.strftime('%H:%M')} - {event_start.strftime('%H:%M')}")
+
+    # 철수 마무리 시간
+    teardown_end = st.time_input("철수 마무리 시간", value=st.session_state.data.get('teardown_end_time', (datetime.combine(datetime.today(), event_end) + timedelta(hours=2)).time()))
+    st.session_state.data['teardown_end_time'] = teardown_end
 
 def event_overview():
     st.header("행사 개요")
@@ -159,10 +205,26 @@ def event_overview():
                                        ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", 
                                         "수익 창출", "문화/예술 증진", "기타"], 
                                        default=st.session_state.data.get('event_purpose', []))
-    st.session_state.data['expected_participants'] = st.text_input("예상 참가자 수", st.session_state.data.get('expected_participants', ''))
+    
+    # 예상 참가자 수
+    col1, col2 = st.columns(2)
+    with col1:
+        participants_undefined = st.checkbox("예상 참가자 수 미정", value=st.session_state.data.get('participants_undefined', False))
+    with col2:
+        participants_over_2000 = st.checkbox("2000명 이상", value=st.session_state.data.get('participants_over_2000', False))
+
+    if not participants_undefined:
+        if participants_over_2000:
+            st.session_state.data['expected_participants'] = "2000명 이상"
+        else:
+            st.session_state.data['expected_participants'] = st.slider("예상 참가자 수", 0, 2000, value=st.session_state.data.get('expected_participants', 100))
+    else:
+        st.session_state.data['expected_participants'] = "미정"
+
     st.session_state.data['contract_type'] = st.radio("계약 형태", ["수의계약", "입찰", "B2B"], index=["수의계약", "입찰", "B2B"].index(st.session_state.data.get('contract_type', '수의계약')))
     st.session_state.data['budget_status'] = st.radio("예산 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
                                                       index=["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"].index(st.session_state.data.get('budget_status', '협의 중')))
+
 
 def event_format_and_venue():
     st.header("행사 형태 및 장소")
@@ -179,7 +241,6 @@ def event_format_and_venue():
             st.session_state.data['specific_venue'] = st.text_input("구체적인 장소", st.session_state.data.get('specific_venue', ''))
         else:
             st.session_state.data['expected_area'] = st.text_input("예정 지역", st.session_state.data.get('expected_area', ''))
-
 
 def event_components():
     st.header("행사 구성 요소")
@@ -208,66 +269,69 @@ def setup_stage():
     st.session_state.data['무대 설치'] = st.session_state.data.get('무대 설치', {})
     st.session_state.data['무대 설치']['needed'] = st.checkbox("무대 설치 필요", st.session_state.data['무대 설치'].get('needed', False))
     if st.session_state.data['무대 설치']['needed']:
-        st.session_state.data['무대 설치']['plan_status'] = st.radio("계획 상태", ["확정됨", "거의 확정됨", "정하는 중", "모름"], key="무대_설치_status")
-        if st.session_state.data['무대 설치']['plan_status'] in ["확정됨", "거의 확정됨"]:
-            st.session_state.data['무대 설치']['stage_size'] = st.text_input("무대 크기", st.session_state.data['무대 설치'].get('stage_size', ''))
-        else:
-            st.session_state.data['무대 설치']['expected_stage_size'] = st.text_input("예상 무대 크기", st.session_state.data['무대 설치'].get('expected_stage_size', ''))
-            st.session_state.data['무대 설치']['stage_features'] = st.multiselect("무대에 필요한 기능", ["발표/연설", "음악 공연", "댄스 퍼포먼스", "연극", "기타"], default=st.session_state.data['무대 설치'].get('stage_features', []))
+        st.session_state.data['무대 설치']['stage_features'] = st.multiselect("무대에 필요한 기능", 
+            ["발표/연설", "음악 공연", "댄스 퍼포먼스", "연극", "시상식", "기타"], 
+            default=st.session_state.data['무대 설치'].get('stage_features', []))
+        
+        st.session_state.data['무대 설치']['stage_shape'] = st.radio("무대 형태", 
+            ["단상형 (ㅡ 모양)", "일자형 (ㅣ 모양)", "T자형", "기타"],
+            index=["단상형 (ㅡ 모양)", "일자형 (ㅣ 모양)", "T자형", "기타"].index(st.session_state.data['무대 설치'].get('stage_shape', '단상형 (ㅡ 모양)')))
+        
+        if st.session_state.data['무대 설치']['stage_shape'] == "기타":
+            st.session_state.data['무대 설치']['custom_stage_shape'] = st.text_input("기타 무대 형태 설명", st.session_state.data['무대 설치'].get('custom_stage_shape', ''))
+
+        st.session_state.data['무대 설치']['stage_size'] = st.text_input("무대 크기 (예: 10m x 5m)", st.session_state.data['무대 설치'].get('stage_size', ''))
 
 def setup_sound():
     st.session_state.data['음향 시스템'] = st.session_state.data.get('음향 시스템', {})
     st.session_state.data['음향 시스템']['needed'] = st.checkbox("음향 시스템 필요", st.session_state.data['음향 시스템'].get('needed', False))
     if st.session_state.data['음향 시스템']['needed']:
-        st.session_state.data['음향 시스템']['plan_status'] = st.radio("계획 상태", ["확정됨", "거의 확정됨", "정하는 중", "모름"], key="음향_시스템_status")
-        if st.session_state.data['음향 시스템']['plan_status'] in ["확정됨", "거의 확정됨"]:
-            st.session_state.data['음향 시스템']['required_mic_count'] = st.number_input("필요한 마이크 개수", min_value=1, value=st.session_state.data['음향 시스템'].get('required_mic_count', 1))
-        else:
-            st.session_state.data['음향 시스템']['expected_sound_equipment'] = st.multiselect("예상 음향 장비", ["마이크", "스피커", "믹서", "기타"], default=st.session_state.data['음향 시스템'].get('expected_sound_equipment', []))
+        st.session_state.data['음향 시스템']['setup_type'] = st.radio("음향 시스템 설치 방식", 
+            ["공간과 관객수에 맞게 알아서", "트러스 설치", "바닥 스탠딩", "미정"],
+            index=["공간과 관객수에 맞게 알아서", "트러스 설치", "바닥 스탠딩", "미정"].index(st.session_state.data['음향 시스템'].get('setup_type', '공간과 관객수에 맞게 알아서')))
+        
+        st.session_state.data['음향 시스템']['venue_inspection_needed'] = st.checkbox("장소 답사 필요", st.session_state.data['음향 시스템'].get('venue_inspection_needed', False))
+        st.session_state.data['음향 시스템']['house_music_needed'] = st.checkbox("행사 하우스 음악 필요", st.session_state.data['음향 시스템'].get('house_music_needed', False))
+        st.session_state.data['음향 시스템']['bgm_needed'] = st.checkbox("기념식/시상식 BGM 필요", st.session_state.data['음향 시스템'].get('bgm_needed', False))
 
 def setup_lighting():
     st.session_state.data['조명 장비'] = st.session_state.data.get('조명 장비', {})
     st.session_state.data['조명 장비']['needed'] = st.checkbox("조명 장비 필요", st.session_state.data['조명 장비'].get('needed', False))
     if st.session_state.data['조명 장비']['needed']:
-        st.session_state.data['조명 장비']['plan_status'] = st.radio("계획 상태", ["확정됨", "거의 확정됨", "정하는 중", "모름"], key="조명_장비_status")
-        if st.session_state.data['조명 장비']['plan_status'] in ["확정됨", "거의 확정됨"]:
-            st.session_state.data['조명 장비']['special_light_effect'] = st.checkbox("특수 조명 효과 필요 여부", st.session_state.data['조명 장비'].get('special_light_effect', False))
-        else:
-            st.session_state.data['조명 장비']['expected_light_equipment'] = st.multiselect("예상 조명 장비", ["일반 조명", "무대 조명", "특수 조명", "기타"], default=st.session_state.data['조명 장비'].get('expected_light_equipment', []))
+        st.session_state.data['조명 장비']['lighting_equipment'] = st.multiselect("필요한 조명 장비", 
+            ["일반 조명", "무대 조명", "특수 조명", "LED 조명", "이동식 조명", "기타"],
+            default=st.session_state.data['조명 장비'].get('lighting_equipment', []))
 
 def setup_led():
     st.session_state.data['LED 스크린'] = st.session_state.data.get('LED 스크린', {})
     st.session_state.data['LED 스크린']['needed'] = st.checkbox("LED 스크린 필요", st.session_state.data['LED 스크린'].get('needed', False))
     if st.session_state.data['LED 스크린']['needed']:
-        st.session_state.data['LED 스크린']['plan_status'] = st.radio("계획 상태", ["확정됨", "거의 확정됨", "정하는 중", "모름"], key="LED_스크린_status")
-        if st.session_state.data['LED 스크린']['plan_status'] in ["확정됨", "거의 확정됨"]:
-            st.session_state.data['LED 스크린']['led_screen_size'] = st.text_input("LED 스크린 크기", st.session_state.data['LED 스크린'].get('led_screen_size', ''))
-            st.session_state.data['LED 스크린']['led_screen_purpose'] = st.multiselect("스크린 사용 목적", ["프레젠테이션 표시", "라이브 중계", "배경 그래픽", "기타"], default=st.session_state.data['LED 스크린'].get('led_screen_purpose', []))
-        else:
-            st.session_state.data['LED 스크린']['expected_led_screen_size'] = st.text_input("예상 LED 스크린 크기", st.session_state.data['LED 스크린'].get('expected_led_screen_size', ''))
-
-def setup_interpretation():
-    st.session_state.data['동시통역 시스템'] = st.session_state.data.get('동시통역 시스템', {})
-    st.session_state.data['동시통역 시스템']['needed'] = st.checkbox("동시통역 시스템 필요", st.session_state.data['동시통역 시스템'].get('needed', False))
-    if st.session_state.data['동시통역 시스템']['needed']:
-        st.session_state.data['동시통역 시스템']['plan_status'] = st.radio("계획 상태", ["확정됨", "거의 확정됨", "정하는 중", "모름"], key="동시통역_시스템_status")
-        if st.session_state.data['동시통역 시스템']['plan_status'] in ["확정됨", "거의 확정됨"]:
-            st.session_state.data['동시통역 시스템']['required_languages'] = st.multiselect("필요한 언어", ["영어", "중국어", "일본어", "기타"], default=st.session_state.data['동시통역 시스템'].get('required_languages', []))
-            st.session_state.data['동시통역 시스템']['need_interpreter'] = st.checkbox("통역사 필요 여부", st.session_state.data['동시통역 시스템'].get('need_interpreter', False))
-        else:
-            st.session_state.data['동시통역 시스템']['expected_languages'] = st.multiselect("예상 통역 언어", ["영어", "중국어", "일본어", "기타"], default=st.session_state.data['동시통역 시스템'].get('expected_languages', []))
+        st.session_state.data['LED 스크린']['screen_purpose'] = st.multiselect("스크린 사용 목적", 
+            ["프레젠테이션 표시", "라이브 중계", "배경 그래픽", "무대 세트", "기타"],
+            default=st.session_state.data['LED 스크린'].get('screen_purpose', []))
+        
+        st.session_state.data['LED 스크린']['screen_size'] = st.radio("스크린 크기",
+            ["무대에 꽉 차게", "무대보다 약간 작게", "용도에 맞게 알아서", "정확한 규격 입력"],
+            index=["무대에 꽉 차게", "무대보다 약간 작게", "용도에 맞게 알아서", "정확한 규격 입력"].index(st.session_state.data['LED 스크린'].get('screen_size', '용도에 맞게 알아서')))
+        
+        if st.session_state.data['LED 스크린']['screen_size'] == "정확한 규격 입력":
+            st.session_state.data['LED 스크린']['custom_screen_size'] = st.text_input("LED 스크린 크기 (예: 5m x 3m)", st.session_state.data['LED 스크린'].get('custom_screen_size', ''))
 
 def setup_catering():
     st.session_state.data['케이터링 서비스'] = st.session_state.data.get('케이터링 서비스', {})
     st.session_state.data['케이터링 서비스']['needed'] = st.checkbox("케이터링 서비스 필요", st.session_state.data['케이터링 서비스'].get('needed', False))
     if st.session_state.data['케이터링 서비스']['needed']:
-        st.session_state.data['케이터링 서비스']['plan_status'] = st.radio("계획 상태", ["확정됨", "거의 확정됨", "정하는 중", "모름"], key="케이터링_서비스_status")
-        if st.session_state.data['케이터링 서비스']['plan_status'] in ["확정됨", "거의 확정됨"]:
-            st.session_state.data['케이터링 서비스']['meal_type'] = st.radio("식사 유형", ["뷔페", "플레이티드 서비스", "칵테일 리셉션", "기타"], index=["뷔페", "플레이티드 서비스", "칵테일 리셉션", "기타"].index(st.session_state.data['케이터링 서비스'].get('meal_type', '뷔페')))
-            st.session_state.data['케이터링 서비스']['special_diet_requirements'] = st.text_input("특별 식단 요구사항", st.session_state.data['케이터링 서비스'].get('special_diet_requirements', ''))
-        else:
-            st.session_state.data['케이터링 서비스']['expected_meal_type'] = st.radio("예상 식사 유형", ["뷔페", "플레이티드 서비스", "칵테일 리셉션", "기타"], index=["뷔페", "플레이티드 서비스", "칵테일 리셉션", "기타"].index(st.session_state.data['케이터링 서비스'].get('expected_meal_type', '뷔페')))
-            st.session_state.data['케이터링 서비스']['expected_meal_count'] = st.number_input("예상 인원 수", min_value=1, value=st.session_state.data['케이터링 서비스'].get('expected_meal_count', 1))
+        st.session_state.data['케이터링 서비스']['meal_type'] = st.radio("식사 유형", 
+            ["뷔페", "플레이티드 서비스", "칵테일 리셉션", "도시락", "기타"],
+            index=["뷔페", "플레이티드 서비스", "칵테일 리셉션", "도시락", "기타"].index(st.session_state.data['케이터링 서비스'].get('meal_type', '뷔페')))
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.session_state.data['케이터링 서비스']['staff_meal_count'] = st.slider("스탭 식사 수", 0, 100, st.session_state.data['케이터링 서비스'].get('staff_meal_count', 0))
+        with col2:
+            st.session_state.data['케이터링 서비스']['vip_meal_count'] = st.slider("VIP/클라이언트 식사 수", 0, 100, st.session_state.data['케이터링 서비스'].get('vip_meal_count', 0))
+
+        st.session_state.data['케이터링 서비스']['special_diet_requirements'] = st.text_input("특별 식단 요구사항", st.session_state.data['케이터링 서비스'].get('special_diet_requirements', ''))
 
 def video_production():
     st.session_state.data['영상 제작'] = st.session_state.data.get('영상 제작', {})
