@@ -372,65 +372,38 @@ def finalize():
         categories = ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작"]
         for category in categories:
             if category in st.session_state.data and st.session_state.data[category].get('needed', False):
-                excel_file = generate_excel_file(st.session_state.data, category)
+                csv_file = generate_csv_file(st.session_state.data, category)
                 st.download_button(
                     label=f"{category} 발주요청서 다운로드",
-                    data=excel_file,
-                    file_name=f"{category}_발주요청서_{st.session_state.data['name']}_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    data=csv_file,
+                    file_name=f"{category}_발주요청서_{st.session_state.data['name']}_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
                 )
         
         st.success("발주요청서가 생성되었습니다. 위의 버튼을 클릭하여 각 카테고리별 발주요청서를 다운로드 하세요.")
 
-def save_survey_data(data: Dict[str, Any]) -> bool:
-    try:
-        # 저장 디렉토리 생성
-        save_dir = "survey_results"
-        os.makedirs(save_dir, exist_ok=True)
-        
-        # 파일명 생성 (이름_날짜_시간.json)
-        filename = f"{data['name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = os.path.join(save_dir, filename)
-        
-        # 데이터 전처리
-        processed_data = data.copy()
-        for key, value in processed_data.items():
-            if isinstance(value, (datetime, date)):
-                processed_data[key] = value.isoformat()
-        
-        # JSON 파일로 저장
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(processed_data, f, ensure_ascii=False, indent=4)
-        
-        return True
-    except Exception as e:
-        st.error(f"데이터 저장 중 오류 발생: {str(e)}")
-        return False
-
-def generate_excel_file(data: Dict[str, Any], category: str) -> io.BytesIO:
-    output = io.BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    
+def generate_csv_file(data: Dict[str, Any], category: str) -> str:
     # 공통 정보
     common_info = pd.DataFrame({
         '항목': ['이름', '근무 부서', '직급', '주로 기획하는 행사 유형', '용역명', '행사 시작일', '행사 마감일', '진행 일정 (일 수)',
                  '셋업 시작일', '철수 마감일', '행사 목적', '예상 참가자 수', '계약 형태', '예산 협의 상태', '행사 형태', '행사 장소 유형', '행사 장소'],
         '내용': [data['name'], data['department'], data['position'], ', '.join(data['event_types']), data['event_name'],
-                pd.to_datetime(data['event_start_date']), pd.to_datetime(data['event_end_date']), data['event_duration'],
-                pd.to_datetime(data['setup_date']), pd.to_datetime(data['teardown_date']), ', '.join(data['event_purpose']), data['expected_participants'],
+                data['event_start_date'], data['event_end_date'], data['event_duration'],
+                data['setup_date'], data['teardown_date'], ', '.join(data['event_purpose']), data['expected_participants'],
                 data['contract_type'], data['budget_status'], data['event_format'], data.get('venue_type', 'N/A'),
                 data.get('specific_venue', data.get('expected_area', 'N/A'))]
     })
-    common_info.to_excel(writer, sheet_name='기본 정보', index=False)
     
     # 카테고리별 정보
     if category in data:
         category_info = pd.DataFrame(data[category].items(), columns=['항목', '내용'])
-        category_info.to_excel(writer, sheet_name=category, index=False)
+        result = pd.concat([common_info, pd.DataFrame([['', '']], columns=['항목', '내용']), category_info])
+    else:
+        result = common_info
     
-    writer.save()
-    output.seek(0)
-    return output
+    # CSV 문자열로 변환
+    csv_string = result.to_csv(index=False, encoding='utf-8-sig')
+    return csv_string
 
 def validate_current_step() -> bool:
     step_validations = {
