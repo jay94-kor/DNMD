@@ -67,72 +67,22 @@ def generate_excel_file(data, category):
     output.seek(0)
     return output
 
-# 메인 함수
-def main():
-    st.title("행사 기획 설문")
-
-    # 세션 상태 초기화
-    if 'step' not in st.session_state:
-        st.session_state.step = 1
-    if 'data' not in st.session_state:
-        st.session_state.data = {}
-
-    # 사이드바 네비게이션
-    st.sidebar.title("진행 상황")
-    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
-    for i, step in enumerate(steps, 1):
-        if st.sidebar.button(f"{i}. {step}", key=f"nav_{i}"):
-            if validate_current_step():
-                st.session_state.step = i
-            else:
-                st.error("현재 단계의 모든 필수 항목을 채워주세요.")
-
-    # 메인 컨텐츠
-    if st.session_state.step == 1:
-        display_basic_info()
-    elif st.session_state.step == 2:
-        display_event_overview()
-    elif st.session_state.step == 3:
-        display_event_format_and_venue()
-    elif st.session_state.step == 4:
-        display_event_components()
-    elif st.session_state.step == 5:
-        finalize()
-
-    # 진행 상황 바
-    st.sidebar.progress(st.session_state.step / len(steps))
-
-    # 네비게이션 버튼
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.session_state.step > 1:
-            if st.button("이전"):
-                st.session_state.step -= 1
-    with col2:
-        if st.session_state.step < len(steps):
-            if st.button("다음"):
-                if validate_current_step():
-                    st.session_state.step += 1
-                else:
-                    st.error("모든 필수 항목을 채워주세요.")
-
 # 현재 단계 유효성 검사
 def validate_current_step():
-    if st.session_state.step == 1:
-        required_fields = ['name', 'department', 'position', 'event_types', 'event_name', 'event_start_date', 'event_end_date', 'event_duration']
-    elif st.session_state.step == 2:
-        required_fields = ['event_purpose', 'expected_participants', 'contract_type', 'budget_status']
-    elif st.session_state.step == 3:
-        required_fields = ['event_format']
-        if st.session_state.data.get('event_format') in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
-            required_fields.extend(['venue_type', 'venue_status'])
-            if st.session_state.data.get('venue_status') in ["확정됨", "거의 확정됨"]:
-                required_fields.append('specific_venue')
-            else:
-                required_fields.append('expected_area')
-    else:
-        required_fields = []
+    step_validations = {
+        1: ['name', 'department', 'position', 'event_types', 'event_name', 'event_start_date', 'event_end_date', 'event_duration'],
+        2: ['event_purpose', 'expected_participants', 'contract_type', 'budget_status'],
+        3: ['event_format'],
+    }
 
+    if st.session_state.step == 3 and st.session_state.data.get('event_format') in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
+        step_validations[3].extend(['venue_type', 'venue_status'])
+        if st.session_state.data.get('venue_status') in ["확정됨", "거의 확정됨"]:
+            step_validations[3].append('specific_venue')
+        else:
+            step_validations[3].append('expected_area')
+
+    required_fields = step_validations.get(st.session_state.step, [])
     return all(st.session_state.data.get(field) for field in required_fields)
 
 # 기본 정보 입력 섹션
@@ -437,6 +387,53 @@ def save_survey_data(data):
     # 여기에 데이터를 저장하는 로직을 구현합니다.
     # 예: 데이터베이스에 저장, 파일로 저장 등
     pass
+
+# 메인 함수
+def main():
+    # 세션 상태 초기화
+    if 'step' not in st.session_state:
+        st.session_state.step = 1
+    if 'data' not in st.session_state:
+        st.session_state.data = {}
+
+    # 사이드바 네비게이션
+    st.sidebar.title("진행 상황")
+    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
+    for i, step in enumerate(steps, 1):
+        if st.sidebar.button(f"{i}. {step}", key=f"nav_{i}"):
+            if validate_current_step():
+                st.session_state.step = i
+            else:
+                st.error("현재 단계의 모든 필수 항목을 채워주세요.")
+
+    # 메인 컨텐츠
+    if st.session_state.step == 1:
+        display_basic_info()
+    elif st.session_state.step == 2:
+        display_event_overview()
+    elif st.session_state.step == 3:
+        display_event_format_and_venue()
+    elif st.session_state.step == 4:
+        display_event_components()
+    elif st.session_state.step == 5:
+        finalize()
+
+    # 진행 상황 바
+    st.sidebar.progress(st.session_state.step / len(steps))
+
+    # 네비게이션 버튼
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.session_state.step > 1:
+            if st.button("이전"):
+                st.session_state.step -= 1
+    with col2:
+        if st.session_state.step < len(steps):
+            if st.button("다음"):
+                if validate_current_step():
+                    st.session_state.step += 1
+                else:
+                    st.error("모든 필수 항목을 채워주세요.")
 
 # 프로그램 실행
 if __name__ == "__main__":
