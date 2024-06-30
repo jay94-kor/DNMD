@@ -95,10 +95,12 @@ def basic_info():
         st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
         st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
         position_options = ["파트너 기획자", "선임", "책임", "수석"]
+        current_position = st.session_state.data.get('position', '파트너 기획자')
+        position_index = position_options.index(current_position) if current_position in position_options else 0
         st.session_state.data['position'] = st.radio(
             "직급", 
             position_options,
-            index=position_options.index(st.session_state.data.get('position', '파트너 기획자'))
+            index=position_index
         )
         st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"], default=st.session_state.data.get('event_types', []))
         st.session_state.data['event_name'] = st.text_input("용역명", st.session_state.data.get('event_name', ''))
