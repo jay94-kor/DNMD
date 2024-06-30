@@ -5,6 +5,11 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 import io
 from typing import Dict, Any, List
+from streamlit_extras.switch_page_button import switch_page
+from streamlit_extras.colored_header import colored_header
+from streamlit_extras.add_vertical_space import add_vertical_space
+from streamlit_extras.stateful_button import button
+from streamlit_extras.metric_cards import style_metric_cards
 
 # 상수 정의
 CONFIRMED = "확정됨"
@@ -71,8 +76,12 @@ def main():
     # 진행 상황 표시
     display_progress(st.session_state.step, total_steps)
 
-    # 현재 단계 제목 표시
-    st.markdown(f"<h2 class='step-title'>{steps[st.session_state.step - 1]}</h2>", unsafe_allow_html=True)
+    # 컬러 헤더 사용
+    colored_header(
+        label=f"Step {st.session_state.step}: {steps[st.session_state.step - 1]}",
+        description="이벤트 기획을 위한 단계별 가이드",
+        color_name="blue-70"
+    )
 
     # 메인 컨텐츠
     if st.session_state.step == 1:
@@ -90,15 +99,19 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         if st.session_state.step > 1:
-            if st.button("이전"):
+            if button("이전", key=f"prev_{st.session_state.step}"):
                 st.session_state.step -= 1
+                st.experimental_rerun()
     with col2:
         if st.session_state.step < total_steps:
-            if st.button("다음"):
+            if button("다음", key=f"next_{st.session_state.step}"):
                 if validate_current_step():
                     st.session_state.step += 1
+                    st.experimental_rerun()
                 else:
                     st.error("모든 필수 항목을 채워주세요.")
+
+    add_vertical_space(2)
 
 def display_progress(current_step: int, total_steps: int):
     progress = (current_step / total_steps) * 100
@@ -185,6 +198,16 @@ def display_event_overview():
     
     budget_statuses = [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED]
     st.session_state.data['budget_status'] = st.radio("예산 협의 상태", budget_statuses, index=budget_statuses.index(st.session_state.data.get('budget_status', IN_PROGRESS)))
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(label="예상 참가자 수", value=st.session_state.data['expected_participants'])
+    with col2:
+        st.metric(label="계약 형태", value=st.session_state.data['contract_type'])
+    with col3:
+        st.metric(label="예산 협의 상태", value=st.session_state.data['budget_status'])
+    
+    style_metric_cards()
 
 def display_event_format_and_venue():
     event_formats = ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"]
@@ -430,50 +453,10 @@ def generate_csv_file(data: Dict[str, Any], category: str) -> str:
     csv_string = result.to_csv(index=False, encoding='utf-8-sig')
     return csv_string
 
-# ... (나머지 코드는 그대로 유지)
-
-def main():
-    # 세션 상태 초기화
-    if 'step' not in st.session_state:
-        st.session_state.step = 1
-    if 'data' not in st.session_state:
-        st.session_state.data = {}
-
-    # 단계 정의
-    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
-    total_steps = len(steps)
-
-    # 진행 상황 표시
-    display_progress(st.session_state.step, total_steps)
-
-    # 현재 단계 제목 표시
-    st.markdown(f"<h2 class='step-title'>{steps[st.session_state.step - 1]}</h2>", unsafe_allow_html=True)
-
-    # 메인 컨텐츠
-    if st.session_state.step == 1:
-        display_basic_info()
-    elif st.session_state.step == 2:
-        display_event_overview()
-    elif st.session_state.step == 3:
-        display_event_format_and_venue()
-    elif st.session_state.step == 4:
-        display_event_components()
-    elif st.session_state.step == 5:
-        finalize()
-
-    # 네비게이션 버튼
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.session_state.step > 1:
-            if st.button("이전"):
-                st.session_state.step -= 1
-    with col2:
-        if st.session_state.step < total_steps:
-            if st.button("다음"):
-                if validate_current_step():
-                    st.session_state.step += 1
-                else:
-                    st.error("모든 필수 항목을 채워주세요.")
+def validate_current_step() -> bool:
+    # 여기에 각 단계별 유효성 검사 로직을 구현하세요
+    # 예: 필수 필드가 채워져 있는지 확인
+    return True  # 임시로 항상 True를 반환
 
 if __name__ == "__main__":
     main()
