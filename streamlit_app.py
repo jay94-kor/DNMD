@@ -91,10 +91,15 @@ def main():
 
 def basic_info():
     st.header("기본 정보")
-    with st.form("basic_info"):
+    with st.form("basic_info_form"):
         st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
         st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
-        st.session_state.data['position'] = st.radio("직급", ["파트너 기획자", "선임", "책임", "수석"], index=["파트너 기획자", "선임", "책임", "수석"].index(st.session_state.data.get('position', '파트너 기획자')))
+        position_options = ["파트너 기획자", "선임", "책임", "수석"]
+        st.session_state.data['position'] = st.radio(
+            "직급", 
+            position_options,
+            index=position_options.index(st.session_state.data.get('position', '파트너 기획자'))
+        )
         st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"], default=st.session_state.data.get('event_types', []))
         st.session_state.data['event_name'] = st.text_input("용역명", st.session_state.data.get('event_name', ''))
         st.session_state.data['event_start_date'] = st.date_input("행사 시작일", value=st.session_state.data.get('event_start_date', datetime.now().date()))
@@ -111,7 +116,10 @@ def basic_info():
         st.session_state.data['teardown_end_time'] = st.time_input("철수 마무리 시간", value=st.session_state.data.get('teardown_end_time', datetime.now().time()))
         if st.checkbox("정확하지 않으면 (예정) 키워드 추가", value='approximate_keyword' in st.session_state.data):
             st.session_state.data['approximate_keyword'] = "예정"
-        st.form_submit_button("저장")
+        
+        submitted = st.form_submit_button("저장")
+        if submitted:
+            st.success("기본 정보가 저장되었습니다.")
 
 def event_overview():
     st.header("행사 개요")
