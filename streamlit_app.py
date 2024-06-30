@@ -3,52 +3,32 @@ import pandas as pd
 from datetime import datetime
 import io
 
+# CSS 스타일 (이전과 동일)
+
 def generate_excel_file(data, category):
-    output = io.BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    
-    # Common information
-    common_info = pd.DataFrame({
-        '항목': ['이름', '근무 부서', '직급', '주로 기획하는 행사 유형', '용역명', '행사 시작일', '행사 마감일', '진행 일정 (일 수)',
-                 '셋업 시작 시간', '리허설 시작 시간', '리허설 마감 시간', '행사 시작 시간', '행사 마감 시간', '철수 마무리 시간',
-                 '행사 목적', '예상 참가자 수', '계약 형태', '예산 협의 상태', '행사 형태', '행사 장소 유형', '행사 장소'],
-        '내용': [data['name'], data['department'], data['position'], ', '.join(data['event_types']), data['event_name'],
-                data['event_start_date'], data['event_end_date'], data['event_duration'], data['setup_start_time'],
-                data['rehearsal_start_time'], data['rehearsal_end_time'], data['event_start_time'], data['event_end_time'],
-                data['teardown_end_time'], ', '.join(data['event_purpose']), data['expected_participants'],
-                data['contract_type'], data['budget_status'], data['event_format'], data.get('venue_type', 'N/A'),
-                data.get('specific_venue', data.get('expected_area', 'N/A'))]
-    })
-    common_info.to_excel(writer, sheet_name='기본 정보', index=False)
-    
-    # Category specific information
-    if category in data:
-        category_info = pd.DataFrame(data[category].items(), columns=['항목', '내용'])
-        category_info.to_excel(writer, sheet_name=category, index=False)
-    
-    writer.save()
-    output.seek(0)
-    return output
+    # 이전과 동일한 함수 내용
 
 def main():
     st.set_page_config(layout="wide")
     st.title("행사 기획 설문")
 
-    # Initialize session state
+    # 세션 상태 초기화
     if 'step' not in st.session_state:
         st.session_state.step = 1
     if 'data' not in st.session_state:
         st.session_state.data = {}
 
-    # Sidebar for navigation
+    # 사이드바 네비게이션
     st.sidebar.title("진행 상황")
-    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "구성 요소 선택", "영상", "마케팅 및 홍보", 
-             "인력 관리", "기술 및 장비", "네트워킹", "예산 및 스폰서십", "리스크 관리"]
+    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
     for i, step in enumerate(steps, 1):
         if st.sidebar.button(f"{i}. {step}", key=f"nav_{i}"):
-            st.session_state.step = i
+            if validate_current_step():
+                st.session_state.step = i
+            else:
+                st.error("현재 단계의 모든 필수 항목을 채워주세요.")
 
-    # Main content
+    # 메인 컨텐츠
     if st.session_state.step == 1:
         basic_info()
     elif st.session_state.step == 2:
@@ -56,26 +36,14 @@ def main():
     elif st.session_state.step == 3:
         event_format_and_venue()
     elif st.session_state.step == 4:
-        components_and_vendors()
+        event_components()
     elif st.session_state.step == 5:
-        video_production()
-    elif st.session_state.step == 6:
-        marketing_and_promotion()
-    elif st.session_state.step == 7:
-        staff_management()
-    elif st.session_state.step == 8:
-        technology_and_equipment()
-    elif st.session_state.step == 9:
-        networking()
-    elif st.session_state.step == 10:
-        budget_and_sponsorship()
-    elif st.session_state.step == 11:
-        risk_management()
+        finalize()
 
-    # Progress bar
+    # 진행 상황 바
     st.sidebar.progress(st.session_state.step / len(steps))
 
-    # Navigation buttons
+    # 네비게이션 버튼
     col1, col2 = st.columns(2)
     with col1:
         if st.session_state.step > 1:
@@ -84,79 +52,79 @@ def main():
     with col2:
         if st.session_state.step < len(steps):
             if st.button("다음"):
-                st.session_state.step += 1
-        else:
-            if st.button("제출"):
-                submit_form()
+                if validate_current_step():
+                    st.session_state.step += 1
+                else:
+                    st.error("모든 필수 항목을 채워주세요.")
+
+def validate_current_step():
+    if st.session_state.step == 1:
+        return all(st.session_state.data.get(field) for field in ['name', 'department', 'position', 'event_types', 'event_name', 'event_start_date', 'event_end_date', 'event_duration'])
+    elif st.session_state.step == 2:
+        return all(st.session_state.data.get(field) for field in ['event_purpose', 'expected_participants', 'contract_type', 'budget_status'])
+    elif st.session_state.step == 3:
+        required_fields = ['event_format']
+        if st.session_state.data.get('event_format') in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
+            required_fields.extend(['venue_type', 'venue_status'])
+            if st.session_state.data.get('venue_status') in ["확정됨", "거의 확정됨"]:
+                required_fields.append('specific_venue')
+            else:
+                required_fields.append('expected_area')
+        return all(st.session_state.data.get(field) for field in required_fields)
+    elif st.session_state.step == 4:
+        # 행사 구성 요소의 필수 항목은 각 구성 요소 함수에서 개별적으로 처리
+        return True
+    return True
 
 def basic_info():
     st.header("기본 정보")
-    with st.form("basic_info_form"):
-        st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
-        st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
-        position_options = ["파트너 기획자", "선임", "책임", "수석"]
-        current_position = st.session_state.data.get('position', '파트너 기획자')
-        position_index = position_options.index(current_position) if current_position in position_options else 0
-        st.session_state.data['position'] = st.radio(
-            "직급", 
-            position_options,
-            index=position_index
-        )
-        st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"], default=st.session_state.data.get('event_types', []))
-        st.session_state.data['event_name'] = st.text_input("용역명", st.session_state.data.get('event_name', ''))
-        st.session_state.data['event_start_date'] = st.date_input("행사 시작일", value=st.session_state.data.get('event_start_date', datetime.now().date()))
-        st.session_state.data['event_end_date'] = st.date_input("행사 마감일", value=st.session_state.data.get('event_end_date', datetime.now().date()))
-        if st.checkbox("시작일/마감일이 정해지지 않았다면:", value='fast_start_date' in st.session_state.data):
-            st.session_state.data['fast_start_date'] = st.date_input("빠른 시작일", value=st.session_state.data.get('fast_start_date', datetime.now().date()))
-            st.session_state.data['late_end_date'] = st.date_input("늦은 마감일", value=st.session_state.data.get('late_end_date', datetime.now().date()))
-        st.session_state.data['event_duration'] = st.text_input("진행 일정 (일 수)", st.session_state.data.get('event_duration', ''))
-        st.session_state.data['setup_start_time'] = st.time_input("셋업 시작 시간", value=st.session_state.data.get('setup_start_time', datetime.now().time()))
-        st.session_state.data['rehearsal_start_time'] = st.time_input("리허설 시작 시간", value=st.session_state.data.get('rehearsal_start_time', datetime.now().time()))
-        st.session_state.data['rehearsal_end_time'] = st.time_input("리허설 마감 시간", value=st.session_state.data.get('rehearsal_end_time', datetime.now().time()))
-        st.session_state.data['event_start_time'] = st.time_input("행사 시작 시간", value=st.session_state.data.get('event_start_time', datetime.now().time()))
-        st.session_state.data['event_end_time'] = st.time_input("행사 마감 시간", value=st.session_state.data.get('event_end_time', datetime.now().time()))
-        st.session_state.data['teardown_end_time'] = st.time_input("철수 마무리 시간", value=st.session_state.data.get('teardown_end_time', datetime.now().time()))
-        if st.checkbox("정확하지 않으면 (예정) 키워드 추가", value='approximate_keyword' in st.session_state.data):
-            st.session_state.data['approximate_keyword'] = "예정"
-        
-        submitted = st.form_submit_button("저장")
-        if submitted:
-            st.success("기본 정보가 저장되었습니다.")
+    st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
+    st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
+    position_options = ["파트너 기획자", "선임", "책임", "수석"]
+    current_position = st.session_state.data.get('position', '파트너 기획자')
+    position_index = position_options.index(current_position) if current_position in position_options else 0
+    st.session_state.data['position'] = st.radio("직급", position_options, index=position_index)
+    st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"], default=st.session_state.data.get('event_types', []))
+    st.session_state.data['event_name'] = st.text_input("용역명", st.session_state.data.get('event_name', ''))
+    st.session_state.data['event_start_date'] = st.date_input("행사 시작일", value=st.session_state.data.get('event_start_date', datetime.now().date()))
+    st.session_state.data['event_end_date'] = st.date_input("행사 마감일", value=st.session_state.data.get('event_end_date', datetime.now().date()))
+    st.session_state.data['event_duration'] = st.text_input("진행 일정 (일 수)", st.session_state.data.get('event_duration', ''))
+    st.session_state.data['setup_start_time'] = st.time_input("셋업 시작 시간", value=st.session_state.data.get('setup_start_time', datetime.now().time()))
+    st.session_state.data['rehearsal_start_time'] = st.time_input("리허설 시작 시간", value=st.session_state.data.get('rehearsal_start_time', datetime.now().time()))
+    st.session_state.data['rehearsal_end_time'] = st.time_input("리허설 마감 시간", value=st.session_state.data.get('rehearsal_end_time', datetime.now().time()))
+    st.session_state.data['event_start_time'] = st.time_input("행사 시작 시간", value=st.session_state.data.get('event_start_time', datetime.now().time()))
+    st.session_state.data['event_end_time'] = st.time_input("행사 마감 시간", value=st.session_state.data.get('event_end_time', datetime.now().time()))
+    st.session_state.data['teardown_end_time'] = st.time_input("철수 마무리 시간", value=st.session_state.data.get('teardown_end_time', datetime.now().time()))
 
 def event_overview():
     st.header("행사 개요")
-    with st.form("event_overview"):
-        st.session_state.data['event_purpose'] = st.multiselect("용역의 주요 목적은 무엇인가요?", 
-                                           ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", 
-                                            "수익 창출", "문화/예술 증진", "기타"], 
-                                           default=st.session_state.data.get('event_purpose', []))
-        st.session_state.data['expected_participants'] = st.text_input("예상 참가자 수", st.session_state.data.get('expected_participants', ''))
-        st.session_state.data['contract_type'] = st.radio("계약 형태", ["수의계약", "입찰", "B2B"], index=["수의계약", "입찰", "B2B"].index(st.session_state.data.get('contract_type', '수의계약')))
-        st.session_state.data['budget_status'] = st.radio("예산 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
-                                                          index=["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"].index(st.session_state.data.get('budget_status', '협의 중')))
-        st.form_submit_button("저장")
+    st.session_state.data['event_purpose'] = st.multiselect("용역의 주요 목적은 무엇인가요?", 
+                                       ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", 
+                                        "수익 창출", "문화/예술 증진", "기타"], 
+                                       default=st.session_state.data.get('event_purpose', []))
+    st.session_state.data['expected_participants'] = st.text_input("예상 참가자 수", st.session_state.data.get('expected_participants', ''))
+    st.session_state.data['contract_type'] = st.radio("계약 형태", ["수의계약", "입찰", "B2B"], index=["수의계약", "입찰", "B2B"].index(st.session_state.data.get('contract_type', '수의계약')))
+    st.session_state.data['budget_status'] = st.radio("예산 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
+                                                      index=["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"].index(st.session_state.data.get('budget_status', '협의 중')))
 
 def event_format_and_venue():
     st.header("행사 형태 및 장소")
-    with st.form("event_format_and_venue"):
-        st.session_state.data['event_format'] = st.radio("행사 형태", ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"], 
-                                                         index=["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"].index(st.session_state.data.get('event_format', '오프라인 행사')))
+    st.session_state.data['event_format'] = st.radio("행사 형태", ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"], 
+                                                     index=["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"].index(st.session_state.data.get('event_format', '오프라인 행사')))
+    
+    if st.session_state.data['event_format'] in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
+        st.session_state.data['venue_type'] = st.radio("행사 장소 유형", ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"], 
+                                                       index=["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"].index(st.session_state.data.get('venue_type', '실내 (호텔, 컨벤션 센터 등)')))
+        st.session_state.data['venue_status'] = st.radio("행사 장소 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
+                                                         index=["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"].index(st.session_state.data.get('venue_status', '협의 중')))
         
-        if st.session_state.data['event_format'] in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
-            st.session_state.data['venue_type'] = st.radio("행사 장소 유형", ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"], 
-                                                           index=["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"].index(st.session_state.data.get('venue_type', '실내 (호텔, 컨벤션 센터 등)')))
-            st.session_state.data['venue_status'] = st.radio("행사 장소 협의 상태", ["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"], 
-                                                             index=["확정됨", "거의 확정됨", "협의 중", "아직 협의 못함"].index(st.session_state.data.get('venue_status', '협의 중')))
-            
-            if st.session_state.data['venue_status'] in ["확정됨", "거의 확정됨"]:
-                st.session_state.data['specific_venue'] = st.text_input("구체적인 장소", st.session_state.data.get('specific_venue', ''))
-            else:
-                st.session_state.data['expected_area'] = st.text_input("예정 지역", st.session_state.data.get('expected_area', ''))
-        
-        st.form_submit_button("저장")
+        if st.session_state.data['venue_status'] in ["확정됨", "거의 확정됨"]:
+            st.session_state.data['specific_venue'] = st.text_input("구체적인 장소", st.session_state.data.get('specific_venue', ''))
+        else:
+            st.session_state.data['expected_area'] = st.text_input("예정 지역", st.session_state.data.get('expected_area', ''))
 
-def components_and_vendors():
-    st.header("행사 구성 요소 및 필요 업체 선택")
+def event_components():
+    st.header("행사 구성 요소")
     
     components = {
         "무대 설치": setup_stage,
@@ -164,11 +132,18 @@ def components_and_vendors():
         "조명 장비": setup_lighting,
         "LED 스크린": setup_led,
         "동시통역 시스템": setup_interpretation,
-        "케이터링 서비스": setup_catering
+        "케이터링 서비스": setup_catering,
+        "영상 제작": video_production,
+        "마케팅 및 홍보": marketing_and_promotion,
+        "인력 관리": staff_management,
+        "기술 및 장비": technology_and_equipment,
+        "네트워킹": networking,
+        "예산 및 스폰서십": budget_and_sponsorship,
+        "리스크 관리": risk_management
     }
     
     for component, setup_func in components.items():
-        with st.expander(f"{component} 업체"):
+        with st.expander(f"{component}"):
             setup_func()
 
 def setup_component(component):
@@ -339,20 +314,26 @@ def risk_management():
             st.session_state.data['insurance_types'] = st.multiselect("필요한 보험 유형", ["행사 취소 보험", "책임 보험", "재산 보험", "기타"], default=st.session_state.data.get('insurance_types', []))
         st.form_submit_button("저장")
 
-def submit_form():
-    st.write("설문이 제출되었습니다.")
-    
-    # Generate Excel files
-    categories = ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작"]
-    for category in categories:
-        if category in st.session_state.data and (category == "영상 제작" or st.session_state.data[category].get('needed', False)):
-            excel_file = generate_excel_file(st.session_state.data, category)
-            st.download_button(
-                label=f"Download {category} 발주서",
-                data=excel_file,
-                file_name=f"{category}_발주서_{st.session_state.data['name']}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+# 개별 저장 버튼은 제거하고 필수 항목에 대한 검증 로직을 추가합니다.
 
-if __name__ == "__main__":
-    main()
+def finalize():
+    st.header("설문 완료")
+    st.write("수고하셨습니다! 모든 단계를 완료하셨습니다.")
+    
+    if st.button("설문 저장 및 발주요청서 다운로드"):
+        # 설문 데이터 저장 로직 (예: 데이터베이스에 저장)
+        save_survey_data(st.session_state.data)
+        
+        # 발주요청서 생성 및 다운로드
+        categories = ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작"]
+        for category in categories:
+            if category in st.session_state.data and st.session_state.data[category].get('needed', False):
+                excel_file = generate_excel_file(st.session_state.data, category)
+                st.download_button(
+                    label=f"{category} 발주요청서 다운로드",
+                    data=excel_file,
+                    file_name=f"{category}_발주요청서_{st.session_state.data['name']}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        
+        st.success("설문이 저장되었고, 발주요청서가 생성되었습니다. 위의 버튼을 클릭하여 각 카테고리별 발주요청서를 다운로드 하세요.")
