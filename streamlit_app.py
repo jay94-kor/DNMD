@@ -3,6 +3,9 @@ import pandas as pd
 from datetime import datetime
 import io
 
+st.set_page_config(layout="wide")
+
+
 # CSS를 사용하여 앱의 스타일을 개선합니다.
 st.markdown("""
 <style>
@@ -64,7 +67,6 @@ def generate_excel_file(data, category):
     return output
 
 def main():
-    st.set_page_config(layout="wide")
     st.title("행사 기획 설문")
 
     # 세션 상태 초기화
