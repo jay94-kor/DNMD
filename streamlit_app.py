@@ -105,42 +105,49 @@ def display_schedule_and_time_info():
         start_date = st.text_input("행사 시작일 (YYYY-MM-DD)", value=st.session_state.data.get('event_start_date', datetime.now().strftime('%Y-%m-%d')))
     with col2:
         end_date = st.text_input("행사 마감일 (YYYY-MM-DD)", value=st.session_state.data.get('event_end_date', (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')))
-    
+
     # 진행 일정 (일 수) 계산
     if start_date and end_date:
         delta = datetime.strptime(end_date, '%Y-%m-%d') - datetime.strptime(start_date, '%Y-%m-%d')
         st.session_state.data['event_duration'] = delta.days + 1
         st.write(f"진행 일정: {st.session_state.data['event_duration']}일")
-    
+
     # 셋업 시작 시간
     setup_day = st.radio("셋업 시작일", ["전일", "당일"])
     if setup_day == "전일":
         setup_date = datetime.strptime(start_date, '%Y-%m-%d') - timedelta(days=1)
     else:
         setup_date = datetime.strptime(start_date, '%Y-%m-%d')
-    
-    st.session_state.data['setup_start_time'] = st.text_input("셋업 시작 시간 (HH:MM)", value=st.session_state.data.get('setup_start_time', '06:00'))
-    
+
+    def format_time_input(label, key, default):
+        time_input = st.text_input(label, value=st.session_state.data.get(key, default))
+        if time_input.isdigit() and len(time_input) == 4:
+            time_input = f"{time_input[:2]}:{time_input[2:]}"
+        st.session_state.data[key] = time_input
+        return time_input
+
+    setup_start_time = format_time_input("셋업 시작 시간 (HH:MM)", 'setup_start_time', '0600')
+
     # 리허설 시간
     col1, col2 = st.columns(2)
     with col1:
-        rehearsal_start = st.text_input("리허설 시작 시간 (HH:MM)", value=st.session_state.data.get('rehearsal_start_time', '09:00'))
+        rehearsal_start = format_time_input("리허설 시작 시간 (HH:MM)", 'rehearsal_start_time', '0900')
     with col2:
-        rehearsal_end = st.text_input("리허설 마감 시간 (HH:MM)", value=st.session_state.data.get('rehearsal_end_time', '11:00'))
-    
+        rehearsal_end = format_time_input("리허설 마감 시간 (HH:MM)", 'rehearsal_end_time', '1100')
+
     # 행사 시작 및 마감 시간
     col1, col2 = st.columns(2)
     with col1:
-        event_start = st.text_input("행사 시작 시간 (HH:MM)", value=st.session_state.data.get('event_start_time', '12:00'))
+        event_start = format_time_input("행사 시작 시간 (HH:MM)", 'event_start_time', '1200')
     with col2:
-        event_end = st.text_input("행사 마감 시간 (HH:MM)", value=st.session_state.data.get('event_end_time', '18:00'))
-    
+        event_end = format_time_input("행사 마감 시간 (HH:MM)", 'event_end_time', '1800')
+
     # 휴식 시간 계산
     if event_start > rehearsal_end:
         st.write(f"휴식 시간: {rehearsal_end} - {event_start}")
-    
+
     # 철수 마무리 시간
-    st.session_state.data['teardown_end_time'] = st.text_input("철수 마무리 시간 (HH:MM)", value=st.session_state.data.get('teardown_end_time', '20:00'))
+    teardown_end_time = format_time_input("철수 마무리 시간 (HH:MM)", 'teardown_end_time', '2000')
 
 
 # 행사 개요 입력 섹션
