@@ -14,10 +14,23 @@ st.markdown("""
         margin: 0 auto;
         font-family: 'Arial', sans-serif;
     }
-    .stSidebar {
-        background-color: #f1f3f6;
-        padding: 2rem;
-        border-left: 1px solid #d1d9e6;
+    .progress-bar {
+        width: 100%;
+        background-color: #f0f0f0;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    .progress {
+        width: 0%;
+        height: 20px;
+        background-color: #4CAF50;
+        border-radius: 5px;
+        transition: width 0.5s ease-in-out;
+    }
+    .step-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
     }
     .stButton>button {
         width: 100%;
@@ -39,87 +52,108 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 엑셀 파일 생성 함수
-def generate_excel_file(data, category):
-    output = io.BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-    
-    # 공통 정보
-    common_info = pd.DataFrame({
-        '항목': ['이름', '근무 부서', '직급', '주로 기획하는 행사 유형', '용역명', '행사 시작일', '행사 마감일', '진행 일정 (일 수)',
-                 '셋업 시작 시간', '리허설 시작 시간', '리허설 마감 시간', '행사 시작 시간', '행사 마감 시간', '철수 마무리 시간',
-                 '행사 목적', '예상 참가자 수', '계약 형태', '예산 협의 상태', '행사 형태', '행사 장소 유형', '행사 장소'],
-        '내용': [data['name'], data['department'], data['position'], ', '.join(data['event_types']), data['event_name'],
-                data['event_start_date'], data['event_end_date'], data['event_duration'], data['setup_start_time'],
-                data['rehearsal_start_time'], data['rehearsal_end_time'], data['event_start_time'], data['event_end_time'],
-                data['teardown_end_time'], ', '.join(data['event_purpose']), data['expected_participants'],
-                data['contract_type'], data['budget_status'], data['event_format'], data.get('venue_type', 'N/A'),
-                data.get('specific_venue', data.get('expected_area', 'N/A'))]
-    })
-    common_info.to_excel(writer, sheet_name='기본 정보', index=False)
-    
-    # 카테고리별 정보
-    if category in data:
-        category_info = pd.DataFrame(data[category].items(), columns=['항목', '내용'])
-        category_info.to_excel(writer, sheet_name=category, index=False)
-    
-    writer.save()
-    output.seek(0)
-    return output
+# 진행 상황 표시 함수
+def display_progress(current_step, total_steps):
+    progress = (current_step / total_steps) * 100
+    st.markdown(f"""
+        <div class="progress-bar">
+            <div class="progress" style="width: {progress}%;"></div>
+        </div>
+        <p style="text-align: center;">진행 상황: {current_step} / {total_steps}</p>
+    """, unsafe_allow_html=True)
 
-# 현재 단계 유효성 검사
-def validate_current_step():
-    step_validations = {
-        1: ['name', 'department', 'position', 'event_types', 'event_name', 'event_start_date', 'event_end_date', 'event_duration'],
-        2: ['event_purpose', 'expected_participants', 'contract_type', 'budget_status'],
-        3: ['event_format'],
-    }
-
-    if st.session_state.step == 3 and st.session_state.data.get('event_format') in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
-        step_validations[3].extend(['venue_type', 'venue_status'])
-        if st.session_state.data.get('venue_status') in ["확정됨", "거의 확정됨"]:
-            step_validations[3].append('specific_venue')
-        else:
-            step_validations[3].append('expected_area')
-
-    required_fields = step_validations.get(st.session_state.step, [])
-    return all(st.session_state.data.get(field) for field in required_fields)
-
-# 날짜와 시간을 자동으로 형식화하는 함수
-def format_datetime_input(label, key, default_date, default_time):
+# 개선된 일정 입력 함수
+def improved_schedule_input():
     col1, col2 = st.columns(2)
     with col1:
-        date_input = st.date_input(f"{label} 날짜", value=st.session_state.data.get(f"{key}_date", default_date))
+        start_date = st.date_input("행사 시작일", value=st.session_state.data.get('event_start_date', datetime.now().date()))
     with col2:
-        time_input = st.text_input(f"{label} 시간 (HHMM)", value=st.session_state.data.get(f"{key}_time", default_time))
+        end_date = st.date_input("행사 종료일", value=st.session_state.data.get('event_end_date', start_date))
+    
+    st.session_state.data['event_start_date'] = start_date
+    st.session_state.data['event_end_date'] = end_date
 
-        # 시간 형식 자동 변환
-        if len(time_input) == 2 and time_input.isdigit():
-            time_input = f"{time_input[:2]}:"
-        elif len(time_input) == 4 and time_input.isdigit():
-            time_input = f"{time_input[:2]}:{time_input[2:]}"
-        elif len(time_input) == 5 and time_input[2] == ":" and time_input.replace(":", "").isdigit():
-            pass
-        else:
-            time_input = default_time
+    setup_options = ["전날부터", "당일"]
+    teardown_options = ["당일 철수", "다음날 철수"]
 
-    st.session_state.data[f"{key}_date"] = date_input
-    st.session_state.data[f"{key}_time"] = time_input
-    return date_input, time_input
+    col3, col4 = st.columns(2)
+    with col3:
+        setup_choice = st.selectbox("셋업 시작", setup_options, index=setup_options.index(st.session_state.data.get('setup_choice', '전날부터')))
+    with col4:
+        teardown_choice = st.selectbox("철수", teardown_options, index=teardown_options.index(st.session_state.data.get('teardown_choice', '당일 철수')))
 
-# 기본 정보 및 일정 관련 정보 표시 함수
-def display_basic_info_and_schedule():
-    st.header("기본 정보 및 일정")
+    st.session_state.data['setup_choice'] = setup_choice
+    st.session_state.data['teardown_choice'] = teardown_choice
 
-    # 기본 정보 입력
+    st.session_state.data['setup_date'] = start_date - timedelta(days=1) if setup_choice == "전날부터" else start_date
+    st.session_state.data['teardown_date'] = end_date if teardown_choice == "당일 철수" else end_date + timedelta(days=1)
+
+    st.write(f"셋업 일자: {st.session_state.data['setup_date']}")
+    st.write(f"철수 일자: {st.session_state.data['teardown_date']}")
+
+    event_duration = (end_date - start_date).days + 1
+    st.session_state.data['event_duration'] = event_duration
+    st.write(f"행사 기간: {event_duration}일")
+
+# 메인 함수
+def main():
+    # 세션 상태 초기화
+    if 'step' not in st.session_state:
+        st.session_state.step = 1
+    if 'data' not in st.session_state:
+        st.session_state.data = {}
+
+    # 단계 정의
+    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
+    total_steps = len(steps)
+
+    # 진행 상황 표시
+    display_progress(st.session_state.step, total_steps)
+
+    # 현재 단계 제목 표시
+    st.markdown(f"<h2 class='step-title'>{steps[st.session_state.step - 1]}</h2>", unsafe_allow_html=True)
+
+    # 메인 컨텐츠
+    if st.session_state.step == 1:
+        display_basic_info()
+    elif st.session_state.step == 2:
+        display_event_overview()
+    elif st.session_state.step == 3:
+        display_event_format_and_venue()
+    elif st.session_state.step == 4:
+        display_event_components()
+    elif st.session_state.step == 5:
+        finalize()
+
+    # 네비게이션 버튼
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.session_state.step > 1:
+            if st.button("이전"):
+                st.session_state.step -= 1
+    with col2:
+        if st.session_state.step < total_steps:
+            if st.button("다음"):
+                if validate_current_step():
+                    st.session_state.step += 1
+                else:
+                    st.error("모든 필수 항목을 채워주세요.")
+
+# 기본 정보 표시 함수
+def display_basic_info():
     st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
+    
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
-    current_position = st.session_state.data.get('position', '파트너 기획자')
-    position_index = position_options.index(current_position) if current_position in position_options else 0
-    st.session_state.data['position'] = st.radio("직급", position_options, index=position_index)
-    st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"], default=st.session_state.data.get('event_types', []))
+    st.session_state.data['position'] = st.selectbox("직급", position_options, index=position_options.index(st.session_state.data.get('position', '파트너 기획자')))
+    
+    st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", 
+        ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"], 
+        default=st.session_state.data.get('event_types', []))
+    
     st.session_state.data['event_name'] = st.text_input("용역명", st.session_state.data.get('event_name', ''))
+
+    improved_schedule_input()
 
     # 일정 및 시간 정보 입력
     st.subheader("일정 및 시간 정보")
