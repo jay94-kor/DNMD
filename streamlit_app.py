@@ -356,6 +356,31 @@ def setup_risk_management():
     }
     setup_component("리스크 관리", options)
 
+def save_survey_data(data: Dict[str, Any]) -> bool:
+    try:
+        # 저장 디렉토리 생성
+        save_dir = "survey_results"
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # 파일명 생성 (이름_날짜_시간.json)
+        filename = f"{data['name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filepath = os.path.join(save_dir, filename)
+        
+        # 데이터 전처리
+        processed_data = data.copy()
+        for key, value in processed_data.items():
+            if isinstance(value, (datetime, date)):
+                processed_data[key] = value.isoformat()
+        
+        # JSON 파일로 저장
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(processed_data, f, ensure_ascii=False, indent=4)
+        
+        return True
+    except Exception as e:
+        st.error(f"데이터 저장 중 오류 발생: {str(e)}")
+        return False
+
 def finalize():
     st.header("설문 완료")
     st.write("수고하셨습니다! 모든 단계를 완료하셨습니다.")
@@ -405,24 +430,50 @@ def generate_csv_file(data: Dict[str, Any], category: str) -> str:
     csv_string = result.to_csv(index=False, encoding='utf-8-sig')
     return csv_string
 
-def validate_current_step() -> bool:
-    step_validations = {
-        1: ['name', 'department', 'position', 'event_types', 'event_name', 'event_start_date', 'event_end_date', 'event_duration'],
-        2: ['event_purpose', 'expected_participants', 'contract_type', 'budget_status'],
-        3: ['event_format'],
-        4: [],  # 행사 구성 요소는 선택적이므로 필수 항목 없음
-        5: []   # 마무리 단계는 검증 불필요
-    }
+# ... (나머지 코드는 그대로 유지)
 
-    if st.session_state.step == 3 and st.session_state.data.get('event_format') in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
-        step_validations[3].extend(['venue_type', 'venue_status'])
-        if st.session_state.data.get('venue_status') in [CONFIRMED, ALMOST_CONFIRMED]:
-            step_validations[3].append('specific_venue')
-        else:
-            step_validations[3].append('expected_area')
+def main():
+    # 세션 상태 초기화
+    if 'step' not in st.session_state:
+        st.session_state.step = 1
+    if 'data' not in st.session_state:
+        st.session_state.data = {}
 
-    required_fields = step_validations.get(st.session_state.step, [])
-    return all(st.session_state.data.get(field) for field in required_fields)
+    # 단계 정의
+    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
+    total_steps = len(steps)
+
+    # 진행 상황 표시
+    display_progress(st.session_state.step, total_steps)
+
+    # 현재 단계 제목 표시
+    st.markdown(f"<h2 class='step-title'>{steps[st.session_state.step - 1]}</h2>", unsafe_allow_html=True)
+
+    # 메인 컨텐츠
+    if st.session_state.step == 1:
+        display_basic_info()
+    elif st.session_state.step == 2:
+        display_event_overview()
+    elif st.session_state.step == 3:
+        display_event_format_and_venue()
+    elif st.session_state.step == 4:
+        display_event_components()
+    elif st.session_state.step == 5:
+        finalize()
+
+    # 네비게이션 버튼
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.session_state.step > 1:
+            if st.button("이전"):
+                st.session_state.step -= 1
+    with col2:
+        if st.session_state.step < total_steps:
+            if st.button("다음"):
+                if validate_current_step():
+                    st.session_state.step += 1
+                else:
+                    st.error("모든 필수 항목을 채워주세요.")
 
 if __name__ == "__main__":
     main()
