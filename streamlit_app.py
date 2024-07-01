@@ -189,6 +189,16 @@ def improved_schedule_input():
     st.session_state.data['service_duration'] = service_duration
     st.write(f"용역 기간: {service_duration}일")
 
+def multi_pills(label, options):
+    selected = []
+    st.write(label)
+    cols = st.columns(len(options))
+    for i, option in enumerate(options):
+        with cols[i]:
+            if pills(option, ["선택", "미선택"])[0] == "선택":
+                selected.append(option)
+    return selected
+
 def display_basic_info():
     st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
@@ -197,7 +207,7 @@ def display_basic_info():
     st.session_state.data['position'] = pills("직급", position_options)[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
-    st.session_state.data['service_types'] = pills("주로 하는 용역 유형", service_types, multiselect=True)
+    st.session_state.data['service_types'] = multi_pills("주로 하는 용역 유형", service_types)
     
     st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
@@ -205,7 +215,7 @@ def display_basic_info():
 
 def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
-    st.session_state.data['service_purpose'] = pills("용역의 주요 목적", service_purposes, multiselect=True)
+    st.session_state.data['service_purpose'] = multi_pills("용역의 주요 목적", service_purposes)
     
     input_method = pills("예상 참가자 수 입력 방식", ["단일 값", "범위 설정"], ["#00B4D8", "#CAF0F8"])[0]
     
@@ -304,10 +314,10 @@ def display_service_components():
                     
                     if st.session_state.data[category][subcategory]["needed"]:
                         # 소분류 선택 (다중 선택)
-                        selected_items = pills("항목 선택", items, multiselect=True)
+                        selected_items = multi_pills("항목 선택", items)
                         for item in items:
                             st.session_state.data[category][subcategory][item] = item in selected_items
-                
+
                 # 견적 입력
                 budget_input(f"{category}_budget", f"{category} 예산")
                 
