@@ -190,30 +190,19 @@ def improved_schedule_input():
     service_duration = (end_date - start_date).days + 1
     st.session_state.data['service_duration'] = service_duration
     st.write(f"용역 기간: {service_duration}일")
-
+    
 def multi_select_with_other(label, options):
     st.write(label)
     selections = []
-
-    if f'{label}_selections' not in st.session_state:
-        st.session_state[f'{label}_selections'] = {option: False for option in options}
 
     cols = st.columns(3)  # 3열 레이아웃 사용
     for i, option in enumerate(options):
         with cols[i % 3]:
             if option != "기타":
-                selected = pills(option, ["선택", "미선택"])
-                if selected[0] == "선택":
-                    st.session_state[f'{label}_selections'][option] = not st.session_state[f'{label}_selections'][option]
-                
-                if st.session_state[f'{label}_selections'][option]:
+                if st.checkbox(option, key=f"checkbox_{label}_{option}"):
                     selections.append(option)
             else:
-                selected = pills("기타", ["선택", "미선택"])
-                if selected[0] == "선택":
-                    st.session_state[f'{label}_selections'][option] = not st.session_state[f'{label}_selections'][option]
-                
-                if st.session_state[f'{label}_selections'][option]:
+                if st.checkbox("기타", key=f"checkbox_{label}_other"):
                     other_text = st.text_input("기타 (직접 입력)", key=f"text_{label}_other")
                     if other_text:
                         selections.append(f"기타: {other_text}")
@@ -225,7 +214,7 @@ def display_basic_info():
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
     
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
-    st.session_state.data['position'] = pills("직급", position_options)[0]
+    st.session_state.data['position'] = st.selectbox("직급", position_options)
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
     st.session_state.data['service_types'] = multi_select_with_other("주로 하는 용역 유형", service_types)
