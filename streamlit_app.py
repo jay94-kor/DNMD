@@ -194,7 +194,7 @@ def display_basic_info():
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
     
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
-    st.session_state.data['position'] = pills("직급", position_options, ["#00B4D8"] * len(position_options))[0]
+    st.session_state.data['position'] = pills("직급", position_options)[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
     st.session_state.data['service_types'] = pills("주로 하는 용역 유형", service_types, ["#00B4D8"] * len(service_types))
