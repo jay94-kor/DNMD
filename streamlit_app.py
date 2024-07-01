@@ -220,18 +220,33 @@ def display_basic_info():
 
     improved_schedule_input()
 
+def multi_pills(label, options):
+    st.write(label)
+    selected = []
+    cols = st.columns(3)  # 3열 레이아웃 사용
+    for i, option in enumerate(options):
+        with cols[i % 3]:
+            if pills(option, [option], ["#00B4D8", "#CAF0F8"]):
+                selected.append(option)
+    return selected
+
 def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
-    st.session_state.data['service_purpose'] = multi_select_with_other("용역의 주요 목적", service_purposes)
+    st.session_state.data['service_purpose'] = multi_pills("용역의 주요 목적", service_purposes)
     
-    input_method = st.radio("예상 참가자 수 입력 방식", ["단일 값", "범위 설정"])
+    if "기타" in st.session_state.data['service_purpose']:
+        other_purpose = st.text_input("기타 목적을 입력해주세요")
+        if other_purpose:
+            st.session_state.data['service_purpose'] = [p if p != "기타" else f"기타: {other_purpose}" for p in st.session_state.data['service_purpose']]
+    
+    input_method = pills("예상 참가자 수 입력 방식", ["단일 값", "범위 설정"])[0]
     
     if input_method == "단일 값":
         col1, col2 = st.columns(2)
         with col1:
-            use_slider = st.checkbox("슬라이더 사용")
+            use_slider = pills("슬라이더 사용", ["예", "아니오"])[0] == "예"
         with col2:
-            participants_over_2000 = st.checkbox("2000명 이상")
+            participants_over_2000 = pills("2000명 이상", ["예", "아니오"])[0] == "예"
         
         if participants_over_2000:
             st.session_state.data['expected_participants'] = "2000명 이상"
@@ -261,10 +276,10 @@ def display_service_overview():
         st.session_state.data['expected_participants'] = f"{min_participants} - {max_participants}"
 
     contract_types = ["수의계약", "입찰", "B2B"]
-    st.session_state.data['contract_type'] = st.selectbox("계약 형태", contract_types)
+    st.session_state.data['contract_type'] = pills("계약 형태", contract_types)[0]
     
     budget_statuses = [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED]
-    st.session_state.data['budget_status'] = st.selectbox("예산 협의 상태", budget_statuses)
+    st.session_state.data['budget_status'] = pills("예산 협의 상태", budget_statuses)[0]
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -275,7 +290,7 @@ def display_service_overview():
         st.metric(label="예산 협의 상태", value=st.session_state.data['budget_status'])
     
     style_metric_cards()
-    
+
 def display_service_format_and_venue():
     service_formats = ["오프라인", "온라인", "하이브리드", "기타"]
     st.session_state.data['service_format'] = pills("용역 형태", service_formats)[0]
