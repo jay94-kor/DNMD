@@ -190,12 +190,15 @@ def improved_schedule_input():
     st.write(f"용역 기간: {service_duration}일")
 
 def toggle_pill(label, key):
-    state = st.session_state.get(key, False)
-    if pills(label, [label], ["#CAF0F8" if state else "#FF6B6B"]):
-        st.session_state[key] = not state
+    if key not in st.session_state:
+        st.session_state[key] = False
+    
+    if st.button(label, key=f"btn_{key}"):
+        st.session_state[key] = not st.session_state[key]
+    
     return st.session_state[key]
 
-def multi_pills(label, options, default_selected=[]):
+def multi_pills(label, options):
     st.write(label)
     selected = []
     cols = st.columns(3)  # 3열 레이아웃 사용
@@ -220,6 +223,29 @@ def display_basic_info():
 
     improved_schedule_input()
     
+# CSS를 사용하여 버튼 스타일 지정
+st.markdown("""
+<style>
+    .stButton > button {
+        background-color: #CAF0F8;
+        color: black;
+        border: none;
+        border-radius: 20px;
+        padding: 5px 15px;
+        margin: 5px;
+    }
+    .stButton > button:hover {
+        background-color: #FF6B6B;
+        color: white;
+    }
+    .stButton > button:focus {
+        background-color: #FF6B6B;
+        color: white;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
 def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
     st.session_state.data['service_purpose'] = multi_pills("용역의 주요 목적", service_purposes)
