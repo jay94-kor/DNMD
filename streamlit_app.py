@@ -198,10 +198,10 @@ def multi_select_with_other(label, options):
     for i, option in enumerate(options):
         with cols[i % 3]:
             if option != "기타":
-                if pills(option, [option, ""], ["#00B4D8", "#CAF0F8"]):
+                if pills(option, [option, ""]):
                     selections.append(option)
             else:
-                if pills("기타", ["기타", ""], ["#00B4D8", "#CAF0F8"]):
+                if pills("기타", ["기타", ""]):
                     other_text = st.text_input("기타 (직접 입력)", key=f"text_{label}_other")
                     if other_text:
                         selections.append(f"기타: {other_text}")
@@ -228,7 +228,7 @@ def multi_pills(label, options):
     cols = st.columns(3)  # 3열 레이아웃 사용
     for i, option in enumerate(options):
         with cols[i % 3]:
-            if pills(option, [option, ""], ["#00B4D8", "#CAF0F8"]):
+            if pills(option, [option, ""]):
                 selected.append(option)
     return selected
 
