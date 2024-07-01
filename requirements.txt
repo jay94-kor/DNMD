@@ -5,3 +5,4 @@ streamlit-extras
 streamlit-pills
 numpy
 openpyxl
+streamlit_toggle

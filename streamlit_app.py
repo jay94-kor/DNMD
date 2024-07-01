@@ -13,6 +13,8 @@ from openpyxl.utils import get_column_letter
 from io import BytesIO
 import re
 from streamlit_pills import pills
+from streamlit_toggle import st_toggle_switch
+
 
 # 상수 정의
 CONFIRMED = "확정됨"
@@ -192,16 +194,15 @@ def improved_schedule_input():
 def multi_select_with_other(label, options):
     st.write(label)
     selections = []
-    other_text = ""
 
     cols = st.columns(3)  # 3열 레이아웃 사용
     for i, option in enumerate(options):
         with cols[i % 3]:
             if option != "기타":
-                if pills(option, [option, ""]):
+                if st_toggle_switch(option, key=f"toggle_{label}_{option}"):
                     selections.append(option)
             else:
-                if pills("기타", ["기타", ""]):
+                if st_toggle_switch("기타", key=f"toggle_{label}_other"):
                     other_text = st.text_input("기타 (직접 입력)", key=f"text_{label}_other")
                     if other_text:
                         selections.append(f"기타: {other_text}")
