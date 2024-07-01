@@ -194,15 +194,17 @@ def multi_select_with_other(label, options):
     selections = []
     other_text = ""
 
-    for option in options:
-        if option != "기타":
-            if st.checkbox(option, key=f"checkbox_{label}_{option}"):
-                selections.append(option)
-        else:
-            if st.checkbox("기타", key=f"checkbox_{label}_other"):
-                other_text = st.text_input("기타 (직접 입력)", key=f"text_{label}_other")
-                if other_text:
-                    selections.append(f"기타: {other_text}")
+    cols = st.columns(3)  # 3열 레이아웃 사용
+    for i, option in enumerate(options):
+        with cols[i % 3]:
+            if option != "기타":
+                if pills(option, [option], ["#00B4D8", "#CAF0F8"]):
+                    selections.append(option)
+            else:
+                if pills("기타", ["기타"], ["#00B4D8", "#CAF0F8"]):
+                    other_text = st.text_input("기타 (직접 입력)", key=f"text_{label}_other")
+                    if other_text:
+                        selections.append(f"기타: {other_text}")
 
     return selections
 
@@ -211,7 +213,7 @@ def display_basic_info():
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
     
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
-    st.session_state.data['position'] = st.selectbox("직급", position_options)
+    st.session_state.data['position'] = pills("직급", position_options)[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
     st.session_state.data['service_types'] = multi_select_with_other("주로 하는 용역 유형", service_types)
