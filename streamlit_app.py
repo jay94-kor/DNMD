@@ -180,23 +180,42 @@ def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
     st.session_state.data['service_purpose'] = st.multiselect("용역의 주요 목적", service_purposes, default=st.session_state.data.get('service_purpose', []))
     
-    col1, col2 = st.columns(2)
-    with col1:
-        participants_undefined = st.checkbox("예상 참가자 수 미정", value=st.session_state.data.get('participants_undefined', False))
-    with col2:
-        participants_over_2000 = st.checkbox("2000명 이상", value=st.session_state.data.get('participants_over_2000', False))
-
-    if not participants_undefined:
+    # 예상 참가자 수 입력 방식 선택
+    input_method = st.radio("예상 참가자 수 입력 방식", ["단일 값", "범위 설정"], index=0)
+    
+    if input_method == "단일 값":
+        col1, col2 = st.columns(2)
+        with col1:
+            use_slider = st.checkbox("슬라이더 사용", value=False)
+        with col2:
+            participants_over_2000 = st.checkbox("2000명 이상", value=st.session_state.data.get('participants_over_2000', False))
+        
         if participants_over_2000:
             st.session_state.data['expected_participants'] = "2000명 이상"
         else:
-            # 기존 값을 가져오되, 문자열이나 None이면 기본값 100을 사용
-            current_value = st.session_state.data.get('expected_participants', 100)
-            if isinstance(current_value, str) or current_value is None:
-                current_value = 100
-            st.session_state.data['expected_participants'] = st.slider("예상 참가자 수", 0, 2000, value=int(current_value))
+            if use_slider:
+                current_value = st.session_state.data.get('expected_participants', 100)
+                if isinstance(current_value, str):
+                    try:
+                        current_value = int(current_value)
+                    except ValueError:
+                        current_value = 100
+                st.session_state.data['expected_participants'] = st.slider("예상 참가자 수", 0, 2000, value=int(current_value))
+            else:
+                current_value = st.session_state.data.get('expected_participants', '')
+                if isinstance(current_value, int):
+                    current_value = str(current_value)
+                st.session_state.data['expected_participants'] = st.text_input("예상 참가자 수", value=current_value)
     else:
-        st.session_state.data['expected_participants'] = "미정"
+        col1, col2 = st.columns(2)
+        with col1:
+            min_participants = st.number_input("최소 예상 참가자 수", value=st.session_state.data.get('min_participants', 0), min_value=0)
+        with col2:
+            max_participants = st.number_input("최대 예상 참가자 수", value=st.session_state.data.get('max_participants', 100), min_value=min_participants)
+        
+        st.session_state.data['min_participants'] = min_participants
+        st.session_state.data['max_participants'] = max_participants
+        st.session_state.data['expected_participants'] = f"{min_participants} - {max_participants}"
 
     contract_types = ["수의계약", "입찰", "B2B"]
     st.session_state.data['contract_type'] = st.radio("계약 형태", contract_types, index=contract_types.index(st.session_state.data.get('contract_type', '수의계약')))
