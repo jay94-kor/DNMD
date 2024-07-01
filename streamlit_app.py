@@ -9,7 +9,6 @@ import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from io import BytesIO
-from streamlit_pills import pills
 
 # 상수 정의
 CONFIRMED = "확정됨"
@@ -59,9 +58,6 @@ st.markdown("""
     h1, h2, h3 {
         color: #2c3e50;
     }
-    .stPills span:nth-child(2) {
-        display: none;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -86,9 +82,9 @@ def budget_input(key, label):
     with col1:
         amount = st.text_input(label, value=format_korean_currency(st.session_state.data.get(key, '')))
     with col2:
-        is_undecided = pills("미정", ["예", "아니오"], key=f"pills_{key}")
+        is_undecided = st.radio("미정", ["예", "아니오"], key=f"radio_{key}")
     
-    st.session_state.data[key] = "미정" if is_undecided[0] == "예" else parse_korean_currency(amount)
+    st.session_state.data[key] = "미정" if is_undecided == "예" else parse_korean_currency(amount)
 
 def multi_select_with_other(label, options):
     st.write(label)
@@ -118,64 +114,48 @@ def improved_schedule_input():
 
     col3, col4 = st.columns(2)
     with col3:
-        setup_choice = pills("셋업 시작", ["전날부터", "당일"])
+        setup_choice = st.radio("셋업 시작", ["전날부터", "당일"])
     with col4:
-        teardown_choice = pills("철수", ["당일 철수", "다음날 철수"])
+        teardown_choice = st.radio("철수", ["당일 철수", "다음날 철수"])
 
-    st.session_state.data['setup_choice'] = setup_choice[0] if setup_choice else "전날부터"
-    st.session_state.data['teardown_choice'] = teardown_choice[0] if teardown_choice else "당일 철수"
+    st.session_state.data['setup_choice'] = setup_choice
+    st.session_state.data['teardown_choice'] = teardown_choice
 
-    st.session_state.data['setup_date'] = start_date - timedelta(days=1) if st.session_state.data['setup_choice'] == "전날부터" else start_date
-    st.session_state.data['teardown_date'] = end_date if st.session_state.data['teardown_choice'] == "당일 철수" else end_date + timedelta(days=1)
+    st.session_state.data['setup_date'] = start_date - timedelta(days=1) if setup_choice == "전날부터" else start_date
+    st.session_state.data['teardown_date'] = end_date if teardown_choice == "당일 철수" else end_date + timedelta(days=1)
 
     st.write(f"셋업 일자: {st.session_state.data['setup_date']}")
     st.write(f"철수 일자: {st.session_state.data['teardown_date']}")
 
-    service_duration = (end_date - start_date).days + 1
-    st.session_state.data['service_duration'] = service_duration
-    st.write(f"용역 기간: {service_duration}일")
+    st.write("전체 일정:")
+    st.write(f"셋업: {st.session_state.data['setup_date']}")
+    st.write(f"행사: {start_date} ~ {end_date}")
+    st.write(f"철수: {st.session_state.data['teardown_date']}")
 
 def display_basic_info():
-    st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
-    st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
-    
-    position_options = ["파트너 기획자", "선임", "책임", "수석"]
-    st.session_state.data['position'] = st.selectbox("직급", position_options)
-    
-    service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
-    st.session_state.data['service_types'] = multi_select_with_other("주로 하는 용역 유형", service_types)
-    
-    st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
-
+    st.header("기본 정보")
+    st.session_state.data['event_name'] = st.text_input("행사명", value=st.session_state.data.get('event_name', ''))
+    st.session_state.data['client_name'] = st.text_input("클라이언트명", value=st.session_state.data.get('client_name', ''))
+    st.session_state.data['event_type'] = st.selectbox("행사 유형", ["컨퍼런스", "전시회", "콘서트", "기업 행사", "기타"], index=["컨퍼런스", "전시회", "콘서트", "기업 행사", "기타"].index(st.session_state.data.get('event_type', '컨퍼런스')))
+    st.session_state.data['event_scale'] = st.selectbox("행사 규모", ["소규모 (100명 이하)", "중규모 (100-500명)", "대규모 (500명 이상)"], index=["소규모 (100명 이하)", "중규모 (100-500명)", "대규모 (500명 이상)"].index(st.session_state.data.get('event_scale', '중규모 (100-500명)')))
     improved_schedule_input()
 
-def display_service_overview():
-    service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
-    st.session_state.data['service_purpose'] = multi_select_with_other("용역의 주요 목적", service_purposes)
-    
-    st.session_state.data['expected_participants'] = st.slider(
-        "예상 참가자 수",
-        min_value=0,
-        max_value=1000,
-        value=st.session_state.data.get('expected_participants', 0),
-        step=50
-    )
-    st.write(f"선택된 예상 참가자 수: {st.session_state.data['expected_participants']}명")
-    
-    st.session_state.data['contract_type'] = st.selectbox("계약 형태", ["단발성", "연간 계약", "기타"])
-    st.session_state.data['budget_status'] = st.radio("예산 협의 상태", ["확정", "미확정"])
+def display_venue_info():
+    st.header("장소 정보")
+    st.session_state.data['venue_name'] = st.text_input("장소명", value=st.session_state.data.get('venue_name', ''))
+    st.session_state.data['venue_address'] = st.text_input("주소", value=st.session_state.data.get('venue_address', ''))
+    st.session_state.data['venue_capacity'] = st.number_input("수용 인원", min_value=0, value=st.session_state.data.get('venue_capacity', 0))
+    st.session_state.data['venue_facilities'] = multi_select_with_other("시설 및 장비", ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"])
 
-def display_service_format_and_venue():
-    st.session_state.data['service_format'] = pills("용역 형태", ["오프라인", "온라인", "하이브리드", "기타"])[0]
-    
-    if st.session_state.data['service_format'] in ["오프라인", "하이브리드"]:
-        st.session_state.data['venue_type'] = pills("용역 장소 유형", ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"])[0]
-        st.session_state.data['venue_status'] = pills("용역 장소 협의 상태", [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED])[0]
-        
-        if st.session_state.data['venue_status'] in [CONFIRMED, ALMOST_CONFIRMED]:
-            st.session_state.data['specific_venue'] = st.text_input("구체적인 장소", st.session_state.data.get('specific_venue', ''))
-        else:
-            st.session_state.data['expected_area'] = st.text_input("예정 지역", st.session_state.data.get('expected_area', ''))
+def display_budget_info():
+    st.header("예산 정보")
+    budget_input("total_budget", "총 예산")
+    budget_input("venue_budget", "장소 대여 예산")
+    budget_input("equipment_budget", "장비 대여 예산")
+    budget_input("catering_budget", "케이터링 예산")
+    budget_input("marketing_budget", "마케팅 예산")
+    budget_input("staff_budget", "인력 예산")
+    budget_input("misc_budget", "기타 예산")
 
 def display_service_components():
     st.header("용역 구성 요소")
@@ -187,13 +167,13 @@ def display_service_components():
         with st.expander(f"{category}"):
             st.write(f"## {category}")
             
-            category_selected = pills(f"{category} 선택", ["선택", "미선택"], key=f"pills_{category}")
-            st.session_state.data[category] = {"needed": "선택" in category_selected}
+            category_selected = st.radio(f"{category} 선택", ["선택", "미선택"], key=f"radio_{category}")
+            st.session_state.data[category] = {"needed": category_selected == "선택"}
             
             if st.session_state.data[category]["needed"]:
                 for subcategory, items in subcategories.items():
-                    subcategory_selected = pills(f"{subcategory} 선택", ["선택", "미선택"], key=f"pills_{category}_{subcategory}")
-                    st.session_state.data[category][subcategory] = {"needed": "선택" in subcategory_selected}
+                    subcategory_selected = st.radio(f"{subcategory} 선택", ["선택", "미선택"], key=f"radio_{category}_{subcategory}")
+                    st.session_state.data[category][subcategory] = {"needed": subcategory_selected == "선택"}
                     
                     if st.session_state.data[category][subcategory]["needed"]:
                         selected_items = st.multiselect("항목 선택", items, key=f"multiselect_{category}_{subcategory}", default=[])
@@ -203,189 +183,182 @@ def display_service_components():
                 budget_input(f"{category}_budget", f"{category} 예산")
                 
                 reasons = ["클라이언트의 요청", "제안단계에서 먼저 도움을 줌", "퀄리티가 보장되고, 아는 업체", "동일 과업 경험"]
-                st.session_state.data[category]["업체_선정_이유"] = pills(f"{category} 업체 선정 이유", reasons, key=f"pills_{category}_reason")[0]
+                st.session_state.data[category]["업체_선정_이유"] = st.selectbox(f"{category} 업체 선정 이유", reasons, key=f"select_{category}_reason")
 
-def validate_current_step() -> bool:
-    step = st.session_state.step
-    data = st.session_state.data
-
-    required_fields = {
-        1: ['name', 'department', 'position', 'service_types', 'service_name', 'service_start_date', 'service_end_date'],
-        2: ['service_purpose', 'expected_participants', 'contract_type', 'budget_status'],
-        3: ['service_format']
-    }
-
-    if step in required_fields:
-        for field in required_fields[step]:
-            if field not in data or not data[field]:
-                return False
-        
-        if step == 3 and data['service_format'] in ["오프라인", "하이브리드"]:
-            if 'venue_type' not in data or 'venue_status' not in data:
-                return False
-
-    return True
-def generate_excel_file(data: Dict[str, Any], category: str) -> BytesIO:
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"{category} 발주요청서"
-
-    header_font = Font(name='맑은 고딕', size=12, bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-    header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-
-    headers = ['항목', '내용']
-    for col, header in enumerate(headers, start=1):
-        cell = ws.cell(row=1, column=col, value=header)
-        cell.font, cell.fill, cell.alignment, cell.border = header_font, header_fill, header_alignment, border
-
-    common_info = [
-        ('이름', data['name']),
-        ('근무 부서', data['department']),
-        ('직급', data['position']),
-        ('주로 하는 용역 유형', ', '.join(data['service_types'])),
-        ('용역명', data['service_name']),
-        ('용역 시작일', data['service_start_date']),
-        ('용역 마감일', data['service_end_date']),
-        ('진행 일정 (일 수)', data['service_duration']),
-        ('셋업 시작일', data['setup_date']),
-        ('철수 마감일', data['teardown_date']),
-        ('용역 목적', ', '.join(data['service_purpose'])),
-        ('예상 참가자 수', data['expected_participants']),
-        ('계약 형태', data['contract_type']),
-        ('예산 협의 상태', data['budget_status']),
-        ('용역 형태', data['service_format']),
-        ('용역 장소 유형', data.get('venue_type', 'N/A')),
-        ('용역 장소', data.get('specific_venue', data.get('expected_area', 'N/A')))
-    ]
-
-    for row, (item, content) in enumerate(common_info, start=2):
-        ws.cell(row=row, column=1, value=item).border = border
-        ws.cell(row=row, column=2, value=content).border = border
-
-    if category in data:
-        ws.append(['', ''])
-        ws.append([f'{category} 세부 정보', ''])
-        for item, content in data[category].items():
-            ws.append([item, str(content)])
-            ws.cell(row=ws.max_row, column=1).border = border
-            ws.cell(row=ws.max_row, column=2).border = border
-
-    budget_key = f"{category}_budget"
-    if budget_key in data:
-        ws.append(['', ''])
-        ws.append(['배정 예산', format_korean_currency(data[budget_key])])
-        ws.cell(row=ws.max_row, column=1).border = border
-        ws.cell(row=ws.max_row, column=2).border = border
-
-    for column_cells in ws.columns:
-        length = max(len(str(cell.value)) for cell in column_cells)
-        ws.column_dimensions[get_column_letter(column_cells[0].column)].width = min(length + 2, 50)
-
-    excel_file = BytesIO()
-    wb.save(excel_file)
-    excel_file.seek(0)
-
-    return excel_file
+def display_progress():
+    st.header("진행 상황")
+    progress_options = [NOT_STARTED, IN_PROGRESS, ALMOST_CONFIRMED, CONFIRMED]
+    
+    for category in ["장소 섭외", "장비 대여", "케이터링", "인력 채용", "마케팅 및 홍보"]:
+        st.session_state.data[f"{category}_progress"] = st.selectbox(
+            f"{category} 진행 상황",
+            progress_options,
+            index=progress_options.index=progress_options.index(st.session_state.data.get(f"{category}_progress", NOT_STARTED))
+        )
 
 def save_survey_data(data: Dict[str, Any]) -> bool:
     try:
-        save_dir = "survey_results"
-        os.makedirs(save_dir, exist_ok=True)
-        
-        filename = f"{data['name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = os.path.join(save_dir, filename)
-        
-        processed_data = {k: v.isoformat() if isinstance(v, (datetime, date)) else v for k, v in data.items()}
-        
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(processed_data, f, ensure_ascii=False, indent=4)
-        
+        with open('survey_data.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
         return True
     except Exception as e:
-        st.error(f"데이터 저장 중 오류 발생: {str(e)}")
+        st.error(f"데이터 저장 중 오류 발생: {e}")
         return False
 
-def finalize():
-    st.header("설문 완료")
-    st.write("수고하셨습니다! 모든 단계를 완료하셨습니다.")
+def load_survey_data() -> Dict[str, Any]:
+    try:
+        with open('survey_data.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError:
+        st.error("저장된 데이터를 불러오는 중 오류가 발생했습니다. 새로운 설문을 시작합니다.")
+        return {}
+
+def create_excel_report(data: Dict[str, Any]) -> BytesIO:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "이벤트 기획 보고서"
+
+    # 스타일 정의
+    title_font = Font(name='맑은 고딕', size=14, bold=True)
+    header_font = Font(name='맑은 고딕', size=11, bold=True)
+    data_font = Font(name='맑은 고딕', size=11)
     
-    if st.button("설문 저장 및 발주요청서 다운로드"):
-        total_budget = sum(st.session_state.data.get(f"{category}_budget", 0) for category in [
-            "무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", 
-            "케이터링 서비스", "영상 제작", "마케팅 및 홍보", "PR", "브랜딩", "온라인 플랫폼"
-        ] if isinstance(st.session_state.data.get(f"{category}_budget"), (int, float)))
+    title_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
+    header_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+    
+    border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
 
-        st.write(f"총 예산: {format_korean_currency(total_budget)}원")
+    # 제목 행
+    ws.merge_cells('A1:D1')
+    ws['A1'] = "이벤트 기획 보고서"
+    ws['A1'].font = title_font
+    ws['A1'].fill = title_fill
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
 
-    if save_survey_data(st.session_state.data):
-        st.success("설문이 성공적으로 저장되었습니다.")
+    # 데이터 입력 및 스타일 적용
+    row = 3
+    for section, content in data.items():
+        ws.merge_cells(f'A{row}:D{row}')
+        ws[f'A{row}'] = section.upper()
+        ws[f'A{row}'].font = header_font
+        ws[f'A{row}'].fill = header_fill
+        for cell in ws[row]:
+            cell.border = border
+        row += 1
+
+        if isinstance(content, dict):
+            for key, value in content.items():
+                ws[f'B{row}'] = key
+                ws[f'C{row}'] = str(value)
+                for cell in ws[row]:
+                    cell.font = data_font
+                    cell.border = border
+                row += 1
+        else:
+            ws[f'B{row}'] = str(content)
+            for cell in ws[row]:
+                cell.font = data_font
+                cell.border = border
+            row += 1
         
-        categories = ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작", "마케팅 및 홍보", "PR", "브랜딩", "온라인 플랫폼"]
-        for category in categories:
-            if category in st.session_state.data and st.session_state.data[category].get('needed', False):
-                # ... 기존 코드 ...
-                excel_file = generate_excel_file(st.session_state.data, category)
-                st.download_button(
-                    label=f"{category} 발주요청서 다운로드",
-                    data=excel_file,
-                    file_name=f"{category}_발주요청서_{st.session_state.data['name']}_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-        
-        st.success("발주요청서가 생성되었습니다. 위의 버튼을 클릭하여 각 카테고리별 발주요청서를 다운로드 하세요.")
+        row += 1  # 섹션 간 빈 행 추가
+
+    # 열 너비 조정
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+
+    # 엑셀 파일을 메모리에 저장
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+    
+    return excel_file
 
 def main():
     if 'step' not in st.session_state:
         st.session_state.step = 1
+    
     if 'data' not in st.session_state:
-        st.session_state.data = {}
+        st.session_state.data = load_survey_data()
 
-    steps = ["기본 정보", "용역 개요", "용역 형태 및 장소", "용역 구성 요소", "마무리"]
-    total_steps = len(steps)
+    st.title("이벤트 기획 도구")
 
-    display_progress(st.session_state.step, total_steps)
+    # 진행 상황 표시
+    progress_percentage = (st.session_state.step - 1) * 20
+    st.markdown(f"""
+        <div class="progress-bar">
+            <div class="progress" style="width: {progress_percentage}%;"></div>
+        </div>
+    """, unsafe_allow_html=True)
 
-    colored_header(
-        label=f"Step {st.session_state.step}: {steps[st.session_state.step - 1]}",
-        description="용역 기획을 위한 단계별 가이드",
-        color_name="blue-70"
-    )
+    step_titles = [
+        "기본 정보",
+        "장소 정보",
+        "예산 정보",
+        "용역 구성 요소",
+        "진행 상황"
+    ]
+
+    st.markdown(f'<p class="step-title">Step {st.session_state.step}: {step_titles[st.session_state.step - 1]}</p>', unsafe_allow_html=True)
 
     step_functions = [
         display_basic_info,
-        display_service_overview,
-        display_service_format_and_venue,
+        display_venue_info,
+        display_budget_info,
         display_service_components,
-        finalize
+        display_progress
     ]
 
     step_functions[st.session_state.step - 1]()
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
+
     with col1:
-        if st.session_state.step > 1 and st.button("이전", key="prev_button"):
-            st.session_state.step -= 1
-            st.experimental_rerun()
-    with col2:
-        if st.session_state.step < total_steps and st.button("다음", key="next_button"):
-            if validate_current_step():
+        if st.session_state.step > 1:
+            if st.button("이전"):
+                st.session_state.step -= 1
+        st.experimental_rerun()
+
+    with col3:
+        if st.session_state.step < 5:
+            if st.button("다음"):
                 st.session_state.step += 1
                 st.experimental_rerun()
+        else:
+            if st.button("제출"):
+                if save_survey_data(st.session_state.data):
+                    st.success("설문이 성공적으로 저장되었습니다.")
+                    
+                    # 엑셀 보고서 생성
+                    excel_file = create_excel_report(st.session_state.data)
+                    
+                    # 다운로드 버튼 생성
+                    st.download_button(
+                        label="엑셀 보고서 다운로드",
+                        data=excel_file,
+                        file_name="이벤트_기획_보고서.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+                else:
+                    st.error("설문 저장 중 오류가 발생했습니다.")
+
+    with col2:
+        if st.button("임시 저장"):
+            if save_survey_data(st.session_state.data):
+                st.success("데이터가 임시 저장되었습니다.")
             else:
-                st.error("모든 필수 항목을 채워주세요.")
-
-    add_vertical_space(2)
-
-def display_progress(current_step: int, total_steps: int):
-    progress = (current_step / total_steps) * 100
-    st.markdown(f"""
-        <div class="progress-bar">
-            <div class="progress" style="width: {progress}%;"></div>
-        </div>
-        <p style="text-align: center;">진행 상황: {current_step} / {total_steps}</p>
-    """, unsafe_allow_html=True)
+                st.error("임시 저장 중 오류가 발생했습니다.")
 
 if __name__ == "__main__":
     main()
