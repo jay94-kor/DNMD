@@ -90,7 +90,7 @@ def budget_input(key, label):
     with col1:
         amount = st.text_input(label, value=format_korean_currency(st.session_state.data.get(key, '')))
     with col2:
-        is_undecided = pills("미정", ["예", "아니오"], ["#00B4D8", "#CAF0F8"])
+        is_undecided = pills("미정", ["예", "아니오"])
     
     if is_undecided[0] == "예":
         st.session_state.data[key] = "미정"
@@ -213,7 +213,7 @@ def display_basic_info():
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
     
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
-    st.session_state.data['position'] = pills("직급", position_options, ["#00B4D8"] * len(position_options))[0]
+    st.session_state.data['position'] = pills("직급", position_options)[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
     st.session_state.data['service_types'] = multi_select_with_other("주로 하는 용역 유형", service_types)
@@ -270,7 +270,7 @@ def display_service_components():
             st.write(f"## {category}")
             
             # 대분류 선택
-            category_selected = pills(f"{category} 선택", ["선택", "미선택"], ["#00B4D8", "#CAF0F8"])
+            category_selected = pills(f"{category} 선택", ["선택", "미선택"])
             if "선택" in category_selected:
                 st.session_state.data[category] = {"needed": True}
             else:
@@ -279,7 +279,7 @@ def display_service_components():
             if st.session_state.data[category]["needed"]:
                 # 중분류 선택
                 for subcategory, items in subcategories.items():
-                    subcategory_selected = pills(f"{subcategory} 선택", ["선택", "미선택"], ["#00B4D8", "#CAF0F8"])
+                    subcategory_selected = pills(f"{subcategory} 선택", ["선택", "미선택"])
                     if "선택" in subcategory_selected:
                         st.session_state.data[category][subcategory] = {"needed": True}
                     else:
