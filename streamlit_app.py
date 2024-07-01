@@ -189,14 +189,20 @@ def improved_schedule_input():
     st.session_state.data['service_duration'] = service_duration
     st.write(f"용역 기간: {service_duration}일")
 
+def toggle_pill(label, key):
+    state = st.session_state.get(key, False)
+    if pills(label, [label], ["#CAF0F8" if state else "#FF6B6B"]):
+        st.session_state[key] = not state
+    return st.session_state[key]
+
 def multi_pills(label, options, default_selected=[]):
     st.write(label)
     selected = []
-    cols = st.columns(len(options))
+    cols = st.columns(3)  # 3열 레이아웃 사용
     for i, option in enumerate(options):
-        with cols[i]:
-            is_selected = option in default_selected
-            if pills(option, [option], ["#00B4D8"] if is_selected else ["#CAF0F8"]):
+        with cols[i % 3]:
+            key = f"{label}_{option}"
+            if toggle_pill(option, key):
                 selected.append(option)
     return selected
 
@@ -208,12 +214,12 @@ def display_basic_info():
     st.session_state.data['position'] = pills("직급", position_options)[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
-    st.session_state.data['service_types'] = multi_pills("주로 하는 용역 유형", service_types, st.session_state.data.get('service_types', []))
+    st.session_state.data['service_types'] = multi_pills("주로 하는 용역 유형", service_types)
     
     st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
     improved_schedule_input()
-
+    
 def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
     st.session_state.data['service_purpose'] = multi_pills("용역의 주요 목적", service_purposes)
