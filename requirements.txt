@@ -2,5 +2,6 @@ altair
 pandas
 streamlit
 streamlit-extras
+streamlit-pills
 numpy
 openpyxl

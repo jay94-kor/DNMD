@@ -12,7 +12,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from io import BytesIO
 import re
-import json
+from streamlit_pills import pills
 
 # 상수 정의
 CONFIRMED = "확정됨"
@@ -87,9 +87,9 @@ def budget_input(key, label):
     with col1:
         amount = st.text_input(label, value=format_korean_currency(st.session_state.data.get(key, '')))
     with col2:
-        is_undecided = st.checkbox("미정", key=f"{key}_undecided")
+        is_undecided = pills("미정", ["예", "아니오"], ["#00B4D8", "#CAF0F8"])
     
-    if is_undecided:
+    if is_undecided[0] == "예":
         st.session_state.data[key] = "미정"
     else:
         st.session_state.data[key] = parse_korean_currency(amount)
@@ -169,15 +169,15 @@ def improved_schedule_input():
 
     col3, col4 = st.columns(2)
     with col3:
-        setup_choice = st.radio("셋업 시작", setup_options, index=setup_options.index(st.session_state.data.get('setup_choice', '전날부터')))
+        setup_choice = pills("셋업 시작", setup_options, ["#00B4D8", "#CAF0F8"])
     with col4:
-        teardown_choice = st.radio("철수", teardown_options, index=teardown_options.index(st.session_state.data.get('teardown_choice', '당일 철수')))
+        teardown_choice = pills("철수", teardown_options, ["#00B4D8", "#CAF0F8"])
 
-    st.session_state.data['setup_choice'] = setup_choice
-    st.session_state.data['teardown_choice'] = teardown_choice
+    st.session_state.data['setup_choice'] = setup_choice[0] if setup_choice else setup_options[0]
+    st.session_state.data['teardown_choice'] = teardown_choice[0] if teardown_choice else teardown_options[0]
 
-    st.session_state.data['setup_date'] = start_date - timedelta(days=1) if setup_choice == "전날부터" else start_date
-    st.session_state.data['teardown_date'] = end_date if teardown_choice == "당일 철수" else end_date + timedelta(days=1)
+    st.session_state.data['setup_date'] = start_date - timedelta(days=1) if st.session_state.data['setup_choice'] == "전날부터" else start_date
+    st.session_state.data['teardown_date'] = end_date if st.session_state.data['teardown_choice'] == "당일 철수" else end_date + timedelta(days=1)
 
     st.write(f"셋업 일자: {st.session_state.data['setup_date']}")
     st.write(f"철수 일자: {st.session_state.data['teardown_date']}")
@@ -191,10 +191,10 @@ def display_basic_info():
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
     
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
-    st.session_state.data['position'] = st.radio("직급", position_options, index=position_options.index(st.session_state.data.get('position', '파트너 기획자')))
+    st.session_state.data['position'] = pills("직급", position_options, ["#00B4D8"] * len(position_options))[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
-    st.session_state.data['service_types'] = st.multiselect("주로 하는 용역 유형", service_types, default=st.session_state.data.get('service_types', []))
+    st.session_state.data['service_types'] = pills("주로 하는 용역 유형", service_types, ["#00B4D8"] * len(service_types))
     
     st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
@@ -202,17 +202,16 @@ def display_basic_info():
 
 def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
-    st.session_state.data['service_purpose'] = st.multiselect("용역의 주요 목적", service_purposes, default=st.session_state.data.get('service_purpose', []))
+    st.session_state.data['service_purpose'] = pills("용역의 주요 목적", service_purposes, ["#00B4D8"] * len(service_purposes))
     
-    # 예상 참가자 수 입력 방식 선택
-    input_method = st.radio("예상 참가자 수 입력 방식", ["단일 값", "범위 설정"], index=0)
+    input_method = pills("예상 참가자 수 입력 방식", ["단일 값", "범위 설정"], ["#00B4D8", "#CAF0F8"])[0]
     
     if input_method == "단일 값":
         col1, col2 = st.columns(2)
         with col1:
-            use_slider = st.checkbox("슬라이더 사용", value=False)
+            use_slider = pills("슬라이더 사용", ["예", "아니오"], ["#00B4D8", "#CAF0F8"])[0] == "예"
         with col2:
-            participants_over_2000 = st.checkbox("2000명 이상", value=st.session_state.data.get('participants_over_2000', False))
+            participants_over_2000 = pills("2000명 이상", ["예", "아니오"], ["#00B4D8", "#CAF0F8"])[0] == "예"
         
         if participants_over_2000:
             st.session_state.data['expected_participants'] = "2000명 이상"
@@ -242,10 +241,10 @@ def display_service_overview():
         st.session_state.data['expected_participants'] = f"{min_participants} - {max_participants}"
 
     contract_types = ["수의계약", "입찰", "B2B"]
-    st.session_state.data['contract_type'] = st.radio("계약 형태", contract_types, index=contract_types.index(st.session_state.data.get('contract_type', '수의계약')))
+    st.session_state.data['contract_type'] = pills("계약 형태", contract_types, ["#00B4D8"] * len(contract_types))[0]
     
     budget_statuses = [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED]
-    st.session_state.data['budget_status'] = st.radio("예산 협의 상태", budget_statuses, index=budget_statuses.index(st.session_state.data.get('budget_status', IN_PROGRESS)))
+    st.session_state.data['budget_status'] = pills("예산 협의 상태", budget_statuses, ["#00B4D8"] * len(budget_statuses))[0]
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -259,21 +258,19 @@ def display_service_overview():
 
 def display_service_format_and_venue():
     service_formats = ["오프라인", "온라인", "하이브리드", "기타"]
-    st.session_state.data['service_format'] = st.radio("용역 형태", service_formats, index=service_formats.index(st.session_state.data.get('service_format', '오프라인')))
+    st.session_state.data['service_format'] = pills("용역 형태", service_formats, ["#00B4D8"] * len(service_formats))[0]
     
     if st.session_state.data['service_format'] in ["오프라인", "하이브리드"]:
         venue_types = ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"]
-        st.session_state.data['venue_type'] = st.radio("용역 장소 유형", venue_types, index=venue_types.index(st.session_state.data.get('venue_type', '실내 (호텔, 컨벤션 센터 등)')))
+        st.session_state.data['venue_type'] = pills("용역 장소 유형", venue_types, ["#00B4D8"] * len(venue_types))[0]
         
         venue_statuses = [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED]
-        st.session_state.data['venue_status'] = st.radio("용역 장소 협의 상태", venue_statuses, index=venue_statuses.index(st.session_state.data.get('venue_status', IN_PROGRESS)))
+        st.session_state.data['venue_status'] = pills("용역 장소 협의 상태", venue_statuses, ["#00B4D8"] * len(venue_statuses))[0]
         
         if st.session_state.data['venue_status'] in [CONFIRMED, ALMOST_CONFIRMED]:
             st.session_state.data['specific_venue'] = st.text_input("구체적인 장소", st.session_state.data.get('specific_venue', ''))
         else:
             st.session_state.data['expected_area'] = st.text_input("예정 지역", st.session_state.data.get('expected_area', ''))
-
-import json
 
 def display_service_components():
     st.header("용역 구성 요소")
@@ -287,206 +284,63 @@ def display_service_components():
             st.write(f"## {category}")
             
             # 대분류 선택
-            if st.button(f"{category} 선택"):
+            category_selected = pills(f"{category} 선택", ["선택", "미선택"], ["#00B4D8", "#CAF0F8"])
+            if "선택" in category_selected:
                 st.session_state.data[category] = {"needed": True}
+            else:
+                st.session_state.data[category] = {"needed": False}
             
-            if st.session_state.data.get(category, {}).get("needed", False):
+            if st.session_state.data[category]["needed"]:
                 # 중분류 선택
                 for subcategory, items in subcategories.items():
-                    if st.button(f"{subcategory} 선택"):
+                    subcategory_selected = pills(f"{subcategory} 선택", ["선택", "미선택"], ["#00B4D8", "#CAF0F8"])
+                    if "선택" in subcategory_selected:
                         st.session_state.data[category][subcategory] = {"needed": True}
+                    else:
+                        st.session_state.data[category][subcategory] = {"needed": False}
                     
-                    if st.session_state.data[category].get(subcategory, {}).get("needed", False):
+                    if st.session_state.data[category][subcategory]["needed"]:
                         # 소분류 선택
+                        selected_items = pills("항목 선택", items, ["#00B4D8"] * len(items))
                         for item in items:
-                            if st.button(item):
+                            if item in selected_items:
                                 st.session_state.data[category][subcategory][item] = True
+                            else:
+                                st.session_state.data[category][subcategory][item] = False
                 
                 # 견적 입력
                 budget_input(f"{category}_budget", f"{category} 예산")
                 
                 # 업체 선정 이유
                 reasons = ["클라이언트의 요청", "제안단계에서 먼저 도움을 줌", "퀄리티가 보장되고, 아는 업체", "동일 과업 경험"]
-                selected_reason = st.radio(f"{category} 업체 선정 이유", reasons)
-                st.session_state.data[category]["업체_선정_이유"] = selected_reason
+                selected_reason = pills(f"{category} 업체 선정 이유", reasons, ["#00B4D8"] * len(reasons))
+                if selected_reason:
+                    st.session_state.data[category]["업체_선정_이유"] = selected_reason[0]
+                else:
+                    st.session_state.data[category]["업체_선정_이유"] = None
 
-def budget_input(key, label):
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        amount = st.text_input(label, value=format_korean_currency(st.session_state.data.get(key, '')))
-    with col2:
-        is_undecided = st.checkbox("미정", key=f"{key}_undecided")
-    
-    if is_undecided:
-        st.session_state.data[key] = "미정"
+def validate_current_step() -> bool:
+    step = st.session_state.step
+    data = st.session_state.data
+
+    if step == 1:
+        required_fields = ['name', 'department', 'position', 'service_types', 'service_name', 'service_start_date', 'service_end_date']
+    elif step == 2:
+        required_fields = ['service_purpose', 'expected_participants', 'contract_type', 'budget_status']
+    elif step == 3:
+        required_fields = ['service_format']
+        if data['service_format'] in ["오프라인", "하이브리드"]:
+            required_fields.extend(['venue_type', 'venue_status'])
+    elif step == 4:
+        # 여기서는 모든 필드가 옵션이므로 항상 True를 반환
+        return True
     else:
-        st.session_state.data[key] = parse_korean_currency(amount)
+        return True
 
-
-def setup_component(component: str, options: Dict[str, Any]):
-    data = st.session_state.data.get(component, {})
-    data['needed'] = st.checkbox(f"{component} 필요", data.get('needed', False))
-    if data['needed']:
-        for key, value in options.items():
-            if isinstance(value, list):
-                data[key] = st.multiselect(key, value, default=data.get(key, []))
-            elif isinstance(value, bool):
-                data[key] = st.checkbox(key, data.get(key, False))
-            elif isinstance(value, int):
-                data[key] = st.number_input(key, min_value=value, value=data.get(key, value))
-            else:
-                data[key] = st.text_input(key, data.get(key, ''))
-        
-        budget_input(f"{component}_budget", f"{component} 예산")
-
-    st.session_state.data[component] = data
-
-def setup_stage():
-    options = {
-        "무대에 필요한 기능": ["발표/연설", "음악 공연", "댄스 퍼포먼스", "연극", "시상식", "기타"],
-        "무대 형태": ["단상형 (ㅡ 모양)", "일자형 (ㅣ 모양)", "T자형", "기타"],
-        "무대 크기": ""
-    }
-    setup_component("무대 설치", options)
-
-def setup_sound():
-    options = {
-        "음향 시스템 설치 방식": ["공간과 관객수에 맞게 알아서", "트러스 설치", "바닥 스탠딩", "미정"],
-        "장소 답사 필요": True,
-        "행사 하우스 음악 필요": True,
-        "기념식/시상식 BGM 필요": True
-    }
-    setup_component("음향 시스템", options)
-
-def setup_lighting():
-    options = {
-        "필요한 조명 장비": ["일반 조명", "무대 조명", "특수 조명", "LED 조명", "이동식 조명", "기타"]
-    }
-    setup_component("조명 장비", options)
-
-def setup_led():
-    options = {
-        "스크린 사용 목적": ["프레젠테이션 표시", "라이브 중계", "배경 그래픽", "무대 세트", "기타"],
-        "스크린 크기": ["무대에 꽉 차게", "무대보다 약간 작게", "용도에 맞게 알아서", "정확한 규격 입력"],
-        "LED 스크린 크기": ""
-    }
-    setup_component("LED 스크린", options)
-
-def setup_interpretation():
-    options = {
-        "필요한 언어": ["영어", "중국어", "일본어", "스페인어", "프랑스어", "기타"],
-        "필요한 통역 부스 수": 1,
-        "통역 장비 대여 필요": True
-    }
-    setup_component("동시통역 시스템", options)
-
-def setup_catering():
-    options = {
-        "식사 유형": ["뷔페", "플레이티드 서비스", "칵테일 리셉션", "도시락", "기타"],
-        "스탭 식사 수": 0,
-        "VIP/클라이언트 식사 수": 0,
-        "특별 식단 요구사항": ""
-    }
-    setup_component("케이터링 서비스", options)
-
-def setup_video_production():
-    options = {
-        "필요한 영상 유형": ["행사 홍보 영상", "행사 중계 영상", "하이라이트 영상", "인터뷰 영상", "기타"],
-        "예상 영상 길이": "",
-        "영상 목적 및 활용 계획": "",
-        "원하는 영상 스타일 또는 참고 영상": "",
-        "영상 장비 대여 필요": True,
-        "필요한 영상 장비": ["카메라", "조명", "마이크", "드론", "기타"],
-        "영상 편집 필요": True,
-        "영상 편집 요구사항": ""
-    }
-    setup_component("영상 제작", options)
-
-def setup_marketing_and_promotion():
-    options = {
-        "사용할 홍보 채널": ["소셜 미디어", "이메일 마케팅", "언론 보도", "온라인 광고", "오프라인 광고 (현수막, 포스터 등)", "인플루언서 마케팅", "기타"],
-        "행사 브랜딩 계획 상태": [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED],
-        "브랜딩 계획 설명": ""
-    }
-    setup_component("마케팅 및 홍보", options)
-
-def setup_staff_management():
-    options = {
-        "행사 당일 필요한 예상 인력 수": "",
-        "외부에서 고용할 필요가 있는 인력": ["행사 진행 요원", "보안 요원", "기술 지원 인력", "MC 또는 사회자", "공연자 또는 연사", "촬영 및 영상 제작 팀", "기타"],
-        "공연자 또는 연사에 대한 추가 정보": ""
-    }
-    setup_component("인력 관리", options)
-
-def setup_technology_and_equipment():
-    options = {
-        "필요한 기술적 요구사항": ["와이파이 네트워크", "라이브 스트리밍 장비", "촬영 장비", "행사 관리 소프트웨어", "모바일 앱", "VR/AR 기술", "기타"],
-        "기술적 요구사항 세부 설명": "",
-        "기타 기술적 요구사항": "",
-        "장비 대여 필요": True,
-        "대여 필요 장비 목록": ""
-    }
-    setup_component("기술 및 장비", options)
-
-def setup_networking():
-    options = {
-        "네트워킹 장소 유형": ["실내", "야외", "기타"],
-        "네트워킹 예상 인원 수": 1,
-        "네트워킹에 필요한 장비": ["테이블", "의자", "음향 장비", "조명", "기타"],
-        "계획된 네트워킹 활동": ""
-    }
-    setup_component("네트워킹", options)
-
-def setup_budget_and_sponsorship():
-    options = {
-        "총 예산": "",
-        "예산 항목별 내역": "",
-        "스폰서 유치 계획 상태": [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED],
-        "고려 중인 스폰서십 유형": ["금전적 후원", "현물 협찬", "미디어 파트너십", "기술 파트너십", "기타"],
-        "스폰서십 세부 사항": ""
-    }
-    setup_component("예산 및 스폰서십", options)
-
-def setup_risk_management():
-    options = {
-        "우려되는 잠재적 리스크": ["날씨 (야외 행사의 경우)", "예산 초과", "참가자 수 미달", "기술적 문제", "안전 및 보안 문제", "기타"],
-        "리스크 대비책 수립 상태": ["완료", "진행 중", "시작 전", "도움 필요"],
-        "리스크 대비책 설명": "",
-        "행사 보험 필요 여부": True,
-        "필요한 보험 유형": ["행사 취소 보험", "책임 보험", "재산 보험", "기타"]
-    }
-    setup_component("리스크 관리", options)
-
-def setup_pr():
-    options = {
-        "PR 목표": ["미디어 노출 증대", "브랜드 이미지 개선", "위기 관리", "기타"],
-        "타겟 미디어": ["신문", "방송", "온라인 뉴스", "전문 매체", "기타"],
-        "보도자료 작성 필요": True,
-        "인터뷰 주선 필요": True,
-        "PR 전략 설명": ""
-    }
-    setup_component("PR", options)
-
-def setup_branding():
-    options = {
-        "브랜딩 목표": ["브랜드 인지도 향상", "브랜드 이미지 개선", "신규 브랜드 런칭", "기타"],
-        "브랜딩 요소": ["로고", "슬로건", "컬러 팔레트", "폰트", "기타"],
-        "브랜드 가이드라인 존재 여부": True,
-        "브랜드 메시지": "",
-        "브랜딩 전략 설명": ""
-    }
-    setup_component("브랜딩", options)
-
-def setup_online_platform():
-    options = {
-        "플랫폼 유형": ["웹사이트", "모바일 앱", "가상 이벤트 플랫폼", "기타"],
-        "필요한 기능": ["참가자 등록", "라이브 스트리밍", "채팅", "네트워킹", "콘텐츠 공유", "기타"],
-        "예상 동시 접속자 수": 0,
-        "보안 요구사항": "",
-        "플랫폼 개발 기간": "",
-        "플랫폼 유지보수 계획": ""
-    }
-    setup_component("온라인 플랫폼", options)
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return False
+    return True
 
 def generate_excel_file(data: Dict[str, Any], category: str) -> BytesIO:
     wb = openpyxl.Workbook()
@@ -623,29 +477,6 @@ def finalize():
                 )
         
         st.success("발주요청서가 생성되었습니다. 위의 버튼을 클릭하여 각 카테고리별 발주요청서를 다운로드 하세요.")
-
-def validate_current_step() -> bool:
-    step = st.session_state.step
-    data = st.session_state.data
-
-    if step == 1:
-        required_fields = ['name', 'department', 'position', 'service_types', 'service_name', 'service_start_date', 'service_end_date']
-    elif step == 2:
-        required_fields = ['service_purpose', 'expected_participants', 'contract_type', 'budget_status']
-    elif step == 3:
-        required_fields = ['service_format']
-        if data['service_format'] in ["오프라인", "하이브리드"]:
-            required_fields.extend(['venue_type', 'venue_status'])
-    elif step == 4:
-        # 여기서는 모든 필드가 옵션이므로 항상 True를 반환
-        return True
-    else:
-        return True
-
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return False
-    return True
 
 if __name__ == "__main__":
     main()
