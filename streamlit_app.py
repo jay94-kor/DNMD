@@ -190,7 +190,7 @@ def improved_schedule_input():
     service_duration = (end_date - start_date).days + 1
     st.session_state.data['service_duration'] = service_duration
     st.write(f"용역 기간: {service_duration}일")
-
+    
 def multi_select_with_other(label, options):
     st.write(label)
     selections = []
@@ -199,10 +199,10 @@ def multi_select_with_other(label, options):
     for i, option in enumerate(options):
         with cols[i % 3]:
             if option != "기타":
-                if st_toggle_switch(option, key=f"toggle_{label}_{option}"):
+                if pills(option, [option, ""]):
                     selections.append(option)
             else:
-                if st_toggle_switch("기타", key=f"toggle_{label}_other"):
+                if pills("기타", ["기타", ""]):
                     other_text = st.text_input("기타 (직접 입력)", key=f"text_{label}_other")
                     if other_text:
                         selections.append(f"기타: {other_text}")
