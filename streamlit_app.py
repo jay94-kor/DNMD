@@ -197,7 +197,7 @@ def display_basic_info():
     st.session_state.data['position'] = pills("직급", position_options)[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
-    st.session_state.data['service_types'] = pills("주로 하는 용역 유형", service_types)
+    st.session_state.data['service_types'] = pills("주로 하는 용역 유형", service_types, multiselect=True)
     
     st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
@@ -205,7 +205,7 @@ def display_basic_info():
 
 def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
-    st.session_state.data['service_purpose'] = pills("용역의 주요 목적", service_purposes)
+    st.session_state.data['service_purpose'] = pills("용역의 주요 목적", service_purposes, multiselect=True)
     
     input_method = pills("예상 참가자 수 입력 방식", ["단일 값", "범위 설정"], ["#00B4D8", "#CAF0F8"])[0]
     
@@ -303,13 +303,10 @@ def display_service_components():
                         st.session_state.data[category][subcategory] = {"needed": False}
                     
                     if st.session_state.data[category][subcategory]["needed"]:
-                        # 소분류 선택
-                        selected_items = pills("항목 선택", items)
+                        # 소분류 선택 (다중 선택)
+                        selected_items = pills("항목 선택", items, multiselect=True)
                         for item in items:
-                            if item in selected_items:
-                                st.session_state.data[category][subcategory][item] = True
-                            else:
-                                st.session_state.data[category][subcategory][item] = False
+                            st.session_state.data[category][subcategory][item] = item in selected_items
                 
                 # 견적 입력
                 budget_input(f"{category}_budget", f"{category} 예산")
