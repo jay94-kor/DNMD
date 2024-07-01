@@ -245,8 +245,15 @@ def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
     st.session_state.data['service_purpose'] = multi_select_with_other("용역의 주요 목적", service_purposes)
     
-    # 다른 필드들은 그대로 유지
-    st.session_state.data['expected_participants'] = st.number_input("예상 참가자 수", min_value=0, value=st.session_state.data.get('expected_participants', 0))
+    # 예상 참가자 수를 슬라이더로 변경
+    st.session_state.data['expected_participants'] = st.slider(
+        "예상 참가자 수",
+        min_value=0,
+        max_value=1000,
+        value=st.session_state.data.get('expected_participants', 0),
+        step=50
+    )
+    st.write(f"선택된 예상 참가자 수: {st.session_state.data['expected_participants']}명")
     
     contract_types = ["단발성", "연간 계약", "기타"]
     st.session_state.data['contract_type'] = st.selectbox("계약 형태", contract_types)
