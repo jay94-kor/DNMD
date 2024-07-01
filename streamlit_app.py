@@ -26,14 +26,6 @@ st.set_page_config(layout="wide", page_title="이벤트 기획 도구")
 # CSS 스타일 적용
 st.markdown("""
 <style>
-    .stPills span:nth-child(2) {
-        display: none;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<style>
     .stApp {
         max-width: 1200px;
         margin: 0 auto;
@@ -69,6 +61,9 @@ st.markdown("""
     }
     h1, h2, h3 {
         color: #2c3e50;
+    }
+    .stPills span:nth-child(2) {
+        display: none;
     }
 </style>
 """, unsafe_allow_html=True)
