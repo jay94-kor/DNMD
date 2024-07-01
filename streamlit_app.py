@@ -197,7 +197,7 @@ def display_basic_info():
     st.session_state.data['position'] = pills("직급", position_options)[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
-    st.session_state.data['service_types'] = pills("주로 하는 용역 유형", service_types, ["#00B4D8"] * len(service_types))
+    st.session_state.data['service_types'] = pills("주로 하는 용역 유형", service_types)
     
     st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
@@ -205,7 +205,7 @@ def display_basic_info():
 
 def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
-    st.session_state.data['service_purpose'] = pills("용역의 주요 목적", service_purposes, ["#00B4D8"] * len(service_purposes))
+    st.session_state.data['service_purpose'] = pills("용역의 주요 목적", service_purposes)
     
     input_method = pills("예상 참가자 수 입력 방식", ["단일 값", "범위 설정"], ["#00B4D8", "#CAF0F8"])[0]
     
@@ -244,10 +244,10 @@ def display_service_overview():
         st.session_state.data['expected_participants'] = f"{min_participants} - {max_participants}"
 
     contract_types = ["수의계약", "입찰", "B2B"]
-    st.session_state.data['contract_type'] = pills("계약 형태", contract_types, ["#00B4D8"] * len(contract_types))[0]
+    st.session_state.data['contract_type'] = pills("계약 형태", contract_types)[0]
     
     budget_statuses = [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED]
-    st.session_state.data['budget_status'] = pills("예산 협의 상태", budget_statuses, ["#00B4D8"] * len(budget_statuses))[0]
+    st.session_state.data['budget_status'] = pills("예산 협의 상태", budget_statuses)[0]
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -261,14 +261,14 @@ def display_service_overview():
 
 def display_service_format_and_venue():
     service_formats = ["오프라인", "온라인", "하이브리드", "기타"]
-    st.session_state.data['service_format'] = pills("용역 형태", service_formats, ["#00B4D8"] * len(service_formats))[0]
+    st.session_state.data['service_format'] = pills("용역 형태", service_formats)[0]
     
     if st.session_state.data['service_format'] in ["오프라인", "하이브리드"]:
         venue_types = ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"]
-        st.session_state.data['venue_type'] = pills("용역 장소 유형", venue_types, ["#00B4D8"] * len(venue_types))[0]
+        st.session_state.data['venue_type'] = pills("용역 장소 유형", venue_types)[0]
         
         venue_statuses = [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED]
-        st.session_state.data['venue_status'] = pills("용역 장소 협의 상태", venue_statuses, ["#00B4D8"] * len(venue_statuses))[0]
+        st.session_state.data['venue_status'] = pills("용역 장소 협의 상태", venue_statuses)[0]
         
         if st.session_state.data['venue_status'] in [CONFIRMED, ALMOST_CONFIRMED]:
             st.session_state.data['specific_venue'] = st.text_input("구체적인 장소", st.session_state.data.get('specific_venue', ''))
@@ -304,7 +304,7 @@ def display_service_components():
                     
                     if st.session_state.data[category][subcategory]["needed"]:
                         # 소분류 선택
-                        selected_items = pills("항목 선택", items, ["#00B4D8"] * len(items))
+                        selected_items = pills("항목 선택", items)
                         for item in items:
                             if item in selected_items:
                                 st.session_state.data[category][subcategory][item] = True
@@ -316,7 +316,7 @@ def display_service_components():
                 
                 # 업체 선정 이유
                 reasons = ["클라이언트의 요청", "제안단계에서 먼저 도움을 줌", "퀄리티가 보장되고, 아는 업체", "동일 과업 경험"]
-                selected_reason = pills(f"{category} 업체 선정 이유", reasons, ["#00B4D8"] * len(reasons))
+                selected_reason = pills(f"{category} 업체 선정 이유", reasons)
                 if selected_reason:
                     st.session_state.data[category]["업체_선정_이유"] = selected_reason[0]
                 else:
