@@ -2,15 +2,16 @@ import streamlit as st
 import json
 import os
 import pandas as pd
-import openpyxl
 from datetime import datetime, timedelta, date
 from typing import Dict, Any, List
 from streamlit_extras.colored_header import colored_header
 from streamlit_extras.add_vertical_space import add_vertical_space
 from streamlit_extras.metric_cards import style_metric_cards
+import openpyxl
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from io import BytesIO
+import re
 
 # 상수 정의
 CONFIRMED = "확정됨"
@@ -63,28 +64,52 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def format_korean_currency(amount):
+    if amount == "미정":
+        return amount
+    try:
+        amount = int(amount)
+        return '{:,}'.format(amount)
+    except ValueError:
+        return amount
+
+def parse_korean_currency(amount):
+    if amount == "미정":
+        return amount
+    try:
+        return int(amount.replace(',', ''))
+    except ValueError:
+        return amount
+
+def budget_input(key, label):
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        amount = st.text_input(label, value=format_korean_currency(st.session_state.data.get(key, '')))
+    with col2:
+        is_undecided = st.checkbox("미정", key=f"{key}_undecided")
+    
+    if is_undecided:
+        st.session_state.data[key] = "미정"
+    else:
+        st.session_state.data[key] = parse_korean_currency(amount)
+
 def main():
-    # 세션 상태 초기화
     if 'step' not in st.session_state:
         st.session_state.step = 1
     if 'data' not in st.session_state:
         st.session_state.data = {}
 
-    # 단계 정의
     steps = ["기본 정보", "용역 개요", "용역 형태 및 장소", "용역 구성 요소", "마무리"]
     total_steps = len(steps)
 
-    # 진행 상황 표시
     display_progress(st.session_state.step, total_steps)
 
-    # 컬러 헤더 사용
     colored_header(
         label=f"Step {st.session_state.step}: {steps[st.session_state.step - 1]}",
         description="용역 기획을 위한 단계별 가이드",
         color_name="blue-70"
     )
 
-    # 메인 컨텐츠
     if st.session_state.step == 1:
         display_basic_info()
     elif st.session_state.step == 2:
@@ -96,7 +121,6 @@ def main():
     elif st.session_state.step == 5:
         finalize()
 
-    # 네비게이션 버튼
     col1, col2 = st.columns(2)
     with col1:
         if st.session_state.step > 1:
@@ -128,7 +152,6 @@ def improved_schedule_input():
     with col1:
         start_date = st.date_input("용역 시작일", value=st.session_state.data.get('service_start_date', datetime.now().date()))
     
-    # 종료일 자동 조정 로직
     if 'service_end_date' not in st.session_state.data or st.session_state.data['service_end_date'] < start_date:
         end_date = start_date
     else:
@@ -288,6 +311,9 @@ def setup_component(component: str, options: Dict[str, Any]):
                 data[key] = st.number_input(key, min_value=value, value=data.get(key, value))
             else:
                 data[key] = st.text_input(key, data.get(key, ''))
+        
+        budget_input(f"{component}_budget", f"{component} 예산")
+
     st.session_state.data[component] = data
 
 def setup_stage():
@@ -437,57 +463,6 @@ def setup_online_platform():
     }
     setup_component("온라인 플랫폼", options)
 
-def save_survey_data(data: Dict[str, Any]) -> bool:
-    try:
-        # 저장 디렉토리 생성
-        save_dir = "survey_results"
-        os.makedirs(save_dir, exist_ok=True)
-        
-        # 파일명 생성 (이름_날짜_시간.json)
-        filename = f"{data['name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        filepath = os.path.join(save_dir, filename)
-        
-        # 데이터 전처리
-        processed_data = data.copy()
-        for key, value in processed_data.items():
-            if isinstance(value, (datetime, date)):
-                processed_data[key] = value.isoformat()
-        
-        # JSON 파일로 저장
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(processed_data, f, ensure_ascii=False, indent=4)
-        
-        return True
-    except Exception as e:
-        st.error(f"데이터 저장 중 오류 발생: {str(e)}")
-        return False
-
-def finalize():
-    st.header("설문 완료")
-    st.write("수고하셨습니다! 모든 단계를 완료하셨습니다.")
-    
-    if st.button("설문 저장 및 발주요청서 다운로드"):
-        # 설문 데이터 저장
-        save_result = save_survey_data(st.session_state.data)
-        if save_result:
-            st.success("설문이 성공적으로 저장되었습니다.")
-        else:
-            st.error("설문 저장 중 오류가 발생했습니다.")
-        
-        # 발주요청서 생성 및 다운로드
-        categories = ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작", "마케팅 및 홍보", "PR", "브랜딩", "온라인 플랫폼"]
-        for category in categories:
-            if category in st.session_state.data and st.session_state.data[category].get('needed', False):
-                csv_file = generate_csv_file(st.session_state.data, category)
-                st.download_button(
-                    label=f"{category} 발주요청서 다운로드",
-                    data=csv_file,
-                    file_name=f"{category}_발주요청서_{st.session_state.data['name']}_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv"
-                )
-        
-        st.success("발주요청서가 생성되었습니다. 위의 버튼을 클릭하여 각 카테고리별 발주요청서를 다운로드 하세요.")
-
 def generate_excel_file(data: Dict[str, Any], category: str) -> BytesIO:
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -542,6 +517,13 @@ def generate_excel_file(data: Dict[str, Any], category: str) -> BytesIO:
             ws.cell(row=ws.max_row, column=1).border = border
             ws.cell(row=ws.max_row, column=2).border = border
 
+    # 예산 정보 추가
+    if f"{category}_budget" in data:
+        ws.append(['', ''])
+        ws.append([f'{category} 예산', format_korean_currency(data[f"{category}_budget"])])
+        ws.cell(row=ws.max_row, column=1).border = border
+        ws.cell(row=ws.max_row, column=2).border = border
+
     # 열 너비 조정
     for column_cells in ws.columns:
         length = max(len(str(cell.value)) for cell in column_cells)
@@ -554,11 +536,47 @@ def generate_excel_file(data: Dict[str, Any], category: str) -> BytesIO:
 
     return excel_file
 
+def save_survey_data(data: Dict[str, Any]) -> bool:
+    try:
+        # 저장 디렉토리 생성
+        save_dir = "survey_results"
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # 파일명 생성 (이름_날짜_시간.json)
+        filename = f"{data['name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filepath = os.path.join(save_dir, filename)
+        
+        # 데이터 전처리
+        processed_data = data.copy()
+        for key, value in processed_data.items():
+            if isinstance(value, (datetime, date)):
+                processed_data[key] = value.isoformat()
+        
+        # JSON 파일로 저장
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(processed_data, f, ensure_ascii=False, indent=4)
+        
+        return True
+    except Exception as e:
+        st.error(f"데이터 저장 중 오류 발생: {str(e)}")
+        return False
+
 def finalize():
     st.header("설문 완료")
     st.write("수고하셨습니다! 모든 단계를 완료하셨습니다.")
     
     if st.button("설문 저장 및 발주요청서 다운로드"):
+        # 총 예산 계산
+        total_budget = 0
+        for category in ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작", "마케팅 및 홍보", "PR", "브랜딩", "온라인 플랫폼"]:
+            budget_key = f"{category}_budget"
+            if budget_key in st.session_state.data:
+                budget = st.session_state.data[budget_key]
+                if isinstance(budget, (int, float)):
+                    total_budget += budget
+
+        st.write(f"총 예산: {format_korean_currency(total_budget)}원")
+
         # 설문 데이터 저장
         save_result = save_survey_data(st.session_state.data)
         if save_result:
