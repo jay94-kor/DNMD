@@ -190,7 +190,11 @@ def display_service_overview():
         if participants_over_2000:
             st.session_state.data['expected_participants'] = "2000명 이상"
         else:
-            st.session_state.data['expected_participants'] = st.slider("예상 참가자 수", 0, 2000, value=st.session_state.data.get('expected_participants', 100))
+            # 기존 값을 가져오되, 문자열이나 None이면 기본값 100을 사용
+            current_value = st.session_state.data.get('expected_participants', 100)
+            if isinstance(current_value, str) or current_value is None:
+                current_value = 100
+            st.session_state.data['expected_participants'] = st.slider("예상 참가자 수", 0, 2000, value=int(current_value))
     else:
         st.session_state.data['expected_participants'] = "미정"
 
