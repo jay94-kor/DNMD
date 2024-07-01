@@ -189,13 +189,14 @@ def improved_schedule_input():
     st.session_state.data['service_duration'] = service_duration
     st.write(f"용역 기간: {service_duration}일")
 
-def multi_pills(label, options):
-    selected = []
+def multi_pills(label, options, default_selected=[]):
     st.write(label)
+    selected = []
     cols = st.columns(len(options))
     for i, option in enumerate(options):
         with cols[i]:
-            if pills(option, ["선택", "미선택"])[0] == "선택":
+            is_selected = option in default_selected
+            if pills(option, [option], ["#00B4D8"] if is_selected else ["#CAF0F8"]):
                 selected.append(option)
     return selected
 
@@ -207,7 +208,7 @@ def display_basic_info():
     st.session_state.data['position'] = pills("직급", position_options)[0]
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
-    st.session_state.data['service_types'] = multi_pills("주로 하는 용역 유형", service_types)
+    st.session_state.data['service_types'] = multi_pills("주로 하는 용역 유형", service_types, st.session_state.data.get('service_types', []))
     
     st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
