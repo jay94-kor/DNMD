@@ -172,9 +172,9 @@ def improved_schedule_input():
 
     col3, col4 = st.columns(2)
     with col3:
-        setup_choice = pills("셋업 시작", setup_options, ["#00B4D8", "#CAF0F8"])
+        setup_choice = pills("셋업 시작", setup_options)
     with col4:
-        teardown_choice = pills("철수", teardown_options, ["#00B4D8", "#CAF0F8"])
+        teardown_choice = pills("철수", teardown_options)
 
     st.session_state.data['setup_choice'] = setup_choice[0] if setup_choice else setup_options[0]
     st.session_state.data['teardown_choice'] = teardown_choice[0] if teardown_choice else teardown_options[0]
