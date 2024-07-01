@@ -221,7 +221,7 @@ def display_basic_info():
     st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
     improved_schedule_input()
-    
+
 def multi_pills(label, options):
     st.write(label)
     selected = []
