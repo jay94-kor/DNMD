@@ -187,23 +187,23 @@ def display_service_components():
         with st.expander(f"{category}"):
             st.write(f"## {category}")
             
-            category_selected = pills(f"{category} 선택", ["선택", "미선택"])
+            category_selected = pills(f"{category} 선택", ["선택", "미선택"], key=f"pills_{category}")
             st.session_state.data[category] = {"needed": "선택" in category_selected}
             
             if st.session_state.data[category]["needed"]:
                 for subcategory, items in subcategories.items():
-                    subcategory_selected = pills(f"{subcategory} 선택", ["선택", "미선택"])
+                    subcategory_selected = pills(f"{subcategory} 선택", ["선택", "미선택"], key=f"pills_{category}_{subcategory}")
                     st.session_state.data[category][subcategory] = {"needed": "선택" in subcategory_selected}
                     
                     if st.session_state.data[category][subcategory]["needed"]:
-                        selected_items = st.multiselect("항목 선택", items)
+                        selected_items = st.multiselect("항목 선택", items, key=f"multiselect_{category}_{subcategory}", default=[])
                         for item in items:
                             st.session_state.data[category][subcategory][item] = item in selected_items
 
                 budget_input(f"{category}_budget", f"{category} 예산")
                 
                 reasons = ["클라이언트의 요청", "제안단계에서 먼저 도움을 줌", "퀄리티가 보장되고, 아는 업체", "동일 과업 경험"]
-                st.session_state.data[category]["업체_선정_이유"] = pills(f"{category} 업체 선정 이유", reasons)[0]
+                st.session_state.data[category]["업체_선정_이유"] = pills(f"{category} 업체 선정 이유", reasons, key=f"pills_{category}_reason")[0]
 
 def validate_current_step() -> bool:
     step = st.session_state.step
