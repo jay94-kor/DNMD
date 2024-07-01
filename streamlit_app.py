@@ -12,6 +12,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from io import BytesIO
 import re
+import json
 
 # 상수 정의
 CONFIRMED = "확정됨"
@@ -272,31 +273,55 @@ def display_service_format_and_venue():
         else:
             st.session_state.data['expected_area'] = st.text_input("예정 지역", st.session_state.data.get('expected_area', ''))
 
+import json
+
 def display_service_components():
     st.header("용역 구성 요소")
     
-    components = {
-        "무대 설치": setup_stage,
-        "음향 시스템": setup_sound,
-        "조명 장비": setup_lighting,
-        "LED 스크린": setup_led,
-        "동시통역 시스템": setup_interpretation,
-        "케이터링 서비스": setup_catering,
-        "영상 제작": setup_video_production,
-        "마케팅 및 홍보": setup_marketing_and_promotion,
-        "인력 관리": setup_staff_management,
-        "기술 및 장비": setup_technology_and_equipment,
-        "네트워킹": setup_networking,
-        "예산 및 스폰서십": setup_budget_and_sponsorship,
-        "리스크 관리": setup_risk_management,
-        "PR": setup_pr,
-        "브랜딩": setup_branding,
-        "온라인 플랫폼": setup_online_platform
-    }
+    # JSON 파일에서 카테고리 데이터 불러오기
+    with open('categories.json', 'r', encoding='utf-8') as f:
+        components = json.load(f)
     
-    for component, setup_func in components.items():
-        with st.expander(f"{component}"):
-            setup_func()
+    for category, subcategories in components.items():
+        with st.expander(f"{category}"):
+            st.write(f"## {category}")
+            
+            # 대분류 선택
+            if st.button(f"{category} 선택"):
+                st.session_state.data[category] = {"needed": True}
+            
+            if st.session_state.data.get(category, {}).get("needed", False):
+                # 중분류 선택
+                for subcategory, items in subcategories.items():
+                    if st.button(f"{subcategory} 선택"):
+                        st.session_state.data[category][subcategory] = {"needed": True}
+                    
+                    if st.session_state.data[category].get(subcategory, {}).get("needed", False):
+                        # 소분류 선택
+                        for item in items:
+                            if st.button(item):
+                                st.session_state.data[category][subcategory][item] = True
+                
+                # 견적 입력
+                budget_input(f"{category}_budget", f"{category} 예산")
+                
+                # 업체 선정 이유
+                reasons = ["클라이언트의 요청", "제안단계에서 먼저 도움을 줌", "퀄리티가 보장되고, 아는 업체", "동일 과업 경험"]
+                selected_reason = st.radio(f"{category} 업체 선정 이유", reasons)
+                st.session_state.data[category]["업체_선정_이유"] = selected_reason
+
+def budget_input(key, label):
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        amount = st.text_input(label, value=format_korean_currency(st.session_state.data.get(key, '')))
+    with col2:
+        is_undecided = st.checkbox("미정", key=f"{key}_undecided")
+    
+    if is_undecided:
+        st.session_state.data[key] = "미정"
+    else:
+        st.session_state.data[key] = parse_korean_currency(amount)
+
 
 def setup_component(component: str, options: Dict[str, Any]):
     data = st.session_state.data.get(component, {})
