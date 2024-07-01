@@ -193,9 +193,9 @@ def display_progress():
         st.session_state.data[f"{category}_progress"] = st.selectbox(
             f"{category} 진행 상황",
             progress_options,
-            index=progress_options.index=progress_options.index(st.session_state.data.get(f"{category}_progress", NOT_STARTED))
+            index=progress_options.index(st.session_state.data.get(f"{category}_progress", NOT_STARTED))
         )
-
+        
 def save_survey_data(data: Dict[str, Any]) -> bool:
     try:
         with open('survey_data.json', 'w', encoding='utf-8') as f:
