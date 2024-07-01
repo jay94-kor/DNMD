@@ -2,11 +2,15 @@ import streamlit as st
 import json
 import os
 import pandas as pd
+import openpyxl
 from datetime import datetime, timedelta, date
 from typing import Dict, Any, List
 from streamlit_extras.colored_header import colored_header
 from streamlit_extras.add_vertical_space import add_vertical_space
 from streamlit_extras.metric_cards import style_metric_cards
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+from io import BytesIO
 
 # 상수 정의
 CONFIRMED = "확정됨"
@@ -461,28 +465,97 @@ def finalize():
         
         st.success("발주요청서가 생성되었습니다. 위의 버튼을 클릭하여 각 카테고리별 발주요청서를 다운로드 하세요.")
 
-def generate_csv_file(data: Dict[str, Any], category: str) -> str:
-    # 공통 정보
-    common_info = pd.DataFrame({
-        '항목': ['이름', '근무 부서', '직급', '주로 하는 용역 유형', '용역명', '용역 시작일', '용역 마감일', '진행 일정 (일 수)',
-                 '셋업 시작일', '철수 마감일', '용역 목적', '예상 참가자 수', '계약 형태', '예산 협의 상태', '용역 형태', '용역 장소 유형', '용역 장소'],
-        '내용': [data['name'], data['department'], data['position'], ', '.join(data['service_types']), data['service_name'],
-                data['service_start_date'], data['service_end_date'], data['service_duration'],
-                data['setup_date'], data['teardown_date'], ', '.join(data['service_purpose']), data['expected_participants'],
-                data['contract_type'], data['budget_status'], data['service_format'], data.get('venue_type', 'N/A'),
-                data.get('specific_venue', data.get('expected_area', 'N/A'))]
-    })
-    
-    # 카테고리별 정보
+def generate_excel_file(data: Dict[str, Any], category: str) -> BytesIO:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"{category} 발주요청서"
+
+    # 스타일 정의
+    header_font = Font(name='맑은 고딕', size=12, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+
+    # 헤더 작성
+    headers = ['항목', '내용']
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = border
+
+    # 공통 정보 작성
+    common_info = [
+        ('이름', data['name']),
+        ('근무 부서', data['department']),
+        ('직급', data['position']),
+        ('주로 하는 용역 유형', ', '.join(data['service_types'])),
+        ('용역명', data['service_name']),
+        ('용역 시작일', data['service_start_date']),
+        ('용역 마감일', data['service_end_date']),
+        ('진행 일정 (일 수)', data['service_duration']),
+        ('셋업 시작일', data['setup_date']),
+        ('철수 마감일', data['teardown_date']),
+        ('용역 목적', ', '.join(data['service_purpose'])),
+        ('예상 참가자 수', data['expected_participants']),
+        ('계약 형태', data['contract_type']),
+        ('예산 협의 상태', data['budget_status']),
+        ('용역 형태', data['service_format']),
+        ('용역 장소 유형', data.get('venue_type', 'N/A')),
+        ('용역 장소', data.get('specific_venue', data.get('expected_area', 'N/A')))
+    ]
+
+    for row, (item, content) in enumerate(common_info, start=2):
+        ws.cell(row=row, column=1, value=item).border = border
+        ws.cell(row=row, column=2, value=content).border = border
+
+    # 카테고리별 정보 작성
     if category in data:
-        category_info = pd.DataFrame(data[category].items(), columns=['항목', '내용'])
-        result = pd.concat([common_info, pd.DataFrame([['', '']], columns=['항목', '내용']), category_info])
-    else:
-        result = common_info
+        ws.append(['', ''])  # 빈 행 추가
+        ws.append([f'{category} 세부 정보', ''])
+        for item, content in data[category].items():
+            ws.append([item, str(content)])
+            ws.cell(row=ws.max_row, column=1).border = border
+            ws.cell(row=ws.max_row, column=2).border = border
+
+    # 열 너비 조정
+    for column_cells in ws.columns:
+        length = max(len(str(cell.value)) for cell in column_cells)
+        ws.column_dimensions[get_column_letter(column_cells[0].column)].width = min(length + 2, 50)
+
+    # 메모리에 엑셀 파일 저장
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+
+    return excel_file
+
+def finalize():
+    st.header("설문 완료")
+    st.write("수고하셨습니다! 모든 단계를 완료하셨습니다.")
     
-    # CSV 문자열로 변환
-    csv_string = result.to_csv(index=False, encoding='utf-8-sig')
-    return csv_string
+    if st.button("설문 저장 및 발주요청서 다운로드"):
+        # 설문 데이터 저장
+        save_result = save_survey_data(st.session_state.data)
+        if save_result:
+            st.success("설문이 성공적으로 저장되었습니다.")
+        else:
+            st.error("설문 저장 중 오류가 발생했습니다.")
+        
+        # 발주요청서 생성 및 다운로드
+        categories = ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작", "마케팅 및 홍보", "PR", "브랜딩", "온라인 플랫폼"]
+        for category in categories:
+            if category in st.session_state.data and st.session_state.data[category].get('needed', False):
+                excel_file = generate_excel_file(st.session_state.data, category)
+                st.download_button(
+                    label=f"{category} 발주요청서 다운로드",
+                    data=excel_file,
+                    file_name=f"{category}_발주요청서_{st.session_state.data['name']}_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        
+        st.success("발주요청서가 생성되었습니다. 위의 버튼을 클릭하여 각 카테고리별 발주요청서를 다운로드 하세요.")
 
 def validate_current_step() -> bool:
     step = st.session_state.step
