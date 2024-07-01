@@ -202,15 +202,15 @@ def multi_select_with_other(label, options):
     for i, option in enumerate(options):
         with cols[i % 3]:
             if option != "기타":
-                selected = pills(option, ["선택", "미선택"])
-                if selected[0] == "선택":
+                button_state = "선택" if st.session_state[f'{label}_selections'][option] else "미선택"
+                if pills(option, [button_state]):
                     st.session_state[f'{label}_selections'][option] = not st.session_state[f'{label}_selections'][option]
                 
                 if st.session_state[f'{label}_selections'][option]:
                     selections.append(option)
             else:
-                selected = pills("기타", ["선택", "미선택"])
-                if selected[0] == "선택":
+                button_state = "선택" if st.session_state[f'{label}_selections'][option] else "미선택"
+                if pills("기타", [button_state]):
                     st.session_state[f'{label}_selections'][option] = not st.session_state[f'{label}_selections'][option]
                 
                 if st.session_state[f'{label}_selections'][option]:
