@@ -189,62 +189,36 @@ def improved_schedule_input():
     st.session_state.data['service_duration'] = service_duration
     st.write(f"용역 기간: {service_duration}일")
 
-def toggle_pill(label, key):
-    if key not in st.session_state:
-        st.session_state[key] = False
-    
-    if st.button(label, key=f"btn_{key}"):
-        st.session_state[key] = not st.session_state[key]
-    
-    return st.session_state[key]
-
-def multi_pills(label, options):
+def multi_select_with_other(label, options):
     st.write(label)
-    selected = []
-    cols = st.columns(3)  # 3열 레이아웃 사용
-    for i, option in enumerate(options):
-        with cols[i % 3]:
-            key = f"{label}_{option}"
-            if toggle_pill(option, key):
-                selected.append(option)
-    return selected
+    selections = []
+    other_text = ""
+
+    for option in options:
+        if option != "기타":
+            if st.checkbox(option, key=f"checkbox_{label}_{option}"):
+                selections.append(option)
+        else:
+            if st.checkbox("기타", key=f"checkbox_{label}_other"):
+                other_text = st.text_input("기타 (직접 입력)", key=f"text_{label}_other")
+                if other_text:
+                    selections.append(f"기타: {other_text}")
+
+    return selections
 
 def display_basic_info():
     st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
     st.session_state.data['department'] = st.text_input("근무 부서", st.session_state.data.get('department', ''))
     
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
-    st.session_state.data['position'] = pills("직급", position_options)[0]
+    st.session_state.data['position'] = st.selectbox("직급", position_options)
     
     service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
-    st.session_state.data['service_types'] = multi_pills("주로 하는 용역 유형", service_types)
+    st.session_state.data['service_types'] = multi_select_with_other("주로 하는 용역 유형", service_types)
     
     st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
     improved_schedule_input()
-    
-# CSS를 사용하여 버튼 스타일 지정
-st.markdown("""
-<style>
-    .stButton > button {
-        background-color: #CAF0F8;
-        color: black;
-        border: none;
-        border-radius: 20px;
-        padding: 5px 15px;
-        margin: 5px;
-    }
-    .stButton > button:hover {
-        background-color: #FF6B6B;
-        color: white;
-    }
-    .stButton > button:focus {
-        background-color: #FF6B6B;
-        color: white;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 
 def display_service_overview():
     service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
