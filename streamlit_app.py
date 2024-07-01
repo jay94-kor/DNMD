@@ -86,7 +86,7 @@ def budget_input(key, label):
     with col1:
         amount = st.text_input(label, value=format_korean_currency(st.session_state.data.get(key, '')))
     with col2:
-        is_undecided = pills("미정", ["예", "아니오"])
+        is_undecided = pills("미정", ["예", "아니오"], key=f"pills_{key}")
     
     st.session_state.data[key] = "미정" if is_undecided[0] == "예" else parse_korean_currency(amount)
 
