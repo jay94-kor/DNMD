@@ -3,12 +3,9 @@ import json
 import os
 import pandas as pd
 from datetime import datetime, timedelta, date
-import io
 from typing import Dict, Any, List
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.colored_header import colored_header
 from streamlit_extras.add_vertical_space import add_vertical_space
-from streamlit_extras.stateful_button import button
 from streamlit_extras.metric_cards import style_metric_cards
 
 # 상수 정의
@@ -70,7 +67,7 @@ def main():
         st.session_state.data = {}
 
     # 단계 정의
-    steps = ["기본 정보", "행사 개요", "행사 형태 및 장소", "행사 구성 요소", "마무리"]
+    steps = ["기본 정보", "용역 개요", "용역 형태 및 장소", "용역 구성 요소", "마무리"]
     total_steps = len(steps)
 
     # 진행 상황 표시
@@ -79,7 +76,7 @@ def main():
     # 컬러 헤더 사용
     colored_header(
         label=f"Step {st.session_state.step}: {steps[st.session_state.step - 1]}",
-        description="이벤트 기획을 위한 단계별 가이드",
+        description="용역 기획을 위한 단계별 가이드",
         color_name="blue-70"
     )
 
@@ -87,11 +84,11 @@ def main():
     if st.session_state.step == 1:
         display_basic_info()
     elif st.session_state.step == 2:
-        display_event_overview()
+        display_service_overview()
     elif st.session_state.step == 3:
-        display_event_format_and_venue()
+        display_service_format_and_venue()
     elif st.session_state.step == 4:
-        display_event_components()
+        display_service_components()
     elif st.session_state.step == 5:
         finalize()
 
@@ -125,19 +122,19 @@ def display_progress(current_step: int, total_steps: int):
 def improved_schedule_input():
     col1, col2 = st.columns(2)
     with col1:
-        start_date = st.date_input("행사 시작일", value=st.session_state.data.get('event_start_date', datetime.now().date()))
+        start_date = st.date_input("용역 시작일", value=st.session_state.data.get('service_start_date', datetime.now().date()))
     
     # 종료일 자동 조정 로직
-    if 'event_end_date' not in st.session_state.data or st.session_state.data['event_end_date'] < start_date:
+    if 'service_end_date' not in st.session_state.data or st.session_state.data['service_end_date'] < start_date:
         end_date = start_date
     else:
-        end_date = st.session_state.data['event_end_date']
+        end_date = st.session_state.data['service_end_date']
     
     with col2:
-        end_date = st.date_input("행사 종료일", value=end_date, min_value=start_date)
+        end_date = st.date_input("용역 종료일", value=end_date, min_value=start_date)
     
-    st.session_state.data['event_start_date'] = start_date
-    st.session_state.data['event_end_date'] = end_date
+    st.session_state.data['service_start_date'] = start_date
+    st.session_state.data['service_end_date'] = end_date
 
     setup_options = ["전날부터", "당일"]
     teardown_options = ["당일 철수", "다음날 철수"]
@@ -157,9 +154,9 @@ def improved_schedule_input():
     st.write(f"셋업 일자: {st.session_state.data['setup_date']}")
     st.write(f"철수 일자: {st.session_state.data['teardown_date']}")
 
-    event_duration = (end_date - start_date).days + 1
-    st.session_state.data['event_duration'] = event_duration
-    st.write(f"행사 기간: {event_duration}일")
+    service_duration = (end_date - start_date).days + 1
+    st.session_state.data['service_duration'] = service_duration
+    st.write(f"용역 기간: {service_duration}일")
 
 def display_basic_info():
     st.session_state.data['name'] = st.text_input("이름", st.session_state.data.get('name', ''))
@@ -168,16 +165,16 @@ def display_basic_info():
     position_options = ["파트너 기획자", "선임", "책임", "수석"]
     st.session_state.data['position'] = st.radio("직급", position_options, index=position_options.index(st.session_state.data.get('position', '파트너 기획자')))
     
-    event_types = ["콘서트", "컨퍼런스", "전시회", "축제", "기업 행사", "기타"]
-    st.session_state.data['event_types'] = st.multiselect("주로 기획하는 행사 유형", event_types, default=st.session_state.data.get('event_types', []))
+    service_types = ["행사 운영", "공간 디자인", "마케팅", "PR", "영상제작", "전시", "브랜딩", "온라인 플랫폼 구축", "기타"]
+    st.session_state.data['service_types'] = st.multiselect("주로 하는 용역 유형", service_types, default=st.session_state.data.get('service_types', []))
     
-    st.session_state.data['event_name'] = st.text_input("용역명", st.session_state.data.get('event_name', ''))
+    st.session_state.data['service_name'] = st.text_input("용역명", st.session_state.data.get('service_name', ''))
 
     improved_schedule_input()
 
-def display_event_overview():
-    event_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
-    st.session_state.data['event_purpose'] = st.multiselect("용역의 주요 목적", event_purposes, default=st.session_state.data.get('event_purpose', []))
+def display_service_overview():
+    service_purposes = ["브랜드 인지도 향상", "고객 관계 강화", "신제품 출시", "교육 및 정보 제공", "수익 창출", "문화/예술 증진", "기타"]
+    st.session_state.data['service_purpose'] = st.multiselect("용역의 주요 목적", service_purposes, default=st.session_state.data.get('service_purpose', []))
     
     col1, col2 = st.columns(2)
     with col1:
@@ -209,24 +206,24 @@ def display_event_overview():
     
     style_metric_cards()
 
-def display_event_format_and_venue():
-    event_formats = ["오프라인 행사", "온라인 행사 (라이브 스트리밍)", "하이브리드 (온/오프라인 병행)", "영상 콘텐츠 제작", "기타"]
-    st.session_state.data['event_format'] = st.radio("행사 형태", event_formats, index=event_formats.index(st.session_state.data.get('event_format', '오프라인 행사')))
+def display_service_format_and_venue():
+    service_formats = ["오프라인", "온라인", "하이브리드", "기타"]
+    st.session_state.data['service_format'] = st.radio("용역 형태", service_formats, index=service_formats.index(st.session_state.data.get('service_format', '오프라인')))
     
-    if st.session_state.data['event_format'] in ["오프라인 행사", "하이브리드 (온/오프라인 병행)"]:
+    if st.session_state.data['service_format'] in ["오프라인", "하이브리드"]:
         venue_types = ["실내 (호텔, 컨벤션 센터 등)", "야외 (공원, 광장 등)", "혼합형 (실내+야외)", "아직 미정"]
-        st.session_state.data['venue_type'] = st.radio("행사 장소 유형", venue_types, index=venue_types.index(st.session_state.data.get('venue_type', '실내 (호텔, 컨벤션 센터 등)')))
+        st.session_state.data['venue_type'] = st.radio("용역 장소 유형", venue_types, index=venue_types.index(st.session_state.data.get('venue_type', '실내 (호텔, 컨벤션 센터 등)')))
         
         venue_statuses = [CONFIRMED, ALMOST_CONFIRMED, IN_PROGRESS, NOT_STARTED]
-        st.session_state.data['venue_status'] = st.radio("행사 장소 협의 상태", venue_statuses, index=venue_statuses.index(st.session_state.data.get('venue_status', IN_PROGRESS)))
+        st.session_state.data['venue_status'] = st.radio("용역 장소 협의 상태", venue_statuses, index=venue_statuses.index(st.session_state.data.get('venue_status', IN_PROGRESS)))
         
         if st.session_state.data['venue_status'] in [CONFIRMED, ALMOST_CONFIRMED]:
             st.session_state.data['specific_venue'] = st.text_input("구체적인 장소", st.session_state.data.get('specific_venue', ''))
         else:
             st.session_state.data['expected_area'] = st.text_input("예정 지역", st.session_state.data.get('expected_area', ''))
 
-def display_event_components():
-    st.header("행사 구성 요소")
+def display_service_components():
+    st.header("용역 구성 요소")
     
     components = {
         "무대 설치": setup_stage,
@@ -241,7 +238,10 @@ def display_event_components():
         "기술 및 장비": setup_technology_and_equipment,
         "네트워킹": setup_networking,
         "예산 및 스폰서십": setup_budget_and_sponsorship,
-        "리스크 관리": setup_risk_management
+        "리스크 관리": setup_risk_management,
+        "PR": setup_pr,
+        "브랜딩": setup_branding,
+        "온라인 플랫폼": setup_online_platform
     }
     
     for component, setup_func in components.items():
@@ -379,6 +379,37 @@ def setup_risk_management():
     }
     setup_component("리스크 관리", options)
 
+def setup_pr():
+    options = {
+        "PR 목표": ["미디어 노출 증대", "브랜드 이미지 개선", "위기 관리", "기타"],
+        "타겟 미디어": ["신문", "방송", "온라인 뉴스", "전문 매체", "기타"],
+        "보도자료 작성 필요": True,
+        "인터뷰 주선 필요": True,
+        "PR 전략 설명": ""
+    }
+    setup_component("PR", options)
+
+def setup_branding():
+    options = {
+        "브랜딩 목표": ["브랜드 인지도 향상", "브랜드 이미지 개선", "신규 브랜드 런칭", "기타"],
+        "브랜딩 요소": ["로고", "슬로건", "컬러 팔레트", "폰트", "기타"],
+        "브랜드 가이드라인 존재 여부": True,
+        "브랜드 메시지": "",
+        "브랜딩 전략 설명": ""
+    }
+    setup_component("브랜딩", options)
+
+def setup_online_platform():
+    options = {
+        "플랫폼 유형": ["웹사이트", "모바일 앱", "가상 이벤트 플랫폼", "기타"],
+        "필요한 기능": ["참가자 등록", "라이브 스트리밍", "채팅", "네트워킹", "콘텐츠 공유", "기타"],
+        "예상 동시 접속자 수": 0,
+        "보안 요구사항": "",
+        "플랫폼 개발 기간": "",
+        "플랫폼 유지보수 계획": ""
+    }
+    setup_component("온라인 플랫폼", options)
+
 def save_survey_data(data: Dict[str, Any]) -> bool:
     try:
         # 저장 디렉토리 생성
@@ -417,7 +448,7 @@ def finalize():
             st.error("설문 저장 중 오류가 발생했습니다.")
         
         # 발주요청서 생성 및 다운로드
-        categories = ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작"]
+        categories = ["무대 설치", "음향 시스템", "조명 장비", "LED 스크린", "동시통역 시스템", "케이터링 서비스", "영상 제작", "마케팅 및 홍보", "PR", "브랜딩", "온라인 플랫폼"]
         for category in categories:
             if category in st.session_state.data and st.session_state.data[category].get('needed', False):
                 csv_file = generate_csv_file(st.session_state.data, category)
@@ -433,12 +464,12 @@ def finalize():
 def generate_csv_file(data: Dict[str, Any], category: str) -> str:
     # 공통 정보
     common_info = pd.DataFrame({
-        '항목': ['이름', '근무 부서', '직급', '주로 기획하는 행사 유형', '용역명', '행사 시작일', '행사 마감일', '진행 일정 (일 수)',
-                 '셋업 시작일', '철수 마감일', '행사 목적', '예상 참가자 수', '계약 형태', '예산 협의 상태', '행사 형태', '행사 장소 유형', '행사 장소'],
-        '내용': [data['name'], data['department'], data['position'], ', '.join(data['event_types']), data['event_name'],
-                data['event_start_date'], data['event_end_date'], data['event_duration'],
-                data['setup_date'], data['teardown_date'], ', '.join(data['event_purpose']), data['expected_participants'],
-                data['contract_type'], data['budget_status'], data['event_format'], data.get('venue_type', 'N/A'),
+        '항목': ['이름', '근무 부서', '직급', '주로 하는 용역 유형', '용역명', '용역 시작일', '용역 마감일', '진행 일정 (일 수)',
+                 '셋업 시작일', '철수 마감일', '용역 목적', '예상 참가자 수', '계약 형태', '예산 협의 상태', '용역 형태', '용역 장소 유형', '용역 장소'],
+        '내용': [data['name'], data['department'], data['position'], ', '.join(data['service_types']), data['service_name'],
+                data['service_start_date'], data['service_end_date'], data['service_duration'],
+                data['setup_date'], data['teardown_date'], ', '.join(data['service_purpose']), data['expected_participants'],
+                data['contract_type'], data['budget_status'], data['service_format'], data.get('venue_type', 'N/A'),
                 data.get('specific_venue', data.get('expected_area', 'N/A'))]
     })
     
@@ -454,9 +485,27 @@ def generate_csv_file(data: Dict[str, Any], category: str) -> str:
     return csv_string
 
 def validate_current_step() -> bool:
-    # 여기에 각 단계별 유효성 검사 로직을 구현하세요
-    # 예: 필수 필드가 채워져 있는지 확인
-    return True  # 임시로 항상 True를 반환
+    step = st.session_state.step
+    data = st.session_state.data
+
+    if step == 1:
+        required_fields = ['name', 'department', 'position', 'service_types', 'service_name', 'service_start_date', 'service_end_date']
+    elif step == 2:
+        required_fields = ['service_purpose', 'expected_participants', 'contract_type', 'budget_status']
+    elif step == 3:
+        required_fields = ['service_format']
+        if data['service_format'] in ["오프라인", "하이브리드"]:
+            required_fields.extend(['venue_type', 'venue_status'])
+    elif step == 4:
+        # 여기서는 모든 필드가 옵션이므로 항상 True를 반환
+        return True
+    else:
+        return True
+
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return False
+    return True
 
 if __name__ == "__main__":
     main()
