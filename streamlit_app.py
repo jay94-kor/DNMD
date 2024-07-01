@@ -518,9 +518,10 @@ def generate_excel_file(data: Dict[str, Any], category: str) -> BytesIO:
             ws.cell(row=ws.max_row, column=2).border = border
 
     # 예산 정보 추가
-    if f"{category}_budget" in data:
+    budget_key = f"{category}_budget"
+    if budget_key in data:
         ws.append(['', ''])
-        ws.append([f'{category} 예산', format_korean_currency(data[f"{category}_budget"])])
+        ws.append(['배정 예산', format_korean_currency(data[budget_key])])
         ws.cell(row=ws.max_row, column=1).border = border
         ws.cell(row=ws.max_row, column=2).border = border
 
