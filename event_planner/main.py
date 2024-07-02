@@ -51,20 +51,19 @@ def basic_info():
     st.session_state.event_data['client_name'] = st.text_input("클라이언트명", value=st.session_state.event_data.get('client_name', ''))
     
     event_types = ["영상 제작", "오프라인 이벤트"]
-    event_icons = ["🎥", "🏟️"]  # 각 옵션에 대한 아이콘 추가
-    default_event_types = st.session_state.event_data.get('event_type', [])
+    default_index = event_types.index(st.session_state.event_data.get('event_type', event_types[0]))
+    selected_type = option_menu("용역 유형", event_types, 
+                                icons=['camera-video', 'calendar-event'], 
+                                menu_icon="list", default_index=default_index,
+                                styles={
+                                    "container": {"padding": "0!important", "background-color": "#fafafa"},
+                                    "icon": {"color": "orange", "font-size": "25px"}, 
+                                    "nav-link": {"font-size": "16px", "text-align": "left", "margin":"0px", "--hover-color": "#eee"},
+                                    "nav-link-selected": {"background-color": "#02ab21"},
+                                })
+    st.session_state.event_data['event_type'] = selected_type
     
-    # default_event_types가 리스트가 아니면 빈 리스트로 초기화
-    if not isinstance(default_event_types, list):
-        default_event_types = []
-    
-    # default_event_types의 모든 항목이 event_types에 있는지 확인
-    default_event_types = [event_type for event_type in default_event_types if event_type in event_types]
-    
-    selected_types = pills("용역 유형", event_types, default_event_types, event_icons)
-    st.session_state.event_data['event_type'] = selected_types
-    
-    if "오프라인 이벤트" in selected_types:
+    if "오프라인 이벤트" in selected_type:
         st.session_state.event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=st.session_state.event_data.get('scale', 0))
         
         start_date = st.date_input("행사 시작일", value=st.session_state.event_data.get('start_date', date.today()))
@@ -74,30 +73,48 @@ def basic_info():
         st.session_state.event_data['end_date'] = end_date
         
         setup_options = ["전날부터", "당일"]
-        setup_icons = ["🌙", "☀️"]
-        default_setup = st.session_state.event_data.get('setup', "전날부터")
-        st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, [default_setup], setup_icons)[0]
+        default_setup = setup_options.index(st.session_state.event_data.get('setup', setup_options[0]))
+        st.session_state.event_data['setup'] = option_menu("셋업 시작", setup_options, 
+                                                           icons=['moon', 'sun'], 
+                                                           default_index=default_setup,
+                                                           orientation="horizontal")
         
         teardown_options = ["당일 철수", "다음날 철수"]
-        teardown_icons = ["🌞", "🌅"]
-        default_teardown = st.session_state.event_data.get('teardown', "당일 철수")
-        st.session_state.event_data['teardown'] = pills("철수", teardown_options, [default_teardown], teardown_icons)[0]
+        default_teardown = teardown_options.index(st.session_state.event_data.get('teardown', teardown_options[0]))
+        st.session_state.event_data['teardown'] = option_menu("철수", teardown_options, 
+                                                              icons=['sun', 'sunrise'], 
+                                                              default_index=default_teardown,
+                                                              orientation="horizontal")
 
 def venue_info():
     st.header("장소 정보")
     
-    venue_decided = pills("장소가 정확히 정해졌나요?", ["예", "아니오"], [st.session_state.event_data.get('venue_decided', "아니오")], ["✅", "❌"])[0]
+    venue_decided_options = ["예", "아니오"]
+    default_venue_decided = venue_decided_options.index(st.session_state.event_data.get('venue_decided', "아니오"))
+    venue_decided = option_menu("장소가 정확히 정해졌나요?", venue_decided_options, 
+                                icons=['check-circle', 'x-circle'], 
+                                default_index=default_venue_decided,
+                                orientation="horizontal")
     
     if venue_decided == "예":
         st.session_state.event_data['venue_name'] = st.text_input("장소명 (예: 서울시청 다목적홀B)", st.session_state.event_data.get('venue_name', ''))
         venue_types = ["실내", "실외", "혼합", "온라인"]
-        venue_icons = ["🏠", "🌳", "🏠🌳", "💻"]
-        st.session_state.event_data['venue_type'] = pills("실내/실외", venue_types, [st.session_state.event_data.get('venue_type', "실내")], venue_icons)[0]
+        default_venue_type = venue_types.index(st.session_state.event_data.get('venue_type', "실내"))
+        st.session_state.event_data['venue_type'] = option_menu("실내/실외", venue_types, 
+                                                                icons=['house', 'tree', 'houses', 'laptop'], 
+                                                                default_index=default_venue_type,
+                                                                orientation="horizontal")
         
         if st.session_state.event_data['venue_type'] != "온라인":
             st.session_state.event_data['address'] = st.text_input("주소", st.session_state.event_data.get('address', ''))
         
-        capacity_type = pills("수용 인원 입력 방식", ["범위", "단일 값"], [st.session_state.event_data.get('capacity_type', "범위")])[0]
+        capacity_type_options = ["범위", "단일 값"]
+        default_capacity_type = capacity_type_options.index(st.session_state.event_data.get('capacity_type', "범위"))
+        capacity_type = option_menu("수용 인원 입력 방식", capacity_type_options, 
+                                    icons=['bar-chart', '123'], 
+                                    default_index=default_capacity_type,
+                                    orientation="horizontal")
+        
         current_capacity = st.session_state.event_data.get('capacity', '0-0')
         
         if isinstance(current_capacity, int):
@@ -115,11 +132,12 @@ def venue_info():
             st.session_state.event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=current_min)
         
         facilities = ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"]
-        st.session_state.event_data['facilities'] = pills("시설 및 장비", facilities, st.session_state.event_data.get('facilities', []))
+        default_facilities = st.session_state.event_data.get('facilities', [])
+        st.session_state.event_data['facilities'] = st.multiselect("시설 및 장비", facilities, default=default_facilities)
     else:
         st.session_state.event_data['desired_region'] = st.text_input("희망 지역", st.session_state.event_data.get('desired_region', ''))
         st.session_state.event_data['desired_capacity'] = st.number_input("희망 수용 인원 (0 입력시 무관)", min_value=0, value=int(st.session_state.event_data.get('desired_capacity', 0)))
-
+        
 def service_components():
     st.header("용역 구성 요소")
     
