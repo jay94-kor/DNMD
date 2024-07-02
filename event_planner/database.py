@@ -26,25 +26,6 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS service_components
                  (id INTEGER PRIMARY KEY, category TEXT, subcategory TEXT, status TEXT, budget INTEGER, contact_status TEXT, additional_info TEXT)''')
     
-    # 더미 데이터 삽입
-    c.execute('SELECT COUNT(*) FROM basic_info')
-    if c.fetchone()[0] == 0:
-        c.execute('''INSERT INTO basic_info (event_name, client_name, event_type, scale, start_date, end_date, setup, teardown)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                  ('샘플 이벤트', '샘플 클라이언트', json.dumps(['컨퍼런스']), 100, '2023-06-01', '2023-06-02', '전날부터', '당일 철수'))
-        
-        c.execute('''INSERT INTO venue_info (venue_name, venue_type, address, capacity, facilities)
-                     VALUES (?, ?, ?, ?, ?)''',
-                  ('샘플 장소', '컨벤션 센터', '서울시 강남구', 150, json.dumps(['프로젝터', '마이크', '테이블', '의자'])))
-        
-        c.execute('''INSERT INTO budget_info (total_budget, expected_profit)
-                     VALUES (?, ?)''',
-                  (10000000, 2000000))
-        
-        c.execute('''INSERT INTO service_components (category, subcategory, status, budget, contact_status, additional_info)
-                     VALUES (?, ?, ?, ?, ?, ?)''',
-                  ('케이터링', '뷔페', '진행 중', 3000000, '계약 완료', '특별 요청 사항 없음'))
-    
     conn.commit()
     conn.close()
 
@@ -56,7 +37,7 @@ def save_data(data):
     c.execute('''INSERT OR REPLACE INTO basic_info 
                  (id, event_name, client_name, event_type, scale, start_date, end_date, setup, teardown) 
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
-              (1, data.get('event_name'), data.get('client_name'), json.dumps(data.get('event_type', [])),
+              (1, data.get('event_name'), data.get('client_name'), json.dumps(data.get('event_type')),
                data.get('scale'), data.get('start_date'), data.get('end_date'),
                data.get('setup'), data.get('teardown')))
     
