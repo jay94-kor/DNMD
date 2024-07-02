@@ -1,0 +1,5 @@
+streamlit
+streamlit-pills
+pandas
+openpyxl
+pillow
