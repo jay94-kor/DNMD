@@ -1,6 +1,15 @@
 import streamlit as st
 from streamlit_pills import pills
 import sqlite3
+import os
+from pages import basic_info, venue_info, budget_info, service_components, progress_tracking
+from database import init_db, load_data, save_data
+from utils import load_config
+from ui_components import sidebar_navigation
+
+# 현재 스크립트의 디렉토리로 작업 디렉토리 변경
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 from pages import basic_info, venue_info, budget_info, service_components, progress_tracking
 from database import init_db, load_data, save_data
 from utils import load_config

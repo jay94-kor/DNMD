@@ -1,7 +1,11 @@
 import sqlite3
 import json
+import os
 
 def init_db():
+    # 데이터 디렉토리 생성
+    os.makedirs('data', exist_ok=True)
+    
     conn = sqlite3.connect('data/event_planner.db')
     c = conn.cursor()
     
