@@ -87,8 +87,8 @@ def basic_info():
     st.session_state.event_data['client_name'] = st.text_input("클라이언트명", value=st.session_state.event_data.get('client_name', ''))
     
     event_types = ["영상 제작", "오프라인 이벤트"]
-    # pills 함수 호출 수정
-    selected_types = pills("용역 유형", event_types, st.session_state.event_data.get('event_type', []))
+    # pills 함수 대신 multiselect 사용
+    selected_types = st.multiselect("용역 유형", options=event_types, default=st.session_state.event_data.get('event_type', []))
     st.session_state.event_data['event_type'] = selected_types
     
     if "오프라인 이벤트" in selected_types:
@@ -102,7 +102,6 @@ def basic_info():
         
         st.session_state.event_data['setup'] = st.radio("셋업 시작", ["전날부터", "당일"], index=0 if st.session_state.event_data.get('setup') == "전날부터" else 1)
         st.session_state.event_data['teardown'] = st.radio("철수", ["당일 철수", "다음날 철수"], index=0 if st.session_state.event_data.get('teardown') == "당일 철수" else 1)
-
 # 장소 정보 입력 함수
 def venue_info():
     st.header("장소 정보")
