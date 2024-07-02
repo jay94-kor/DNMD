@@ -52,7 +52,7 @@ def basic_info():
     
     event_types = ["영상 제작", "오프라인 이벤트"]
     default_event_types = st.session_state.event_data.get('event_type', [])
-    selected_types = pills("용역 유형", event_types, default_event_types, None)
+    selected_types = pills("용역 유형", event_types, default_event_types)
     st.session_state.event_data['event_type'] = selected_types
     
     if "오프라인 이벤트" in selected_types:
@@ -66,21 +66,21 @@ def basic_info():
         
         setup_options = ["전날부터", "당일"]
         default_setup = [st.session_state.event_data.get('setup', "전날부터")]
-        st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, default_setup, None)[0]
+        st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, default_setup)[0]
         
         teardown_options = ["당일 철수", "다음날 철수"]
         default_teardown = [st.session_state.event_data.get('teardown', "당일 철수")]
-        st.session_state.event_data['teardown'] = pills("철수", teardown_options, default_teardown, None)[0]
+        st.session_state.event_data['teardown'] = pills("철수", teardown_options, default_teardown)[0]
 
 def venue_info():
     st.header("장소 정보")
     
-    venue_decided = pills("장소가 정확히 정해졌나요?", ["예", "아니오"], [st.session_state.event_data.get('venue_decided', "아니오")], None)[0]
+    venue_decided = pills("장소가 정확히 정해졌나요?", ["예", "아니오"], [st.session_state.event_data.get('venue_decided', "아니오")])[0]
     
     if venue_decided == "예":
         st.session_state.event_data['venue_name'] = st.text_input("장소명 (예: 서울시청 다목적홀B)", st.session_state.event_data.get('venue_name', ''))
         venue_types = ["실내", "실외", "혼합", "온라인"]
-        st.session_state.event_data['venue_type'] = pills("실내/실외", venue_types, [st.session_state.event_data.get('venue_type', "실내")], None)[0]
+        st.session_state.event_data['venue_type'] = pills("실내/실외", venue_types, [st.session_state.event_data.get('venue_type', "실내")])[0]
         
         if st.session_state.event_data['venue_type'] != "온라인":
             st.session_state.event_data['address'] = st.text_input("주소", st.session_state.event_data.get('address', ''))
@@ -107,7 +107,7 @@ def venue_info():
     else:
         st.session_state.event_data['desired_region'] = st.text_input("희망 지역", st.session_state.event_data.get('desired_region', ''))
         st.session_state.event_data['desired_capacity'] = st.number_input("희망 수용 인원 (0 입력시 무관)", min_value=0, value=int(st.session_state.event_data.get('desired_capacity', 0)))
-        
+
 def service_components():
     st.header("용역 구성 요소")
     
@@ -116,7 +116,7 @@ def service_components():
         "섭외 / 인력", "시스템", "F&B", "제작 / 렌탈", "청소 / 관리", "출입 통제", "하드웨어"
     ]
     
-    selected_categories = pills("카테고리 선택", categories, st.session_state.event_data.get('selected_categories', []), None)
+    selected_categories = pills("카테고리 선택", categories, st.session_state.event_data.get('selected_categories', []))
     st.session_state.event_data['selected_categories'] = selected_categories
     
     if st.button("세부사항 입력"):
@@ -150,7 +150,7 @@ def service_components():
             elif category == "섭외 / 인력":
                 options = ["가수", "강사", "경호 (행사 전반)", "경호 (VIP)", "공연팀 (댄스)", "공연팀 (서커스 / 마술 / 퍼포먼스)",
                            "공연팀 (음악)", "공연팀 (전통)", "배우", "번역", "연사", "요원 (소방안전)", "요원 (응급처치)",
-                           "의전 도우미", "인플루언서","코미디언", "통역 인력 및 장비 세팅", "패널 토론 진행자", 
+                           "의전 도우미", "인플루언서", "코미디언", "통역 인력 및 장비 세팅", "패널 토론 진행자", 
                            "MC (기념식 / 시상식 등)", "MC (축제 / 페스티벌 등)", "STAFF (안전관리)", "STAFF (행사 운영)",
                            "STAFF (행사 진행)"]
             elif category == "시스템":
@@ -158,23 +158,21 @@ def service_components():
             elif category == "F&B":
                 options = ["음료 바 설치", "커피차 대여 및 운영", "푸드 트럭 대여 및 운영", "푸드 트럭 섭외 및 공고","케이터링 (뷔페)", "케이터링 (도시락)", "케이터링 (스탠딩)", "케이터링 (코스)"]
             elif category == "제작 / 렌탈":
-                options = ["가구 렌탈", "기념품 제작", "네임택 제작", "무대 제작", "배너 제작", "백월 제작", "사인물 제작",
-                           "아크릴 제작", "유니폼 제작", "인쇄물 제작", "조화 렌탈", "천막 렌탈", "포토월 제작"]
+                options = ["가구 렌탈", "무대 설치", "부스 설치", "시스템 트러스", "천막 설치", "특수효과 (불꽃, 연기 등)"]
             elif category == "청소 / 관리":
-                options = ["방역", "쓰레기 처리", "청소"]
+                options = ["폐기물 처리", "화장실 관리"]
             elif category == "출입 통제":
-                options = ["QR코드 발급", "네임택 발급", "등록 데스크 운영", "명찰 제작", "출입증 발급"]
+                options = ["QR코드 체크인", "명찰 제작", "출입증 제작"]
             elif category == "하드웨어":
-                options = ["노트북 렌탈", "무전기 렌탈", "태블릿 렌탈"]
+                options = ["노트북 렌탈", "태블릿 렌탈", "프린터 렌탈"]
             else:
                 options = []
-            component['items'] = pills(f"{category} 세부 항목", options, st.session_state.event_data.get(f'items_{category}', []))
             
-            if component['items']:
-                for item in component['items']:
-                    component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=st.session_state.event_data.get(f'{category}_{item}_quantity', 0), key=f"{category}_{item}_quantity")
-                    component[f'{item}_unit'] = st.text_input(f"{item} 단위", value=st.session_state.event_data.get(f'{category}_{item}_unit', ''), key=f"{category}_{item}_unit")
-                    component[f'{item}_price'] = st.number_input(f"{item} 가격", min_value=0, value=st.session_state.event_data.get(f'{category}_{item}_price', 0), key=f"{category}_{item}_price")
+            component['items'] = pills(f"{category} 항목 선택", options, st.session_state.event_data.get(f'items_{category}', []))
+            
+            for item in component['items']:
+                component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=st.session_state.event_data.get(f'{item}_quantity', 0))
+                component[f'{item}_unit'] = st.text_input(f"{item} 단위", value=st.session_state.event_data.get(f'{item}_unit', '개'))
             
             st.session_state.event_data['components'][category] = component
 
