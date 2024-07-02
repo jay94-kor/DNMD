@@ -138,7 +138,6 @@ def venue_info():
         st.session_state.event_data['desired_region'] = st.text_input("희망 지역", st.session_state.event_data.get('desired_region', ''))
         st.session_state.event_data['desired_capacity'] = st.number_input("희망 수용 인원 (0 입력시 무관)", min_value=0, value=int(st.session_state.event_data.get('desired_capacity', 0)))
 
-# 예산 정보 입력 함수
 def budget_info():
     st.header("예산 정보")
     
@@ -153,9 +152,15 @@ def budget_info():
     st.write(f"예상 영업이익: {expected_profit:,} 원")
     
     if st.button("예상 영업이익 수정"):
-        st.session_state.event_data['expected_profit'] = st.number_input("예상 영업이익 (원)", min_value=0, value=expected_profit)
-        st.session_state.event_data['profit_percent'] = (st.session_state.event_data['expected_profit'] / st.session_state.event_data['contract_amount']) * 100
-        st.write(f"수정된 예상 영업이익 비율: {st.session_state.event_data['profit_percent']:.2f}%")
+        custom_profit = st.number_input("예상 영업이익 (원)", min_value=0, value=expected_profit)
+        if st.button("수정 적용"):
+            st.session_state.event_data['expected_profit'] = custom_profit
+            if st.session_state.event_data['contract_amount'] > 0:
+                st.session_state.event_data['profit_percent'] = (custom_profit / st.session_state.event_data['contract_amount']) * 100
+            else:
+                st.session_state.event_data['profit_percent'] = 0
+            st.write(f"수정된 예상 영업이익 비율: {st.session_state.event_data['profit_percent']:.2f}%")
+            st.rerun()
 
 def service_components():
     st.header("용역 구성 요소")
@@ -165,7 +170,7 @@ def service_components():
         "섭외 / 인력", "시스템", "F&B", "제작 / 렌탈", "청소 / 관리", "출입 통제", "하드웨어"
     ]
     
-    selected_categories = pills("카테고리 선택", categories, st.session_state.event_data.get('selected_categories', []))
+    selected_categories = st.multiselect("카테고리 선택", categories, default=st.session_state.event_data.get('selected_categories', []))
     st.session_state.event_data['selected_categories'] = selected_categories
     
     if st.button("세부사항 입력"):
@@ -221,7 +226,7 @@ def service_components():
             else:
                 options = []  # 기본값으로 빈 리스트 설정
             
-            component['items'] = pills(f"{category} 세부 항목", options, key=f"items_{category}")
+            component['items'] = st.multiselect(f"{category} 세부 항목", options, key=f"items_{category}")
             
 # 진행 상황 추적 함수
 def progress_tracking():
