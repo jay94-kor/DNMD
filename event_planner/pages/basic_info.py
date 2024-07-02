@@ -5,16 +5,25 @@ from utils import format_date, validate_date_range
 def render(data, config):
     st.header("기본 정보")
     
+    # data와 config가 딕셔너리인지 확인
+    if not isinstance(data, dict):
+        data = {}
+    if not isinstance(config, dict):
+        config = {}
+    
     event_name = st.text_input("행사명", value=data.get('event_name', ''))
     client_name = st.text_input("클라이언트명", value=data.get('client_name', ''))
     
     event_types = config.get('event_types', [])
+    if not isinstance(event_types, list):
+        event_types = []
     event_type = st.multiselect("행사 유형", options=event_types, default=data.get('event_type', []))
     
     scale = st.number_input("예상 참여 관객 수", min_value=0, value=int(data.get('scale', 0)))
     
-    start_date = st.date_input("행사 시작일", value=date.fromisoformat(data.get('start_date', date.today().isoformat())))
-    end_date = st.date_input("행사 종료일", value=date.fromisoformat(data.get('end_date', date.today().isoformat())))
+    default_date = date.today()
+    start_date = st.date_input("행사 시작일", value=date.fromisoformat(data.get('start_date', default_date.isoformat())))
+    end_date = st.date_input("행사 종료일", value=date.fromisoformat(data.get('end_date', default_date.isoformat())))
     
     if not validate_date_range(start_date, end_date):
         st.error("종료일은 시작일과 같거나 이후여야 합니다.")
