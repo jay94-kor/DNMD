@@ -51,7 +51,7 @@ def basic_info():
     st.session_state.event_data['client_name'] = st.text_input("클라이언트명", value=st.session_state.event_data.get('client_name', ''))
     
     event_types = ["영상 제작", "오프라인 이벤트"]
-    selected_types = pills("용역 유형", event_types, st.session_state.event_data.get('event_type', []))
+    selected_types = pills("용역 유형", event_types, st.session_state.event_data.get('event_type', []), icons=None)
     st.session_state.event_data['event_type'] = selected_types
     
     if "오프라인 이벤트" in selected_types:
@@ -64,7 +64,7 @@ def basic_info():
         st.session_state.event_data['end_date'] = end_date
         
         setup_options = ["전날부터", "당일"]
-        st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, [st.session_state.event_data.get('setup', "전날부터")])[0]
+        st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, [st.session_state.event_data.get('setup', "전날부터")], icons=None)[0]
         
         teardown_options = ["당일 철수", "다음날 철수"]
         st.session_state.event_data['teardown'] = pills("철수", teardown_options, [st.session_state.event_data.get('teardown', "당일 철수")])[0]
@@ -72,7 +72,7 @@ def basic_info():
 def venue_info():
     st.header("장소 정보")
     
-    venue_decided = pills("장소가 정확히 정해졌나요?", ["예", "아니오"], [st.session_state.event_data.get('venue_decided', "아니오")])[0]
+    venue_decided = pills("장소가 정확히 정해졌나요?", ["예", "아니오"], [st.session_state.event_data.get('venue_decided', "아니오")], icons=None)[0]
     
     if venue_decided == "예":
         st.session_state.event_data['venue_name'] = st.text_input("장소명 (예: 서울시청 다목적홀B)", st.session_state.event_data.get('venue_name', ''))

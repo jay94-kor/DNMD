@@ -4,4 +4,3 @@ openpyxl
 streamlit-pills
 numpy
 datetime
-sqlite3
