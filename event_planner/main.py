@@ -51,7 +51,7 @@ def basic_info():
     st.session_state.event_data['client_name'] = st.text_input("클라이언트명", value=st.session_state.event_data.get('client_name', ''))
     
     event_types = ["영상 제작", "오프라인 이벤트"]
-    selected_types = pills("용역 유형", event_types, st.session_state.event_data.get('event_type', []), icons=None)
+    selected_types = pills("용역 유형", event_types, st.session_state.event_data.get('event_type', []))
     st.session_state.event_data['event_type'] = selected_types
     
     if "오프라인 이벤트" in selected_types:
@@ -64,11 +64,11 @@ def basic_info():
         st.session_state.event_data['end_date'] = end_date
         
         setup_options = ["전날부터", "당일"]
-        st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, [st.session_state.event_data.get('setup', "전날부터")], icons=None)[0]
+        st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, [st.session_state.event_data.get('setup', "전날부터")])[0]
         
         teardown_options = ["당일 철수", "다음날 철수"]
-        st.session_state.event_data['teardown'] = pills("철수", teardown_options, [st.session_state.event_data.get('teardown', "당일 철수")], icons=None)[0]
-        
+        st.session_state.event_data['teardown'] = pills("철수", teardown_options, [st.session_state.event_data.get('teardown', "당일 철수")])[0]
+
 def venue_info():
     st.header("장소 정보")
     
