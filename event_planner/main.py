@@ -80,25 +80,28 @@ def main():
                 save_data()
                 generate_excel()
 
-# 기본 정보 입력 함수
 def basic_info():
     st.header("기본 정보")
     
-    st.session_state.event_data['event_name'] = st.text_input("행사명", st.session_state.event_data.get('event_name', ''))
-    st.session_state.event_data['client_name'] = st.text_input("클라이언트명", st.session_state.event_data.get('client_name', ''))
+    st.session_state.event_data['event_name'] = st.text_input("행사명", value=st.session_state.event_data.get('event_name', ''))
+    st.session_state.event_data['client_name'] = st.text_input("클라이언트명", value=st.session_state.event_data.get('client_name', ''))
     
     event_types = ["영상 제작", "오프라인 이벤트"]
+    # pills 함수 호출 수정
     selected_types = pills("용역 유형", event_types, st.session_state.event_data.get('event_type', []))
     st.session_state.event_data['event_type'] = selected_types
     
     if "오프라인 이벤트" in selected_types:
         st.session_state.event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=st.session_state.event_data.get('scale', 0))
-    
-    st.session_state.event_data['start_date'] = st.date_input("용역 시작일", value=st.session_state.event_data.get('start_date'))
-    st.session_state.event_data['end_date'] = st.date_input("용역 종료일", value=st.session_state.event_data.get('end_date'))
-    
-    st.session_state.event_data['setup_start'] = st.radio("셋업 시작", ["전날부터", "당일"], index=0 if st.session_state.event_data.get('setup_start') == "전날부터" else 1)
-    st.session_state.event_data['teardown'] = st.radio("철수", ["당일 철수", "다음날 철수"], index=0 if st.session_state.event_data.get('teardown') == "당일 철수" else 1)
+        
+        start_date = st.date_input("행사 시작일", value=st.session_state.event_data.get('start_date', date.today()))
+        end_date = st.date_input("행사 종료일", value=st.session_state.event_data.get('end_date', date.today()))
+        
+        st.session_state.event_data['start_date'] = start_date
+        st.session_state.event_data['end_date'] = end_date
+        
+        st.session_state.event_data['setup'] = st.radio("셋업 시작", ["전날부터", "당일"], index=0 if st.session_state.event_data.get('setup') == "전날부터" else 1)
+        st.session_state.event_data['teardown'] = st.radio("철수", ["당일 철수", "다음날 철수"], index=0 if st.session_state.event_data.get('teardown') == "당일 철수" else 1)
 
 # 장소 정보 입력 함수
 def venue_info():
