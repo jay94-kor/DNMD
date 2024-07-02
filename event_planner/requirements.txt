@@ -1,6 +1,5 @@
-pandas
-openpyxl
-streamlit==1.15.1
+pandas==2.2.0
+openpyxl==3.1.2
+streamlit==1.31.1
 streamlit-option-menu==1.0.0
-numpy
-datetime
+numpy==1.26.3
