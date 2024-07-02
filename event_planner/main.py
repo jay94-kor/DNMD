@@ -1,9 +1,9 @@
 import streamlit as st
-import pandas as pd
-import sqlite3
 from streamlit_pills import pills
+from datetime import date, datetime
+import sqlite3
 import json
-from datetime import datetime
+import pandas as pd
 import openpyxl
 
 # 데이터베이스 연결 함수
@@ -85,7 +85,6 @@ def venue_info():
         capacity_type = pills("수용 인원 입력 방식", ["범위", "단일 값"], [st.session_state.event_data.get('capacity_type', "범위")])[0]
         current_capacity = st.session_state.event_data.get('capacity', '0-0')
         
-        
         if isinstance(current_capacity, int):
             current_min = current_max = current_capacity
         elif isinstance(current_capacity, str) and '-' in current_capacity:
@@ -148,7 +147,7 @@ def service_components():
             elif category == "섭외 / 인력":
                 options = ["가수", "강사", "경호 (행사 전반)", "경호 (VIP)", "공연팀 (댄스)", "공연팀 (서커스 / 마술 / 퍼포먼스)",
                            "공연팀 (음악)", "공연팀 (전통)", "배우", "번역", "연사", "요원 (소방안전)", "요원 (응급처치)",
-                           "의전 도우미", "인플루언서", "코미디언", "통역 인력 및 장비 세팅", "패널 토론 진행자", 
+                           "의전 도우미", "인플루언서","코미디언", "통역 인력 및 장비 세팅", "패널 토론 진행자", 
                            "MC (기념식 / 시상식 등)", "MC (축제 / 페스티벌 등)", "STAFF (안전관리)", "STAFF (행사 운영)",
                            "STAFF (행사 진행)"]
             elif category == "시스템":
@@ -166,7 +165,6 @@ def service_components():
                 options = ["노트북 렌탈", "무전기 렌탈", "태블릿 렌탈"]
             else:
                 options = []
-
             component['items'] = pills(f"{category} 세부 항목", options, st.session_state.event_data.get(f'items_{category}', []))
             
             if component['items']:
@@ -190,7 +188,8 @@ def budget_info():
     
     st.write(f"예상 영업이익: {expected_profit:,} 원")
     
-    if st.button("예상 영업이익 수정"):
+    edit_profit = st.checkbox("예상 영업이익 수정")
+    if edit_profit:
         custom_profit = st.number_input("예상 영업이익 (원)", min_value=0, value=expected_profit)
         if st.button("수정 적용"):
             st.session_state.event_data['expected_profit'] = custom_profit
@@ -210,12 +209,6 @@ def progress_tracking():
             st.subheader(category)
             st.write(f"진행 상황: {component['status']}")
             st.write(f"선택된 항목: {', '.join(component['items'])}")
-            st.write(f"예산: {component['budget']:,} 원 ({component['budget_percent']:.2f}%)")
-            st.write(f"협력사 컨택: {component['contact']}")
-            if 'other_company' in component:
-                st.write(f"선정 업체: {component['other_company']}")
-                st.write(f"선정 이유: {component['company_reason']}")
-            st.write(f"세부사항: {component['details']}")
             st.write("---")
 
 # 데이터 저장 함수
@@ -234,7 +227,7 @@ def save_data():
                    (event_data.get('event_name'), event_data.get('client_name'),
                     json.dumps(event_data.get('event_type')), event_data.get('scale'),
                     event_data.get('start_date'), event_data.get('end_date'),
-                    event_data.get('setup_start'), event_data.get('teardown'),
+                    event_data.get('setup'), event_data.get('teardown'),
                     event_data.get('venue_name'), event_data.get('venue_type'),
                     event_data.get('address'), event_data.get('capacity'),
                     json.dumps(event_data.get('facilities')), event_data.get('contract_amount'),
@@ -245,7 +238,7 @@ def save_data():
     
     st.success("데이터가 성공적으로 저장되었습니다.")
 
-# 엑셀 보고서 생성 함수
+    # 엑셀 보고서 생성 함수
 def generate_excel():
     event_data = st.session_state.event_data
     
@@ -254,18 +247,14 @@ def generate_excel():
     df_full['components'] = df_full['components'].apply(json.dumps)
     
     # 부분 발주요청서
-    df_partial = pd.DataFrame(columns=['카테고리', '진행 상황', '선택된 항목', '예산', '협력사 컨택', '선정 업체', '선정 이유', '세부사항'])
+    df_partial = pd.DataFrame(columns=['카테고리', '진행 상황', '선택된 항목', '세부사항'])
     
     for category, component in event_data.get('components', {}).items():
         df_partial = df_partial.append({
             '카테고리': category,
             '진행 상황': component['status'],
             '선택된 항목': ', '.join(component['items']),
-            '예산': f"{component['budget']:,} 원 ({component['budget_percent']:.2f}%)",
-            '협력사 컨택': component['contact'],
-            '선정 업체': component.get('other_company', ''),
-            '선정 이유': component.get('company_reason', ''),
-            '세부사항': component['details']
+            '세부사항': ', '.join([f"{item}: {component.get(f'{item}_quantity', '')} {component.get(f'{item}_unit', '')}" for item in component['items']])
         }, ignore_index=True)
     
     # Excel 파일 생성
@@ -286,11 +275,7 @@ def generate_excel():
         )
 
 def main():
-    if 'step' not in st.session_state:
-        st.session_state.step = 0
-    
-    if 'event_data' not in st.session_state:
-        st.session_state.event_data = {}
+    init_app()  # 앱 초기화 함수 호출
     
     st.title("이벤트 플래너")
     
@@ -315,7 +300,9 @@ def main():
         else:
             if st.button("완료"):
                 st.success("이벤트 계획이 완료되었습니다!")
-                # 여기에 최종 데이터 처리 로직을 추가할 수 있습니다.
+                save_data()  # 데이터 저장
+                progress_tracking()  # 진행 상황 표시
+                generate_excel()  # 엑셀 보고서 생성
 
 if __name__ == "__main__":
     main()
