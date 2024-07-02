@@ -44,42 +44,6 @@ def init_app():
         st.session_state.event_data = {}
     init_db()
 
-# 메인 앱 함수
-def main():
-    st.title("이벤트 기획 도구")
-    init_app()
-
-    # 네비게이션
-    steps = ["기본 정보", "장소 정보", "예산 정보", "용역 구성 요소", "진행 상황"]
-    st.sidebar.title("단계")
-    for i, step in enumerate(steps):
-        if st.sidebar.button(step, key=f"nav_{i}"):
-            st.session_state.step = i
-
-    # 현재 단계 표시
-    functions = [basic_info, venue_info, budget_info, service_components, progress_tracking]
-    functions[st.session_state.step]()
-
-    # 네비게이션 버튼
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.session_state.step > 0:
-            if st.button("이전"):
-                st.session_state.step -= 1
-                st.experimental_rerun()
-    with col2:
-        if st.button("임시 저장"):
-            save_data()
-    with col3:
-        if st.session_state.step < len(steps) - 1:
-            if st.button("다음"):
-                st.session_state.step += 1
-                st.experimental_rerun()
-        else:
-            if st.button("제출"):
-                save_data()
-                generate_excel()
-
 def basic_info():
     st.header("기본 정보")
     
@@ -87,8 +51,7 @@ def basic_info():
     st.session_state.event_data['client_name'] = st.text_input("클라이언트명", value=st.session_state.event_data.get('client_name', ''))
     
     event_types = ["영상 제작", "오프라인 이벤트"]
-    # pills 함수 대신 multiselect 사용
-    selected_types = st.multiselect("용역 유형", options=event_types, default=st.session_state.event_data.get('event_type', []))
+    selected_types = pills("용역 유형", event_types, st.session_state.event_data.get('event_type', []))
     st.session_state.event_data['event_type'] = selected_types
     
     if "오프라인 이벤트" in selected_types:
@@ -100,23 +63,28 @@ def basic_info():
         st.session_state.event_data['start_date'] = start_date
         st.session_state.event_data['end_date'] = end_date
         
-        st.session_state.event_data['setup'] = st.radio("셋업 시작", ["전날부터", "당일"], index=0 if st.session_state.event_data.get('setup') == "전날부터" else 1)
-        st.session_state.event_data['teardown'] = st.radio("철수", ["당일 철수", "다음날 철수"], index=0 if st.session_state.event_data.get('teardown') == "당일 철수" else 1)
+        setup_options = ["전날부터", "당일"]
+        st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, [st.session_state.event_data.get('setup', "전날부터")])[0]
+        
+        teardown_options = ["당일 철수", "다음날 철수"]
+        st.session_state.event_data['teardown'] = pills("철수", teardown_options, [st.session_state.event_data.get('teardown', "당일 철수")])[0]
 
 def venue_info():
     st.header("장소 정보")
     
-    venue_decided = st.radio("장소가 정확히 정해졌나요?", ["예", "아니오"])
+    venue_decided = pills("장소가 정확히 정해졌나요?", ["예", "아니오"], [st.session_state.event_data.get('venue_decided', "아니오")])[0]
     
     if venue_decided == "예":
         st.session_state.event_data['venue_name'] = st.text_input("장소명 (예: 서울시청 다목적홀B)", st.session_state.event_data.get('venue_name', ''))
-        st.session_state.event_data['venue_type'] = st.selectbox("실내/실외", ["실내", "실외", "혼합", "온라인"], index=["실내", "실외", "혼합", "온라인"].index(st.session_state.event_data.get('venue_type', "실내")))
+        venue_types = ["실내", "실외", "혼합", "온라인"]
+        st.session_state.event_data['venue_type'] = pills("실내/실외", venue_types, [st.session_state.event_data.get('venue_type', "실내")])[0]
         
         if st.session_state.event_data['venue_type'] != "온라인":
             st.session_state.event_data['address'] = st.text_input("주소", st.session_state.event_data.get('address', ''))
         
-        capacity_type = st.radio("수용 인원 입력 방식", ["범위", "단일 값"])
+        capacity_type = pills("수용 인원 입력 방식", ["범위", "단일 값"], [st.session_state.event_data.get('capacity_type', "범위")])[0]
         current_capacity = st.session_state.event_data.get('capacity', '0-0')
+        
         
         if isinstance(current_capacity, int):
             current_min = current_max = current_capacity
@@ -133,34 +101,10 @@ def venue_info():
             st.session_state.event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=current_min)
         
         facilities = ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"]
-        st.session_state.event_data['facilities'] = st.multiselect("시설 및 장비", facilities, default=st.session_state.event_data.get('facilities', []))
+        st.session_state.event_data['facilities'] = pills("시설 및 장비", facilities, st.session_state.event_data.get('facilities', []))
     else:
         st.session_state.event_data['desired_region'] = st.text_input("희망 지역", st.session_state.event_data.get('desired_region', ''))
         st.session_state.event_data['desired_capacity'] = st.number_input("희망 수용 인원 (0 입력시 무관)", min_value=0, value=int(st.session_state.event_data.get('desired_capacity', 0)))
-
-def budget_info():
-    st.header("예산 정보")
-    
-    st.session_state.event_data['contract_amount'] = st.number_input("계약 금액 (원)", min_value=0, value=st.session_state.event_data.get('contract_amount', 0))
-    
-    profit_percent = st.number_input("예상 영업이익 (%)", min_value=0.0, max_value=100.0, value=st.session_state.event_data.get('profit_percent', 0.0))
-    st.session_state.event_data['profit_percent'] = profit_percent
-    
-    expected_profit = int(st.session_state.event_data['contract_amount'] * (profit_percent / 100))
-    st.session_state.event_data['expected_profit'] = expected_profit
-    
-    st.write(f"예상 영업이익: {expected_profit:,} 원")
-    
-    if st.button("예상 영업이익 수정"):
-        custom_profit = st.number_input("예상 영업이익 (원)", min_value=0, value=expected_profit)
-        if st.button("수정 적용"):
-            st.session_state.event_data['expected_profit'] = custom_profit
-            if st.session_state.event_data['contract_amount'] > 0:
-                st.session_state.event_data['profit_percent'] = (custom_profit / st.session_state.event_data['contract_amount']) * 100
-            else:
-                st.session_state.event_data['profit_percent'] = 0
-            st.write(f"수정된 예상 영업이익 비율: {st.session_state.event_data['profit_percent']:.2f}%")
-            st.rerun()
 
 def service_components():
     st.header("용역 구성 요소")
@@ -170,7 +114,7 @@ def service_components():
         "섭외 / 인력", "시스템", "F&B", "제작 / 렌탈", "청소 / 관리", "출입 통제", "하드웨어"
     ]
     
-    selected_categories = st.multiselect("카테고리 선택", categories, default=st.session_state.event_data.get('selected_categories', []))
+    selected_categories = pills("카테고리 선택", categories, st.session_state.event_data.get('selected_categories', []))
     st.session_state.event_data['selected_categories'] = selected_categories
     
     if st.button("세부사항 입력"):
@@ -179,7 +123,8 @@ def service_components():
             st.subheader(category)
             component = {}
             
-            component['status'] = st.selectbox(f"{category} 진행 상황", ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"], key=f"status_{category}")
+            status_options = ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"]
+            component['status'] = pills(f"{category} 진행 상황", status_options, [st.session_state.event_data.get(f'status_{category}', status_options[0])])[0]
             
             if category == "기술 및 혁신":
                 options = ["홍보용 앱 개발", "홍보용 홈페이지 개발"]
@@ -209,25 +154,53 @@ def service_components():
             elif category == "시스템":
                 options = ["음향 설치 및 운영", "음향 오퍼레이터", "조명 (공연)", "조명 (스피치 및 일반)", "LED 디스플레이 설치 및 운영"]
             elif category == "F&B":
-                options = ["음료 바 설치", "커피차 대여 및 운영", "푸드 트럭 대여 및 운영", "푸드 트럭 섭외 및 공고",
-                           "F&B (간식)", "F&B (도시락)", "F&B (뷔페식)", "F&B (코스요리)"]
+                options = ["음료 바 설치", "커피차 대여 및 운영", "푸드 트럭 대여 및 운영", "푸드 트럭 섭외 및 공고","케이터링 (뷔페)", "케이터링 (도시락)", "케이터링 (스탠딩)", "케이터링 (코스)"]
             elif category == "제작 / 렌탈":
-                options = ["렌탈 (다회용기)", "렌탈 (대형 특수)", "렌탈 (몽골텐트 3x3)", "렌탈 (부스)", "렌탈 (셔틀버스)",
-                           "렌탈 (의자 / 테이블 / 무대 가구 등)", "렌탈 (이동식 화장실)", "렌탈 (흡연 부스)",
-                           "목공 제작 (무대 배경)", "목공 제작 (세트 및 부스)", "목공 제작 (소품)", "목공 제작 (조형물)",
-                           "인쇄 (명함)", "인쇄 (팜플렛 / 리플렛 / 포스터)", "제작 (몽골텐트 3x3)", "제작 (배너)",
-                           "제작 (현수막)"]
+                options = ["가구 렌탈", "기념품 제작", "네임택 제작", "무대 제작", "배너 제작", "백월 제작", "사인물 제작",
+                           "아크릴 제작", "유니폼 제작", "인쇄물 제작", "조화 렌탈", "천막 렌탈", "포토월 제작"]
             elif category == "청소 / 관리":
-                options = ["환경미화팀"]
+                options = ["방역", "쓰레기 처리", "청소"]
             elif category == "출입 통제":
-                options = ["모바일 티켓 (QR)", "티켓 검수 & 티켓 인쇄"]
+                options = ["QR코드 발급", "네임택 발급", "등록 데스크 운영", "명찰 제작", "출입증 발급"]
             elif category == "하드웨어":
-                options = ["무대 설치 및 제작", "무대 시스템 (가변형 / 턴테이블 등)", "무대 특수효과"]
+                options = ["노트북 렌탈", "무전기 렌탈", "태블릿 렌탈"]
             else:
-                options = []  # 기본값으로 빈 리스트 설정
+                options = []
+
+            component['items'] = pills(f"{category} 세부 항목", options, st.session_state.event_data.get(f'items_{category}', []))
             
-            component['items'] = st.multiselect(f"{category} 세부 항목", options, key=f"items_{category}")
+            if component['items']:
+                for item in component['items']:
+                    component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=st.session_state.event_data.get(f'{category}_{item}_quantity', 0), key=f"{category}_{item}_quantity")
+                    component[f'{item}_unit'] = st.text_input(f"{item} 단위", value=st.session_state.event_data.get(f'{category}_{item}_unit', ''), key=f"{category}_{item}_unit")
+                    component[f'{item}_price'] = st.number_input(f"{item} 가격", min_value=0, value=st.session_state.event_data.get(f'{category}_{item}_price', 0), key=f"{category}_{item}_price")
             
+            st.session_state.event_data['components'][category] = component
+
+def budget_info():
+    st.header("예산 정보")
+    
+    st.session_state.event_data['contract_amount'] = st.number_input("계약 금액 (원)", min_value=0, value=st.session_state.event_data.get('contract_amount', 0))
+    
+    profit_percent = st.number_input("예상 영업이익 (%)", min_value=0.0, max_value=100.0, value=st.session_state.event_data.get('profit_percent', 0.0))
+    st.session_state.event_data['profit_percent'] = profit_percent
+    
+    expected_profit = int(st.session_state.event_data['contract_amount'] * (profit_percent / 100))
+    st.session_state.event_data['expected_profit'] = expected_profit
+    
+    st.write(f"예상 영업이익: {expected_profit:,} 원")
+    
+    if st.button("예상 영업이익 수정"):
+        custom_profit = st.number_input("예상 영업이익 (원)", min_value=0, value=expected_profit)
+        if st.button("수정 적용"):
+            st.session_state.event_data['expected_profit'] = custom_profit
+            if st.session_state.event_data['contract_amount'] > 0:
+                st.session_state.event_data['profit_percent'] = (custom_profit / st.session_state.event_data['contract_amount']) * 100
+            else:
+                st.session_state.event_data['profit_percent'] = 0
+            st.write(f"수정된 예상 영업이익 비율: {st.session_state.event_data['profit_percent']:.2f}%")
+            st.rerun()
+
 # 진행 상황 추적 함수
 def progress_tracking():
     st.header("진행 상황")
@@ -312,6 +285,37 @@ def generate_excel():
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-# 메인 함수 호출
+def main():
+    if 'step' not in st.session_state:
+        st.session_state.step = 0
+    
+    if 'event_data' not in st.session_state:
+        st.session_state.event_data = {}
+    
+    st.title("이벤트 플래너")
+    
+    # 현재 단계 표시
+    functions = [basic_info, venue_info, budget_info, service_components]
+    functions[st.session_state.step]()
+    
+    # 네비게이션 버튼
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.session_state.step > 0:
+            if st.button("이전"):
+                st.session_state.step -= 1
+                st.rerun()
+    
+    with col3:
+        if st.session_state.step < len(functions) - 1:
+            if st.button("다음"):
+                st.session_state.step += 1
+                st.rerun()
+        else:
+            if st.button("완료"):
+                st.success("이벤트 계획이 완료되었습니다!")
+                # 여기에 최종 데이터 처리 로직을 추가할 수 있습니다.
+
 if __name__ == "__main__":
     main()
