@@ -86,12 +86,13 @@ def basic_info():
 def venue_info():
     st.header("장소 정보")
     
-    venue_decided = pills("장소가 정확히 정해졌나요?", ["예", "아니오"], [st.session_state.event_data.get('venue_decided', "아니오")])[0]
+    venue_decided = pills("장소가 정확히 정해졌나요?", ["예", "아니오"], [st.session_state.event_data.get('venue_decided', "아니오")], ["✅", "❌"])[0]
     
     if venue_decided == "예":
         st.session_state.event_data['venue_name'] = st.text_input("장소명 (예: 서울시청 다목적홀B)", st.session_state.event_data.get('venue_name', ''))
         venue_types = ["실내", "실외", "혼합", "온라인"]
-        st.session_state.event_data['venue_type'] = pills("실내/실외", venue_types, [st.session_state.event_data.get('venue_type', "실내")])[0]
+        venue_icons = ["🏠", "🌳", "🏠🌳", "💻"]
+        st.session_state.event_data['venue_type'] = pills("실내/실외", venue_types, [st.session_state.event_data.get('venue_type', "실내")], venue_icons)[0]
         
         if st.session_state.event_data['venue_type'] != "온라인":
             st.session_state.event_data['address'] = st.text_input("주소", st.session_state.event_data.get('address', ''))
