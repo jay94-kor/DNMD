@@ -1,12 +1,13 @@
 import sqlite3
 import json
 import os
+from utils import get_db_path
 
 def init_db():
     # 데이터 디렉토리 생성
     os.makedirs('data', exist_ok=True)
     
-    conn = sqlite3.connect('data/event_planner.db')
+    conn = sqlite3.connect(get_db_path())
     c = conn.cursor()
     
     # 기본 정보 테이블 생성
@@ -25,46 +26,67 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS service_components
                  (id INTEGER PRIMARY KEY, category TEXT, subcategory TEXT, status TEXT, budget INTEGER, contact_status TEXT, additional_info TEXT)''')
     
+    # 더미 데이터 삽입
+    c.execute('SELECT COUNT(*) FROM basic_info')
+    if c.fetchone()[0] == 0:
+        c.execute('''INSERT INTO basic_info (event_name, client_name, event_type, scale, start_date, end_date, setup, teardown)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                  ('샘플 이벤트', '샘플 클라이언트', json.dumps(['컨퍼런스']), 100, '2023-06-01', '2023-06-02', '전날부터', '당일 철수'))
+        
+        c.execute('''INSERT INTO venue_info (venue_name, venue_type, address, capacity, facilities)
+                     VALUES (?, ?, ?, ?, ?)''',
+                  ('샘플 장소', '컨벤션 센터', '서울시 강남구', 150, json.dumps(['프로젝터', '마이크', '테이블', '의자'])))
+        
+        c.execute('''INSERT INTO budget_info (total_budget, expected_profit)
+                     VALUES (?, ?)''',
+                  (10000000, 2000000))
+        
+        c.execute('''INSERT INTO service_components (category, subcategory, status, budget, contact_status, additional_info)
+                     VALUES (?, ?, ?, ?, ?, ?)''',
+                  ('케이터링', '뷔페', '진행 중', 3000000, '계약 완료', '특별 요청 사항 없음'))
+    
     conn.commit()
     conn.close()
 
 def save_data(data):
-    conn = sqlite3.connect('data/event_planner.db')
+    conn = sqlite3.connect(get_db_path())
     c = conn.cursor()
     
     # 기본 정보 저장
     c.execute('''INSERT OR REPLACE INTO basic_info 
-                    (event_name, event_date, event_type, expected_attendees) 
-                    VALUES (?, ?, ?, ?)''', 
-                (data.get('event_name'), data.get('event_date'), 
-                data.get('event_type'), data.get('expected_attendees')))
-    
+                 (id, event_name, client_name, event_type, scale, start_date, end_date, setup, teardown) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', 
+              (1, data.get('event_name'), data.get('client_name'), json.dumps(data.get('event_type', [])),
+               data.get('scale'), data.get('start_date'), data.get('end_date'),
+               data.get('setup'), data.get('teardown')))
     
     # 장소 정보 저장
     c.execute('''INSERT OR REPLACE INTO venue_info
                  (id, venue_name, venue_type, address, capacity, facilities)
                  VALUES (?, ?, ?, ?, ?, ?)''',
-              (1, data['venue_name'], data['venue_type'], data['address'], data['capacity'], json.dumps(data['facilities'])))
+              (1, data.get('venue_name'), data.get('venue_type'), data.get('address'),
+               data.get('capacity'), json.dumps(data.get('facilities', []))))
     
     # 예산 정보 저장
     c.execute('''INSERT OR REPLACE INTO budget_info
                  (id, total_budget, expected_profit)
                  VALUES (?, ?, ?)''',
-              (1, data['total_budget'], data['expected_profit']))
+              (1, data.get('total_budget'), data.get('expected_profit')))
     
     # 용역 구성 요소 저장
-    for component in data['service_components']:
-        c.execute('''INSERT OR REPLACE INTO service_components
+    c.execute('DELETE FROM service_components')  # 기존 데이터 삭제
+    for component in data.get('service_components', []):
+        c.execute('''INSERT INTO service_components
                      (category, subcategory, status, budget, contact_status, additional_info)
                      VALUES (?, ?, ?, ?, ?, ?)''',
-                  (component['category'], component['subcategory'], component['status'], component['budget'],
-                   component['contact_status'], component['additional_info']))
+                  (component.get('category'), component.get('subcategory'), component.get('status'),
+                   component.get('budget'), component.get('contact_status'), component.get('additional_info')))
     
     conn.commit()
     conn.close()
 
 def load_data():
-    conn = sqlite3.connect('data/event_planner.db')
+    conn = sqlite3.connect(get_db_path())
     c = conn.cursor()
     
     data = {}
@@ -73,15 +95,15 @@ def load_data():
     c.execute('SELECT * FROM basic_info WHERE id = 1')
     basic_info = c.fetchone()
     if basic_info:
-        data['event_name'], data['client_name'], data['event_type'], data['scale'], data['start_date'], data['end_date'], data['setup'], data['teardown'] = basic_info[1:]
-        data['event_type'] = json.loads(data['event_type'])
+        data['event_name'], data['client_name'], event_type, data['scale'], data['start_date'], data['end_date'], data['setup'], data['teardown'] = basic_info[1:]
+        data['event_type'] = json.loads(event_type) if event_type else []
     
     # 장소 정보 로드
     c.execute('SELECT * FROM venue_info WHERE id = 1')
     venue_info = c.fetchone()
     if venue_info:
-        data['venue_name'], data['venue_type'], data['address'], data['capacity'], data['facilities'] = venue_info[1:]
-        data['facilities'] = json.loads(data['facilities'])
+        data['venue_name'], data['venue_type'], data['address'], data['capacity'], facilities = venue_info[1:]
+        data['facilities'] = json.loads(facilities) if facilities else []
     
     # 예산 정보 로드
     c.execute('SELECT * FROM budget_info WHERE id = 1')
