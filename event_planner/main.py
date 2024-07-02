@@ -65,10 +65,46 @@ def basic_info():
     default_index = event_types.index(event_data.get('event_type', event_types[0]))
     event_data['event_type'] = render_option_menu("용역 유형", event_types, ['camera-video', 'calendar-event'], default_index)
 
+    if event_data['event_type'] == "영상 제작":
+        production_types = ["연간 제작건", "단건", "시리즈 물"]
+        selected_production_type = st.radio("제작 유형 선택", production_types, index=production_types.index(event_data.get('production_type', production_types[0])))
+        event_data['production_type'] = selected_production_type
+
+        if selected_production_type == "연간 제작건":
+            start_date = st.date_input("제작 시작일", value=event_data.get('start_date', date.today()))
+            end_date = st.date_input("제작 종료일", value=event_data.get('end_date', date.today()))
+
+            if start_date > end_date:
+                st.error("제작 시작일은 종료일보다 나중일 수 없습니다.")
+            else:
+                event_data['start_date'] = start_date
+                event_data['end_date'] = end_date
+
+        elif selected_production_type in ["단건", "시리즈 물"]:
+            num_videos = st.number_input(f"{selected_production_type} 제작 편수", min_value=1, value=event_data.get('num_videos', 1))
+            event_data['num_videos'] = num_videos
+
+        output_schedule = st.date_input("예상 아웃풋 일정", value=event_data.get('output_schedule', date.today()))
+        event_data['output_schedule'] = output_schedule
+
+        categories = ["숏폼", "유튜브", "다큐멘터리", "광고", "기타"]
+        selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []))
+        event_data['selected_categories'] = selected_categories
+
+        for category in selected_categories:
+            event_data[f'{category}_count'] = st.number_input(f"{category} 제작 건수", min_value=0, value=event_data.get(f'{category}_count', 0))
+
     if event_data['event_type'] == "오프라인 이벤트":
         event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=event_data.get('scale', 0))
-        event_data['start_date'] = st.date_input("행사 시작일", value=event_data.get('start_date', date.today()))
-        event_data['end_date'] = st.date_input("행사 종료일", value=event_data.get('end_date', date.today()))
+        
+        start_date = st.date_input("행사 시작일", value=event_data.get('start_date', date.today()))
+        end_date = st.date_input("행사 종료일", value=event_data.get('end_date', date.today()))
+
+        if start_date > end_date:
+            st.error("행사 시작일은 종료일보다 나중일 수 없습니다.")
+        else:
+            event_data['start_date'] = start_date
+            event_data['end_date'] = end_date
         
         setup_options = ["전날부터", "당일"]
         teardown_options = ["당일 철수", "다음날 철수"]
@@ -171,13 +207,16 @@ def budget_info():
     event_data = st.session_state.event_data
 
     event_data['contract_amount'] = st.number_input("계약 금액 (원)", min_value=0, value=event_data.get('contract_amount', 0))
-    event_data['profit_percent'] = st.number_input("예상 영업이익 (%)", min_value=0.0, max_value=100.0, value=event_data.get('profit_percent', 0.0))
-    event_data['expected_profit'] = int(event_data['contract_amount'] * (event_data['profit_percent'] / 100))
+    profit_percent = st.number_input("예상 영업이익 (%)", min_value=0.0, max_value=100.0, value=event_data.get('profit_percent', 0.0))
+    event_data['profit_percent'] = profit_percent
+    
+    expected_profit = int(event_data['contract_amount'] * (profit_percent / 100))
+    event_data['expected_profit'] = expected_profit
 
-    st.write(f"예상 영업이익: {event_data['expected_profit']:,} 원")
+    st.write(f"예상 영업이익: {expected_profit:,} 원")
 
     if st.checkbox("예상 영업이익 수정"):
-        custom_profit = st.number_input("예상 영업이익 (원)", min_value=0, value=event_data['expected_profit'])
+        custom_profit = st.number_input("예상 영업이익 (원)", min_value=0, value=expected_profit)
         if st.button("수정 적용"):
             event_data['expected_profit'] = custom_profit
             if event_data['contract_amount'] > 0:
@@ -185,7 +224,7 @@ def budget_info():
             else:
                 event_data['profit_percent'] = 0
             st.write(f"수정된 예상 영업이익 비율: {event_data['profit_percent']:.2f}%")
-            st.rerun()
+            st.experimental_rerun()
 
 # 진행 상황 추적 함수
 def progress_tracking():
@@ -261,16 +300,17 @@ def main():
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.session_state.step > 0 and st.button("이전"):
-            st.session_state.step -= 1
-            st.rerun()
+        if st.session_state.step > 0:
+            if st.button("이전", key='prev'):
+                st.session_state.step -= 1
+                st.experimental_rerun()
     with col3:
         if st.session_state.step < len(functions) - 1:
-            if st.button("다음"):
+            if st.button("다음", key='next'):
                 st.session_state.step += 1
-                st.rerun()
+                st.experimental_rerun()
         else:
-            if st.button("완료"):
+            if st.button("완료", key='complete'):
                 st.success("이벤트 계획이 완료되었습니다!")
                 save_data()
                 progress_tracking()
