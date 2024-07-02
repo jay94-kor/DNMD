@@ -116,24 +116,28 @@ def venue_info():
             st.session_state.event_data['address'] = st.text_input("주소", st.session_state.event_data.get('address', ''))
         
         capacity_type = st.radio("수용 인원 입력 방식", ["범위", "단일 값"])
+        current_capacity = st.session_state.event_data.get('capacity', '0-0')
+        
+        if isinstance(current_capacity, int):
+            current_min = current_max = current_capacity
+        elif isinstance(current_capacity, str) and '-' in current_capacity:
+            current_min, current_max = map(int, current_capacity.split('-'))
+        else:
+            current_min = current_max = 0
+        
         if capacity_type == "범위":
-            current_capacity = st.session_state.event_data.get('capacity', '0-0')
-            min_capacity, max_capacity = map(int, current_capacity.split('-'))
-            min_capacity = st.number_input("최소 수용 인원", min_value=0, value=min_capacity)
-            max_capacity = st.number_input("최대 수용 인원", min_value=0, value=max_capacity)
+            min_capacity = st.number_input("최소 수용 인원", min_value=0, value=current_min)
+            max_capacity = st.number_input("최대 수용 인원", min_value=0, value=current_max)
             st.session_state.event_data['capacity'] = f"{min_capacity}-{max_capacity}"
         else:
-            current_capacity = st.session_state.event_data.get('capacity', '0')
-            if isinstance(current_capacity, str) and '-' in current_capacity:
-                current_capacity = current_capacity.split('-')[0]
-            st.session_state.event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(current_capacity))
+            st.session_state.event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=current_min)
         
         facilities = ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"]
         st.session_state.event_data['facilities'] = st.multiselect("시설 및 장비", facilities, default=st.session_state.event_data.get('facilities', []))
     else:
         st.session_state.event_data['desired_region'] = st.text_input("희망 지역", st.session_state.event_data.get('desired_region', ''))
         st.session_state.event_data['desired_capacity'] = st.number_input("희망 수용 인원 (0 입력시 무관)", min_value=0, value=int(st.session_state.event_data.get('desired_capacity', 0)))
-        
+
 # 예산 정보 입력 함수
 def budget_info():
     st.header("예산 정보")
