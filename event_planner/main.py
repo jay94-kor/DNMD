@@ -1,15 +1,4 @@
 import streamlit as st
-from streamlit_pills import pills
-import sqlite3
-import os
-from pages import basic_info, venue_info, budget_info, service_components, progress_tracking
-from database import init_db, load_data, save_data
-from utils import load_config
-from ui_components import sidebar_navigation
-
-# 현재 스크립트의 디렉토리로 작업 디렉토리 변경
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
 from pages import basic_info, venue_info, budget_info, service_components, progress_tracking
 from database import init_db, load_data, save_data
 from utils import load_config
@@ -28,21 +17,24 @@ def main():
     # 사이드바 네비게이션
     current_page = sidebar_navigation()
 
+    # 데이터 로드
+    data = load_data()
+
     # 메인 컨텐츠
     if current_page == "기본 정보":
-        basic_info.render()
+        updated_data = basic_info.render(data, config)
     elif current_page == "장소 정보":
-        venue_info.render()
+        updated_data = venue_info.render(data, config)
     elif current_page == "예산 정보":
-        budget_info.render()
+        updated_data = budget_info.render(data, config)
     elif current_page == "용역 구성 요소":
-        service_components.render()
+        updated_data = service_components.render(data, config)
     elif current_page == "진행 상황":
-        progress_tracking.render()
+        updated_data = progress_tracking.render(data, config)
 
-    # 임시 저장 버튼
-    if st.button("임시 저장"):
-        save_data()
+    # 데이터 저장
+    if updated_data:
+        save_data(updated_data)
         st.success("데이터가 성공적으로 저장되었습니다.")
 
 if __name__ == "__main__":
