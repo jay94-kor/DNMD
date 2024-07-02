@@ -15,7 +15,7 @@ def render():
     with col1:
         event_name = st.text_input("행사명", value=data.get('event_name', ''))
         client_name = st.text_input("클라이언트명", value=data.get('client_name', ''))
-        event_type = pills("행사 유형", config['event_types'], multiselect=True)
+        event_type = pills("행사 유형", [{"label": type, "value": type} for type in config['event_types']], multiselect=True)
 
     with col2:
         scale = st.number_input("예상 참여 관객 수", min_value=0, value=data.get('scale', 0))

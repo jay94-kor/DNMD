@@ -17,7 +17,7 @@ def render():
         address = st.text_input("주소", value=data.get('address', ''))
         capacity = st.number_input("수용 인원", min_value=0, value=data.get('capacity', 0))
         
-        facilities = pills("시설 및 장비 정보", config['facilities'], multiselect=True)
+        facilities = pills("시설 및 장비 정보", [{"label": facility, "value": facility} for facility in config['facilities']], multiselect=True)
         
         other_facilities = st.text_input("기타 시설 및 장비 (쉼표로 구분)")
         if other_facilities:

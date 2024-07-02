@@ -33,11 +33,12 @@ def save_data(data):
     c = conn.cursor()
     
     # 기본 정보 저장
-    c.execute('''INSERT OR REPLACE INTO basic_info
-                 (id, event_name, client_name, event_type, scale, start_date, end_date, setup, teardown)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-              (1, data['event_name'], data['client_name'], json.dumps(data['event_type']), data['scale'],
-               data['start_date'], data['end_date'], data['setup'], data['teardown']))
+    c.execute('''INSERT OR REPLACE INTO basic_info 
+                    (event_name, event_date, event_type, expected_attendees) 
+                    VALUES (?, ?, ?, ?)''', 
+                (data.get('event_name'), data.get('event_date'), 
+                data.get('event_type'), data.get('expected_attendees')))
+    
     
     # 장소 정보 저장
     c.execute('''INSERT OR REPLACE INTO venue_info
