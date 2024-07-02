@@ -67,8 +67,8 @@ def basic_info():
         st.session_state.event_data['setup'] = pills("셋업 시작", setup_options, [st.session_state.event_data.get('setup', "전날부터")], icons=None)[0]
         
         teardown_options = ["당일 철수", "다음날 철수"]
-        st.session_state.event_data['teardown'] = pills("철수", teardown_options, [st.session_state.event_data.get('teardown', "당일 철수")])[0]
-
+        st.session_state.event_data['teardown'] = pills("철수", teardown_options, [st.session_state.event_data.get('teardown', "당일 철수")], icons=None)[0]
+        
 def venue_info():
     st.header("장소 정보")
     
