@@ -102,7 +102,7 @@ def basic_info():
         
         st.session_state.event_data['setup'] = st.radio("셋업 시작", ["전날부터", "당일"], index=0 if st.session_state.event_data.get('setup') == "전날부터" else 1)
         st.session_state.event_data['teardown'] = st.radio("철수", ["당일 철수", "다음날 철수"], index=0 if st.session_state.event_data.get('teardown') == "당일 철수" else 1)
-# 장소 정보 입력 함수
+
 def venue_info():
     st.header("장소 정보")
     
@@ -117,18 +117,18 @@ def venue_info():
         
         capacity_type = st.radio("수용 인원 입력 방식", ["범위", "단일 값"])
         if capacity_type == "범위":
-            min_capacity = st.number_input("최소 수용 인원", min_value=0, value=st.session_state.event_data.get('min_capacity', 0))
-            max_capacity = st.number_input("최대 수용 인원", min_value=0, value=st.session_state.event_data.get('max_capacity', 0))
+            min_capacity = st.number_input("최소 수용 인원", min_value=0, value=int(st.session_state.event_data.get('min_capacity', 0)))
+            max_capacity = st.number_input("최대 수용 인원", min_value=0, value=int(st.session_state.event_data.get('max_capacity', 0)))
             st.session_state.event_data['capacity'] = f"{min_capacity}-{max_capacity}"
         else:
-            st.session_state.event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=st.session_state.event_data.get('capacity', 0))
+            st.session_state.event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(st.session_state.event_data.get('capacity', 0)))
         
         facilities = ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"]
         st.session_state.event_data['facilities'] = st.multiselect("시설 및 장비", facilities, default=st.session_state.event_data.get('facilities', []))
     else:
         st.session_state.event_data['desired_region'] = st.text_input("희망 지역", st.session_state.event_data.get('desired_region', ''))
-        st.session_state.event_data['desired_capacity'] = st.number_input("희망 수용 인원 (0 입력시 무관)", min_value=0, value=st.session_state.event_data.get('desired_capacity', 0))
-
+        st.session_state.event_data['desired_capacity'] = st.number_input("희망 수용 인원 (0 입력시 무관)", min_value=0, value=int(st.session_state.event_data.get('desired_capacity', 0)))
+        
 # 예산 정보 입력 함수
 def budget_info():
     st.header("예산 정보")
