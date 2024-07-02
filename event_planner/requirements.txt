@@ -1,6 +1,6 @@
 pandas
 openpyxl
 streamlit==1.15.1
-streamlit-option-menu
+streamlit-option-menu==1.0.0
 numpy
 datetime

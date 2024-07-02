@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_pills import pills
+from streamlit_option_menu import option_menu
 from datetime import date, datetime
 import sqlite3
 import json
@@ -137,7 +137,7 @@ def venue_info():
     else:
         st.session_state.event_data['desired_region'] = st.text_input("희망 지역", st.session_state.event_data.get('desired_region', ''))
         st.session_state.event_data['desired_capacity'] = st.number_input("희망 수용 인원 (0 입력시 무관)", min_value=0, value=int(st.session_state.event_data.get('desired_capacity', 0)))
-        
+
 def service_components():
     st.header("용역 구성 요소")
     
