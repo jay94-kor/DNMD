@@ -10,36 +10,39 @@ def render():
     config = load_config()
     data = load_data()
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        event_name = st.text_input("행사명", value=data.get('event_name', ''))
-        client_name = st.text_input("클라이언트명", value=data.get('client_name', ''))
-        
-        # pills 함수 사용 방식 변경
-        event_type_options = [{"label": type, "value": type} for type in config['event_types']]
-        selected_event_types = pills("행사 유형", options=event_type_options, multiselect=True)
-
-    with col2:
-        scale = st.number_input("예상 참여 관객 수", min_value=0, value=data.get('scale', 0))
-        start_date = st.date_input("행사 시작일", value=date.fromisoformat(data.get('start_date', date.today().isoformat())))
-        end_date = st.date_input("행사 종료일", value=date.fromisoformat(data.get('end_date', date.today().isoformat())))
-
+    event_name = st.text_input("행사명", value=data.get('event_name', ''))
+    client_name = st.text_input("클라이언트명", value=data.get('client_name', ''))
+    
+    # event_type을 multiselect로 변경
+    event_type = st.multiselect("행사 유형", options=config.get('event_types', []), default=data.get('event_type', []))
+    
+    scale = st.number_input("예상 참여 관객 수", min_value=0, value=data.get('scale', 0))
+    start_date = st.date_input("행사 시작일", value=data.get('start_date'))
+    end_date = st.date_input("행사 종료일", value=data.get('end_date'))
+    
     setup = st.radio("셋업 시작", ["전날부터", "당일"], index=0 if data.get('setup') == "전날부터" else 1)
     teardown = st.radio("철수", ["당일 철수", "다음날 철수"], index=0 if data.get('teardown') == "당일 철수" else 1)
-
-    # 선택된 행사 유형들을 리스트로 변환
-    event_types = [option["value"] for option in selected_event_types]
 
     if st.button("저장"):
         save_data({
             'event_name': event_name,
             'client_name': client_name,
-            'event_type': event_types,  # 리스트로 저장
+            'event_type': event_type,
             'scale': scale,
-            'start_date': start_date.isoformat(),
-            'end_date': end_date.isoformat(),
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
             'setup': setup,
             'teardown': teardown
         })
         st.success("기본 정보가 저장되었습니다.")
+
+    return {
+        "event_name": event_name,
+        "client_name": client_name,
+        "event_type": event_type,
+        "scale": scale,
+        "start_date": start_date,
+        "end_date": end_date,
+        "setup": setup,
+        "teardown": teardown
+    }
