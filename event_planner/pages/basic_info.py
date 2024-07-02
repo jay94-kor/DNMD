@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_pills import pills
 from datetime import date
 from utils import load_config
 from database import save_data, load_data
@@ -13,12 +12,18 @@ def render():
     event_name = st.text_input("행사명", value=data.get('event_name', ''))
     client_name = st.text_input("클라이언트명", value=data.get('client_name', ''))
     
-    # event_type을 multiselect로 변경
-    event_type = st.multiselect("행사 유형", options=config.get('event_types', []), default=data.get('event_type', []))
+    # event_type을 multiselect로 변경하고 안전하게 처리
+    event_types = config.get('event_types', [])
+    if not isinstance(event_types, list):
+        event_types = []
+    event_type = st.multiselect("행사 유형", options=event_types, default=data.get('event_type', []))
     
-    scale = st.number_input("예상 참여 관객 수", min_value=0, value=data.get('scale', 0))
-    start_date = st.date_input("행사 시작일", value=data.get('start_date'))
-    end_date = st.date_input("행사 종료일", value=data.get('end_date'))
+    scale = st.number_input("예상 참여 관객 수", min_value=0, value=int(data.get('scale', 0)))
+    
+    # 날짜 입력을 안전하게 처리
+    default_date = date.today()
+    start_date = st.date_input("행사 시작일", value=date.fromisoformat(data.get('start_date', default_date.isoformat())))
+    end_date = st.date_input("행사 종료일", value=date.fromisoformat(data.get('end_date', default_date.isoformat())))
     
     setup = st.radio("셋업 시작", ["전날부터", "당일"], index=0 if data.get('setup') == "전날부터" else 1)
     teardown = st.radio("철수", ["당일 철수", "다음날 철수"], index=0 if data.get('teardown') == "당일 철수" else 1)
@@ -29,8 +34,8 @@ def render():
             'client_name': client_name,
             'event_type': event_type,
             'scale': scale,
-            'start_date': start_date.isoformat() if start_date else None,
-            'end_date': end_date.isoformat() if end_date else None,
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
             'setup': setup,
             'teardown': teardown
         })
