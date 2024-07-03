@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+
 import sqlite3
 import json
 import pandas as pd
@@ -162,12 +163,14 @@ def venue_info():
         st.session_state.venue_type = venue_type
 
     capacity_type_options = ["인원 범위로 입력", "인원으로 입력"]
+    default_capacity_type = st.session_state.get('capacity_type', capacity_type_options[0])
+    default_index = capacity_type_options.index(default_capacity_type) if default_capacity_type in capacity_type_options else 0
+    
     capacity_type = render_option_menu("참여 인원 입력 방식", capacity_type_options, ['bar-chart', '123'], 
-                                       capacity_type_options.index(st.session_state.get('capacity_type', "인원 범위로 입력")), 
+                                       default_index, 
                                        'horizontal', key="capacity_type_menu")
     if capacity_type != st.session_state.get('capacity_type'):
         st.session_state.capacity_type = capacity_type
-
 
     if st.session_state.venue_decided == "예":
         st.session_state.venue_name = st.text_input("장소명", st.session_state.get('venue_name', ''), key="venue_name_input")
@@ -289,6 +292,7 @@ def budget_info():
 
     # 금액 조정 버튼
     def change_amount(amount):
+        event_data = st.session_state.event_data
         st.session_state.contract_amount = max(0, st.session_state.contract_amount + amount)
         st.experimental_rerun()
 
@@ -335,6 +339,7 @@ def budget_info():
         st.write(f"부가세 포함 금액: {including_vat:,.0f} 원")
 
     # 예상 영업이익 계산
+    event_data = st.session_state.event_data
     profit_percent = st.number_input("예상 영업이익 (%)", min_value=0.0, max_value=100.0, value=event_data.get('profit_percent', 0.0), key="profit_percent")
     event_data['profit_percent'] = profit_percent
     
@@ -424,7 +429,9 @@ def generate_excel():
         )
 
 def main():
-    init_app()
+    if 'event_data' not in st.session_state:
+        st.session_state.event_data = {}
+        init_app()
     st.title("이벤트 플래너")
 
     functions = [basic_info, venue_info, budget_info, service_components]
