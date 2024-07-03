@@ -257,9 +257,13 @@ def budget_info():
     # 계약금액 입력
     col1, col2 = st.columns([3, 1])
     with col1:
-        st.session_state.contract_amount = st.number_input("계약 금액 (원)", min_value=0, value=st.session_state.contract_amount, step=10000, key="contract_amount")
+        contract_amount = st.number_input("계약 금액 (원)", min_value=0, value=st.session_state.contract_amount, step=10000, key="contract_amount_input")
+        if contract_amount != st.session_state.contract_amount:
+            st.session_state.contract_amount = contract_amount
     with col2:
-        st.session_state.include_vat = st.checkbox("부가세 포함", value=st.session_state.include_vat, key="include_vat")
+        include_vat = st.checkbox("부가세 포함", value=st.session_state.include_vat, key="include_vat_checkbox")
+        if include_vat != st.session_state.include_vat:
+            st.session_state.include_vat = include_vat
 
     # 작은 버튼 스타일 정의
     button_style = """
@@ -319,7 +323,6 @@ def budget_info():
         st.write(f"공급가액: {st.session_state.contract_amount:,} 원")
         st.write(f"부가세: {vat_amount:,.0f} 원")
         st.write(f"부가세 포함 금액: {including_vat:,.0f} 원")
-
 
     # 예상 영업이익 계산
     profit_percent = st.number_input("예상 영업이익 (%)", min_value=0.0, max_value=100.0, value=event_data.get('profit_percent', 0.0), key="profit_percent")
