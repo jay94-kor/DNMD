@@ -65,7 +65,7 @@ def basic_info():
     st.header("기본 정보")
     event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=int(event_data.get('scale', 0)), key="scale_input_basic")
     
-    event_data['event_name'] = st.text_input("행사명", value=event_data.get('event_name', ''), key="event_name_basic")
+    st.text_input("행사명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
 
     event_types = ["영상 제작", "오프라인 이벤트"]
@@ -152,7 +152,7 @@ def service_components():
         component = event_data['components'].get(category, {})
 
         status_options = ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"]
-        component['status'] = st.radio(f"{category} 진행 상황", status_options, index=status_options.index(component.get('status', status_options[0])), key=f"{category}_status")
+        component['status'] = st.radio(f"{category} 진행 상황", status_options, index=status_options.index(component.get('status', status_options[0])))
 
         component['items'] = st.multiselect(
             f"{category} 항목 선택",
