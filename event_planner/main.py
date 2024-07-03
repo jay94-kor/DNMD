@@ -196,13 +196,26 @@ def service_components():
         component['items'] = st.multiselect(f"{category} 항목 선택", item_options.get(category, []), default=component.get('items', []))
 
         for item in component['items']:
-            component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0))
-            component[f'{item}_unit'] = st.text_input(f"{item} 단위", value=component.get(f'{item}_unit', '개'))
+            if item == "행사전 미팅 스케줄링":
+                col1, col2 = st.columns(2)
+                with col1:
+                    component[f'{item}_quantity'] = st.number_input(f"{item} 오픈 희망 일정", min_value=1, value=component.get(f'{item}_quantity', 1))
+                with col2:
+                    component[f'{item}_unit'] = st.selectbox(
+                        f"{item} 단위",
+                        options=["주", "일", "월"],
+                        index=["주", "일", "월"].index(component.get(f'{item}_unit', "주"))
+                    )
+                st.write(f"{item} 오픈 희망 일정: 행사 {component[f'{item}_quantity']} {component[f'{item}_unit']} 전")
+            else:
+                component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0))
+                component[f'{item}_unit'] = st.text_input(f"{item} 단위", value=component.get(f'{item}_unit', '개'))
 
         event_data['components'][category] = component
 
-        # 선택되지 않은 카테고리 제거
-        event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
+    # 선택되지 않은 카테고리 제거
+    event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
+
 
 
 def budget_info():
