@@ -91,7 +91,7 @@ def basic_info():
             st.write(f"과업 기간: {months}개월 {days}일")
 
         # 제작 분류 선택 부분
-        categories = ["숏폼", "유튜브", "다큐멘터리", "광고", "기타"]
+        categories = ["숏폼", "교육영상", "강의영상", "현장 스케치", "유튜브", "다큐멘터리", "광고", "기타"]
         selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []), key="selected_categories")
         event_data['selected_categories'] = selected_categories
 
@@ -107,7 +107,7 @@ def basic_info():
         output_schedule = st.date_input("예상 아웃풋 일정", value=event_data.get('output_schedule', date.today()))
         event_data['output_schedule'] = output_schedule
 
-        categories = ["숏폼", "유튜브", "다큐멘터리", "광고", "기타"]
+        categories = ["숏폼", "교육영상", "강의영상", "현장 스케치", "유튜브", "다큐멘터리", "광고", "기타"]
         selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []))
         event_data['selected_categories'] = selected_categories
 
