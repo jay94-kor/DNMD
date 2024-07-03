@@ -11,10 +11,17 @@ from typing import Dict, Any, List, Optional
 # 상수 정의
 DATABASE = 'database.db'
 JSON_PATH = os.path.join(os.path.dirname(__file__), 'item_options.json')
-EVENT_TYPES = ["영상 제작", "오프라인 이벤트"]
-STATUS_OPTIONS = ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"]
-EVENT_TYPES = ["오프라인 이벤트", "영상 제작"]
-CONTRACT_TYPES = ["입찰", "수의계약", "B2B"]
+
+# JSON 파일에서 item_options 로드
+with open(JSON_PATH, 'r', encoding='utf-8') as file:
+    item_options = json.load(file)
+
+# 상수 정의
+EVENT_TYPES = item_options['EVENT_TYPES']
+CONTRACT_TYPES = item_options['CONTRACT_TYPES']
+STATUS_OPTIONS = item_options['STATUS_OPTIONS']
+MEDIA_ITEMS = item_options['MEDIA_ITEMS']
+CATEGORIES = item_options['CATEGORIES']
 
 
 # JSON 파일에서 item_options 로드
@@ -77,7 +84,6 @@ def basic_info() -> None:
     default_index = EVENT_TYPES.index(event_data.get('event_type', EVENT_TYPES[0]))
     event_data['event_type'] = render_option_menu("용역 유형", EVENT_TYPES, ['calendar-event', 'camera-video'], default_index, orientation='horizontal', key="event_type")
 
-    # 용역 종류 추가
     default_contract_index = CONTRACT_TYPES.index(event_data.get('contract_type', CONTRACT_TYPES[0]))
     event_data['contract_type'] = render_option_menu("용역 종류", CONTRACT_TYPES, ['file-earmark-text', 'person-lines-fill', 'building'], default_contract_index, orientation='horizontal', key="contract_type")
 
