@@ -17,9 +17,19 @@ logging.basicConfig(filename='app.log', level=logging.ERROR)
 DATABASE = 'event_planner.db'
 JSON_PATH = os.path.join(os.path.dirname(__file__), 'item_options.json')
 
+class EventOptions:
+    def __init__(self, item_options):
+        self.EVENT_TYPES = item_options['EVENT_TYPES']
+        self.CONTRACT_TYPES = item_options['CONTRACT_TYPES']
+        self.STATUS_OPTIONS = item_options['STATUS_OPTIONS']
+        self.MEDIA_ITEMS = item_options['MEDIA_ITEMS']
+        self.CATEGORIES = item_options['CATEGORIES']
+
 # JSON 파일에서 item_options 로드
 with open(JSON_PATH, 'r', encoding='utf-8') as file:
     item_options = json.load(file)
+
+event_options = EventOptions(item_options)
 
 EVENT_TYPES = item_options['EVENT_TYPES']
 CONTRACT_TYPES = item_options['CONTRACT_TYPES']
@@ -64,6 +74,7 @@ def get_db_connection() -> Optional[sqlite3.Connection]:
         logging.error(f"Unexpected error: {str(e)}")
         st.error(f"예상치 못한 오류가 발생했습니다: {str(e)}")
     return None
+
 
 def init_db() -> None:
     with db_pool.get_connection() as conn:
@@ -132,29 +143,95 @@ def init_app() -> None:
 def render_option_menu(title: str, options: List[str], icons: List[str], default_index: int, orientation: str = 'vertical', key: Optional[str] = None) -> str:
     return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation, key=key)
 
+def main_page():
+    st.title("이벤트 플래너")
+    init_app()
+    
+    if 'event_data' not in st.session_state:
+        st.session_state.event_data = {}
+    if 'current_event' not in st.session_state:
+        st.session_state.current_event = None
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+
+    menu = st.radio("선택하세요:", ["과거 기록 불러오기", "새로 만들기"])
+
+    if menu == "과거 기록 불러오기":
+        load_past_events()
+    elif menu == "새로 만들기":
+        create_new_event()
+
+    if st.session_state.authenticated:
+        display_event_info()
+
+def check_password(event_id):
+    conn = get_db_connection()
+    if conn:
+        try:
+            stored_password = conn.execute("SELECT password FROM events WHERE id = ?", (event_id,)).fetchone()['password']
+            input_password = st.text_input("비밀번호를 입력하세요:", type="password", key=f"password_{event_id}")
+            if input_password:
+                if bcrypt.checkpw(input_password.encode('utf-8'), stored_password):
+                    st.success("비밀번호가 일치합니다.")
+                    return True
+                else:
+                    st.error("비밀번호가 일치하지 않습니다.")
+        finally:
+            conn.close()
+    return False
+
+def create_new_event():
+    st.session_state.event_data = {}
+    st.session_state.current_event = None
+    event_name = st.text_input("새 용역명을 입력하세요:")
+    password = st.text_input("비밀번호를 설정하세요:", type="password")
+    if event_name and password and st.button("생성"):
+        save_new_event(event_name, password)
+        st.success("새 용역이 생성되었습니다. 이제 정보를 입력해주세요.")
+        st.session_state.authenticated = True
+        st.experimental_rerun()
+
+def save_new_event(event_name, password):
+    conn = get_db_connection()
+    if conn:
+        try:
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+            conn.execute("INSERT INTO events (event_name, password) VALUES (?, ?)", (event_name, hashed_password))
+            conn.commit()
+        finally:
+            conn.close()
+
 def basic_info() -> None:
     event_data = st.session_state.event_data
     st.header("기본 정보")
+    
+    handle_general_info(event_data)
+    handle_event_type(event_data)
+    handle_budget_info(event_data)
+    
+    if event_data['event_type'] == "영상 제작":
+        handle_video_production(event_data)
+    elif event_data['event_type'] == "오프라인 이벤트":
+        handle_offline_event(event_data)
+
+def handle_general_info(event_data):
     event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=int(event_data.get('scale', 0)), key="scale_input_basic")
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
     event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic", required=True)
     event_data['manager_contact'] = st.text_input("담당자 연락처", value=event_data.get('manager_contact', ''), key="manager_contact_basic", required=True)
 
-    default_index = EVENT_TYPES.index(event_data.get('event_type', EVENT_TYPES[0]))
-    event_data['event_type'] = render_option_menu("용역 유형", EVENT_TYPES, ['calendar-event', 'camera-video'], default_index, orientation='horizontal', key="event_type")
+def handle_event_type(event_data):
+    default_index = event_options.EVENT_TYPES.index(event_data.get('event_type', event_options.EVENT_TYPES[0]))
+    event_data['event_type'] = render_option_menu("용역 유형", event_options.EVENT_TYPES, ['calendar-event', 'camera-video'], default_index, orientation='horizontal', key="event_type")
 
-    default_contract_index = CONTRACT_TYPES.index(event_data.get('contract_type', CONTRACT_TYPES[0]))
-    event_data['contract_type'] = render_option_menu("용역 종류", CONTRACT_TYPES, ['file-earmark-text', 'person-lines-fill', 'building'], default_contract_index, orientation='horizontal', key="contract_type")
+    default_contract_index = event_options.CONTRACT_TYPES.index(event_data.get('contract_type', event_options.CONTRACT_TYPES[0]))
+    event_data['contract_type'] = render_option_menu("용역 종류", event_options.CONTRACT_TYPES, ['file-earmark-text', 'person-lines-fill', 'building'], default_contract_index, orientation='horizontal', key="contract_type")
 
+def handle_budget_info(event_data):
     st.header("예산 정보")
     event_data['contract_amount'] = st.number_input("총 계약 금액", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
     event_data['expected_profit'] = st.number_input("총 예상 수익", min_value=0, value=event_data.get('expected_profit', 0), key="expected_profit")
-
-    if event_data['event_type'] == "영상 제작":
-        handle_video_production(event_data)
-    elif event_data['event_type'] == "오프라인 이벤트":
-        handle_offline_event(event_data)
 
 def handle_video_production(event_data: Dict[str, Any]) -> None:
     col1, col2 = st.columns(2)
@@ -210,38 +287,44 @@ def service_components():
 
     event_data['components'] = event_data.get('components', {})
     for category in selected_categories:
-        st.subheader(category)
-        component = event_data['components'].get(category, {})
-        
-        component['status'] = st.radio(f"{category} 진행 상황", STATUS_OPTIONS, index=STATUS_OPTIONS.index(component.get('status', STATUS_OPTIONS[0])))
-        
-        component['items'] = st.multiselect(
-            f"{category} 항목 선택",
-            CATEGORIES.get(category, []),
-            default=component.get('items', []),
-            key=f"{category}_items"
-        )
-
-        component['budget'] = st.number_input(f"{category} 예산 (만원)", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
-
-        component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
-        
-        if component['preferred_vendor']:
-            component['vendor_reason'] = st.radio(
-                "선호하는 이유를 선택해주세요:",
-                ["발주처의 지정", "동일 과업 진행 경험", "퀄리티 만족한 경험"],
-                key=f"{category}_vendor_reason"
-            )
-            component['vendor_name'] = st.text_input("선호 업체 상호명", value=component.get('vendor_name', ''), key=f"{category}_vendor_name")
-            component['vendor_contact'] = st.text_input("선호 업체 연락처", value=component.get('vendor_contact', ''), key=f"{category}_vendor_contact")
-            component['vendor_manager'] = st.text_input("선호 업체 담당자명", value=component.get('vendor_manager', ''), key=f"{category}_vendor_manager")
-
-        for item in component['items']:
-            handle_item_details(item, component)
-
-        event_data['components'][category] = component
+        handle_category(category, event_data)
 
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
+
+def handle_category(category, event_data):
+    st.subheader(category)
+    component = event_data['components'].get(category, {})
+    
+    component['status'] = st.radio(f"{category} 진행 상황", event_options.STATUS_OPTIONS, index=event_options.STATUS_OPTIONS.index(component.get('status', event_options.STATUS_OPTIONS[0])))
+    
+    component['items'] = st.multiselect(
+        f"{category} 항목 선택",
+        event_options.CATEGORIES.get(category, []),
+        default=component.get('items', []),
+        key=f"{category}_items"
+    )
+
+    component['budget'] = st.number_input(f"{category} 예산 (만원)", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
+
+    handle_preferred_vendor(component, category)
+
+    for item in component['items']:
+        handle_item_details(item, component)
+
+    event_data['components'][category] = component
+
+def handle_preferred_vendor(component, category):
+    component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
+    
+    if component['preferred_vendor']:
+        component['vendor_reason'] = st.radio(
+            "선호하는 이유를 선택해주세요:",
+            ["발주처의 지정", "동일 과업 진행 경험", "퀄리티 만족한 경험"],
+            key=f"{category}_vendor_reason"
+        )
+        component['vendor_name'] = st.text_input("선호 업체 상호명", value=component.get('vendor_name', ''), key=f"{category}_vendor_name")
+        component['vendor_contact'] = st.text_input("선호 업체 연락처", value=component.get('vendor_contact', ''), key=f"{category}_vendor_contact")
+        component['vendor_manager'] = st.text_input("선호 업체 담당자명", value=component.get('vendor_manager', ''), key=f"{category}_vendor_manager")
 
 def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     quantity_key = f'{item}_quantity'
@@ -521,6 +604,7 @@ def save_new_event(event_name, password):
             conn.close()
 
 def main():
+    main_page()
     st.title("이벤트 플래너")
     init_app()
     
@@ -557,19 +641,13 @@ def display_event_info():
     else:
         st.error(f"잘못된 단계입니다: {st.session_state.step}")
     
-    if st.session_state.step < 3:
-        col1, col2, col3 = st.columns([6,1,3])
-        with col3:
-            if st.button("다음 단계로"):
-                st.session_state.step = min(st.session_state.step + 1, 3)
-                st.experimental_rerun()
-    
-    if st.session_state.step > 0:
-        col1, col2, col3 = st.columns([3,1,6])
-        with col1:
-            if st.button("이전 단계로"):
-                st.session_state.step = max(st.session_state.step - 1, 0)
-                st.experimental_rerun()
+    col1, col2, col3 = st.columns([3,4,3])
+    with col1:
+        if st.session_state.step > 0 and st.button("이전 단계로"):
+            st.session_state.step = max(st.session_state.step - 1, 0)
+    with col3:
+        if st.session_state.step < 3 and st.button("다음 단계로"):
+            st.session_state.step = min(st.session_state.step + 1, 3)
 
 if __name__ == "__main__":
     main()
