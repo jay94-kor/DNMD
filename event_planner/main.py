@@ -63,9 +63,10 @@ def render_option_menu(title, options, icons, default_index, orientation='vertic
 def basic_info():
     event_data = st.session_state.event_data
     st.header("기본 정보")
-    event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=int(event_data.get('scale', 0)), key="scale_input")
-    event_data['event_name'] = st.text_input("행사명", value=event_data.get('event_name', ''), key="event_name")
-    event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name")
+    event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=int(event_data.get('scale', 0)), key="scale_input_basic")
+    
+    event_data['event_name'] = st.text_input("행사명", value=event_data.get('event_name', ''), key="event_name_basic")
+    event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
 
     event_types = ["영상 제작", "오프라인 이벤트"]
     default_index = event_types.index(event_data.get('event_type', event_types[0]))
