@@ -537,7 +537,7 @@ def load_past_events():
             if events:
                 st.subheader("저장된 프로젝트 목록")
                 for event in events:
-                    col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+                    col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 1, 1])
                     with col1:
                         st.write(event['event_name'])
                     with col2:
@@ -551,8 +551,25 @@ def load_past_events():
                                 st.session_state.current_event = event['id']
                                 st.session_state.authenticated = True
                                 st.experimental_rerun()
+                    with col5:
+                        if st.button("삭제하기", key=f"delete_{event['id']}"):
+                            if check_password(event['id']):
+                                delete_event(event['id'])
+                                st.experimental_rerun()
             else:
                 st.info("저장된 프로젝트가 없습니다.")
+        finally:
+            conn.close()
+
+def delete_event(event_id):
+    conn = get_db_connection()
+    if conn:
+        try:
+            conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+            conn.commit()
+            st.success("프로젝트가 삭제되었습니다.")
+        except sqlite3.Error as e:
+            st.error(f"프로젝트 삭제 중 오류가 발생했습니다: {str(e)}")
         finally:
             conn.close()
 
