@@ -18,6 +18,13 @@ logging.basicConfig(filename='app.log', level=logging.ERROR)
 DATABASE = 'event_planner.db'
 JSON_PATH = os.path.join(os.path.dirname(__file__), 'item_options.json')
 
+EVENT_TABLE_COLUMNS = [
+    'event_name', 'client_name', 'manager_name', 'manager_contact', 'event_type', 
+    'contract_type', 'scale', 'start_date', 'end_date', 'setup_start', 'teardown',
+    'venue_name', 'venue_type', 'address', 'capacity', 'facilities',
+    'contract_amount', 'expected_profit', 'components'
+]
+
 class EventOptions:
     def __init__(self, item_options):
         self.EVENT_TYPES = item_options['EVENT_TYPES']
@@ -32,14 +39,8 @@ with open(JSON_PATH, 'r', encoding='utf-8') as file:
 
 event_options = EventOptions(item_options)
 
-EVENT_TYPES = item_options['EVENT_TYPES']
-CONTRACT_TYPES = item_options['CONTRACT_TYPES']
-STATUS_OPTIONS = item_options['STATUS_OPTIONS']
-MEDIA_ITEMS = item_options['MEDIA_ITEMS']
-CATEGORIES = item_options['CATEGORIES']
-
 class DatabasePool:
-    def __init__(self, database_path, max_connections=5):
+    def __init__(self, database_path: str, max_connections: int = 5):
         self.database_path = database_path
         self.max_connections = max_connections
         self.connections = []
@@ -76,7 +77,6 @@ def get_db_connection() -> Optional[sqlite3.Connection]:
         st.error(f"예상치 못한 오류가 발생했습니다: {str(e)}")
     return None
 
-
 def init_db() -> None:
     with db_pool.get_connection() as conn:
         with conn:
@@ -101,6 +101,12 @@ def init_db() -> None:
                              contract_amount INTEGER,
                              expected_profit INTEGER,
                              components TEXT,
+                             password TEXT)''')
+            
+            conn.execute('''CREATE TABLE IF NOT EXISTS users
+                            (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                             username TEXT UNIQUE,
+                             name TEXT,
                              password TEXT)''')
 
 def add_contract_type_column() -> None:
@@ -127,6 +133,16 @@ def add_manager_name_column() -> None:
         except sqlite3.OperationalError as e:
             st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
 
+def add_user(username: str, name: str, password: str) -> None:
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    with db_pool.get_connection() as conn:
+        conn.execute("INSERT INTO users (username, name, password) VALUES (?, ?, ?)",
+                     (username, name, hashed_password))
+
+def get_users() -> List[Dict[str, Any]]:
+    with db_pool.get_connection() as conn:
+        users = conn.execute("SELECT username, name, password FROM users").fetchall()
+    return [dict(user) for user in users]
 
 def init_app() -> None:
     if 'step' not in st.session_state:
@@ -139,7 +155,7 @@ def init_app() -> None:
         st.session_state.current_event = None
     init_db()
     add_contract_type_column()
-    add_manager_name_column()  # 새로 추가된 함수 호출
+    add_manager_name_column()
 
 def render_option_menu(title: str, options: List[str], icons: List[str], default_index: int, orientation: str = 'vertical', key: Optional[str] = None) -> str:
     return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation, key=key)
@@ -173,40 +189,23 @@ def load_past_events():
         finally:
             conn.close()
 
-def main_page():
-    st.title("이벤트 플래너")
-    init_app()
-    
-    if 'event_data' not in st.session_state:
-        st.session_state.event_data = {}
-    if 'current_event' not in st.session_state:
-        st.session_state.current_event = None
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = False
-
-    menu = st.radio("선택하세요:", ["과거 기록 불러오기", "새로 만들기"])
-
-    if menu == "과거 기록 불러오기":
-        load_past_events()
-    elif menu == "새로 만들기":
-        create_new_event()
-
-    if st.session_state.authenticated:
-        display_event_info()
-
-def check_password(event_id):
-    conn = get_db_connection()
-    if conn:
-        try:
+def check_password(event_id: int) -> bool:
+    try:
+        conn = get_db_connection()
+        if conn:
             stored_password = conn.execute("SELECT password FROM events WHERE id = ?", (event_id,)).fetchone()['password']
             input_password = st.text_input("비밀번호를 입력하세요:", type="password", key=f"password_{event_id}")
-            if input_password:
+            if input_password and (st.button("확인", key=f"confirm_{event_id}") or input_password):
                 if bcrypt.checkpw(input_password.encode('utf-8'), stored_password):
                     st.success("비밀번호가 일치합니다.")
                     return True
                 else:
                     st.error("비밀번호가 일치하지 않습니다.")
-        finally:
+    except Exception as e:
+        logging.error(f"Error checking password for event {event_id}: {e}")
+        st.error(f"비밀번호 확인 중 오류가 발생했습니다: {str(e)}")
+    finally:
+        if conn:
             conn.close()
     return False
 
@@ -215,19 +214,66 @@ def create_new_event():
     st.session_state.current_event = None
     event_name = st.text_input("새 용역명을 입력하세요:")
     password = st.text_input("비밀번호를 설정하세요:", type="password")
-    if event_name and password and st.button("생성"):
-        save_new_event(event_name, password)
-        st.success("새 용역이 생성되었습니다. 이제 정보를 입력해주세요.")
-        st.session_state.authenticated = True
-        st.experimental_rerun()
+    confirm_password = st.text_input("비밀번호 확인:", type="password")
+    
+    if event_name and password and confirm_password:
+        if len(password) < 8:
+            st.warning("비밀번호는 최소 8자리여야 합니다.")
+        elif password != confirm_password:
+            st.warning("비밀번호가 일치하지 않습니다.")
+        else:
+            if st.button("생성"):
+                save_new_event(event_name, password)
+                st.success("새 용역이 생성되었습니다. 이제 정보를 입력해주세요.")
+                st.experimental_rerun()
 
-def save_new_event(event_name, password):
+def save_new_event(event_name: str, password: str) -> None:
     conn = get_db_connection()
     if conn:
         try:
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             conn.execute("INSERT INTO events (event_name, password) VALUES (?, ?)", (event_name, hashed_password))
             conn.commit()
+        finally:
+            conn.close()
+
+def save_event_data(event_data: Dict[str, Any]) -> None:
+    """이벤트 데이터를 데이터베이스에 저장합니다."""
+    try:
+        with db_pool.get_connection() as conn:
+            conn.execute(f'''UPDATE events SET 
+                {','.join([f'{col} = ?' for col in EVENT_TABLE_COLUMNS])} WHERE id = ?''',
+                [event_data.get(col, '') for col in EVENT_TABLE_COLUMNS] + [st.session_state.current_event])
+        st.success("이벤트 정보가 저장되었습니다.")
+    except sqlite3.Error as e:
+        error_msg = f"데이터베이스 저장 중 오류가 발생했습니다: {str(e)}"
+        logging.error(error_msg)
+        st.error(error_msg)
+    except Exception as e:
+        error_msg = f"예상치 못한 오류가 발생했습니다: {str(e)}"
+        logging.error(error_msg)
+        st.error(error_msg)
+
+def delete_event(event_id: int) -> None:
+    conn = get_db_connection()
+    if conn:
+        try:
+            conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
+            conn.commit()
+            st.success("프로젝트가 삭제되었습니다.")
+        except sqlite3.Error as e:
+            st.error(f"프로젝트 삭제 중 오류가 발생했습니다: {str(e)}")
+        finally:
+            conn.close()
+
+def load_event_data(event_id: int) -> None:
+    conn = get_db_connection()
+    if conn:
+        try:
+            event_data = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+            if event_data:
+                st.session_state.event_data = dict(event_data)
+                st.session_state.event_data['components'] = json.loads(st.session_state.event_data.get('components', '{}'))
         finally:
             conn.close()
 
@@ -244,21 +290,21 @@ def basic_info() -> None:
     elif event_data['event_type'] == "오프라인 이벤트":
         handle_offline_event(event_data)
 
-def handle_general_info(event_data):
+def handle_general_info(event_data: Dict[str, Any]) -> None:
     event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=int(event_data.get('scale', 0)), key="scale_input_basic")
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
     event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic", required=True)
     event_data['manager_contact'] = st.text_input("담당자 연락처", value=event_data.get('manager_contact', ''), key="manager_contact_basic", required=True)
 
-def handle_event_type(event_data):
+def handle_event_type(event_data: Dict[str, Any]) -> None:
     default_index = event_options.EVENT_TYPES.index(event_data.get('event_type', event_options.EVENT_TYPES[0]))
     event_data['event_type'] = render_option_menu("용역 유형", event_options.EVENT_TYPES, ['calendar-event', 'camera-video'], default_index, orientation='horizontal', key="event_type")
 
     default_contract_index = event_options.CONTRACT_TYPES.index(event_data.get('contract_type', event_options.CONTRACT_TYPES[0]))
     event_data['contract_type'] = render_option_menu("용역 종류", event_options.CONTRACT_TYPES, ['file-earmark-text', 'person-lines-fill', 'building'], default_contract_index, orientation='horizontal', key="contract_type")
 
-def handle_budget_info(event_data):
+def handle_budget_info(event_data: Dict[str, Any]) -> None:
     st.header("예산 정보")
     event_data['contract_amount'] = st.number_input("총 계약 금액", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
     event_data['expected_profit'] = st.number_input("총 예상 수익", min_value=0, value=event_data.get('expected_profit', 0), key="expected_profit")
@@ -298,7 +344,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['setup_start'] = st.text_input("셋업 시작", value=event_data.get('setup_start', ''), key="setup_start")
     event_data['teardown'] = st.text_input("철수", value=event_data.get('teardown', ''), key="teardown")
 
-def venue_info():
+def venue_info() -> None:
     event_data = st.session_state.event_data
     st.header("장소 정보")
 
@@ -308,7 +354,7 @@ def venue_info():
     event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
     event_data['facilities'] = st.text_area("시설", value=event_data.get('facilities', ''), key="facilities")
 
-def service_components():
+def service_components() -> None:
     event_data = st.session_state.event_data
     st.header("용역 구성 요소")
 
@@ -321,7 +367,7 @@ def service_components():
 
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
 
-def handle_category(category, event_data):
+def handle_category(category: str, event_data: Dict[str, Any]) -> None:
     st.subheader(category)
     component = event_data['components'].get(category, {})
     
@@ -343,7 +389,7 @@ def handle_category(category, event_data):
 
     event_data['components'][category] = component
 
-def handle_preferred_vendor(component, category):
+def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
     
     if component['preferred_vendor']:
@@ -390,23 +436,14 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
     selected_categories = st.multiselect("카테고리 선택", categories, default=default_categories, key="selected_categories")
     return selected_categories
 
-def generate_summary_excel():
+def generate_summary_excel() -> None:
     event_data = st.session_state.event_data
     event_name = event_data.get('event_name', '무제')
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     summary_filename = f"이벤트_기획_정의서_{event_name}_{timestamp}.xlsx"
     
     try:
-        with pd.ExcelWriter(summary_filename, engine='openpyxl') as writer:
-            df_full = pd.DataFrame([event_data])
-            if 'components' in df_full.columns:
-                df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
-            df_full.to_excel(writer, sheet_name='전체 행사 요약', index=False)
-            
-            workbook = writer.book
-            worksheet = workbook['전체 행사 요약']
-            add_basic_info(worksheet, event_data)
-        
+        create_excel_summary(event_data, summary_filename)
         st.success(f"엑셀 정의서가 생성되었습니다: {summary_filename}")
         
         with open(summary_filename, "rb") as file:
@@ -419,11 +456,21 @@ def generate_summary_excel():
                 st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
         
         save_event_data(event_data)
-        
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
 
-def add_basic_info(worksheet, event_data):
+def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
+    with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+        df_full = pd.DataFrame([event_data])
+        if 'components' in df_full.columns:
+            df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
+        df_full.to_excel(writer, sheet_name='전체 행사 요약', index=False)
+        
+        workbook = writer.book
+        worksheet = workbook['전체 행사 요약']
+        add_basic_info(worksheet, event_data)
+
+def add_basic_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data: Dict[str, Any]) -> None:
     worksheet.insert_rows(0, amount=10)
     worksheet['A1'] = "기본 정보"
     worksheet['A2'] = f"용역명: {event_data.get('event_name', '')}"
@@ -450,7 +497,7 @@ def add_basic_info(worksheet, event_data):
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A12', 'A13']:
         worksheet[cell].font = subtitle_font
 
-def generate_category_excel(category, component, filename):
+def generate_category_excel(category: str, component: Dict[str, Any], filename: str) -> None:
     event_data = st.session_state.event_data
     event_name = event_data.get('event_name', '무제')
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -474,183 +521,83 @@ def generate_category_excel(category, component, filename):
             workbook = writer.book
             worksheet = workbook[f'{category} 발주요청서']
             
-            worksheet.insert_rows(0, amount=10)
-            worksheet['A1'] = "기본 정보"
-            worksheet['A2'] = f"용역명: {event_name}"
-            worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
-            worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
-            worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
-            worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
-            worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
-            worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
-            worksheet['A9'] = f"철수: {event_data.get('teardown', '')}"
-            
-            worksheet['A11'] = "예산 정보"
-            worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}만원"
-            worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}만원"
-            
-            worksheet['A15'] = "발주요청서"
-            worksheet['A16'] = f"카테고리: {category}"
-            worksheet['A17'] = f"진행 상황: {component.get('status', '')}"
-            worksheet['A18'] = f"예산: {component.get('budget', 0)}만원"
-
-            worksheet['A19'] = f"선호 업체 여부: {'예' if component.get('preferred_vendor', False) else '아니오'}"
-            if component.get('preferred_vendor', False):
-                worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
-                worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
-                worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
-                worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
-            
-            title_font = Font(bold=True, size=14)
-            subtitle_font = Font(bold=True, size=12)
-            fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
-
-            for cell in ['A1', 'A11', 'A15']:
-                worksheet[cell].font = title_font
-                worksheet[cell].fill = fill
-
-            for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A12', 'A13', 'A16', 'A17', 'A18']:
-                worksheet[cell].font = subtitle_font
+            add_category_info(worksheet, event_data, category, component)
         
         st.success(f"엑셀 발주요청서가 생성되었습니다: {filename}")
-        
-        with open(filename, "rb") as file:
-            st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        
-        save_event_data(event_data)
         
     except Exception as e:
         st.error(f"{category} 발주요청서 생성 중 오류가 발생했습니다: {str(e)}")
 
-def save_event_data(event_data):
-    try:
-        with db_pool.get_connection() as conn:
-            conn.execute('''UPDATE events SET 
-                            event_name = ?, client_name = ?, event_type = ?, contract_type = ?, scale = ?,
-                            start_date = ?, end_date = ?, setup_start = ?, teardown = ?, venue_name = ?,
-                            venue_type = ?, address = ?, capacity = ?, facilities = ?, contract_amount = ?,
-                            expected_profit = ?, components = ?
-                            WHERE id = ?''',
-                         (event_data.get('event_name', ''),
-                          event_data.get('client_name', ''),
-                          event_data.get('event_type', ''),
-                          event_data.get('contract_type', ''),
-                          event_data.get('scale', 0),
-                          event_data.get('start_date', ''),
-                          event_data.get('end_date', ''),
-                          event_data.get('setup_start', ''),
-                          event_data.get('teardown', ''),
-                          event_data.get('venue_name', ''),
-                          event_data.get('venue_type', ''),
-                          event_data.get('address', ''),
-                          event_data.get('capacity', ''),
-                          event_data.get('facilities', ''),
-                          event_data.get('contract_amount', 0),
-                          event_data.get('expected_profit', 0),
-                          json.dumps(event_data.get('components', {})),
-                          st.session_state.current_event))
-        st.success("이벤트 정보가 저장되었습니다.")
-    except sqlite3.Error as e:
-        error_msg = f"데이터베이스 저장 중 오류가 발생했습니다: {str(e)}"
-        logging.error(error_msg)
-        st.error(error_msg)
-    except Exception as e:
-        error_msg = f"예상치 못한 오류가 발생했습니다: {str(e)}"
-        logging.error(error_msg)
-        st.error(error_msg)
+def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data: Dict[str, Any], category: str, component: Dict[str, Any]) -> None:
+    worksheet.insert_rows(0, amount=10)
+    worksheet['A1'] = "기본 정보"
+    worksheet['A2'] = f"용역명: {event_data.get('event_name', '')}"
+    worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
+    worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
+    worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
+    worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
+    worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
+    worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
+    worksheet['A9'] = f"철수: {event_data.get('teardown', '')}"
+    
+    worksheet['A11'] = "예산 정보"
+    worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}만원"
+    worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}만원"
+    
+    worksheet['A15'] = "발주요청서"
+    worksheet['A16'] = f"카테고리: {category}"
+    worksheet['A17'] = f"진행 상황: {component.get('status', '')}"
+    worksheet['A18'] = f"예산: {component.get('budget', 0)}만원"
 
-def delete_event(event_id):
-    conn = get_db_connection()
-    if conn:
+    worksheet['A19'] = f"선호 업체 여부: {'예' if component.get('preferred_vendor', False) else '아니오'}"
+    if component.get('preferred_vendor', False):
+        worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
+        worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
+        worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
+        worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
+    
+    title_font = Font(bold=True, size=14)
+    subtitle_font = Font(bold=True, size=12)
+    fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
+
+    for cell in ['A1', 'A11', 'A15']:
+        worksheet[cell].font = title_font
+        worksheet[cell].fill = fill
+
+    for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A12', 'A13', 'A16', 'A17', 'A18']:
+        worksheet[cell].font = subtitle_font
+
+def admin_page():
+    st.title("관리자 페이지")
+    
+    st.header("새 사용자 추가")
+    new_username = st.text_input("사용자명")
+    new_name = st.text_input("이름")
+    new_password = st.text_input("비밀번호", type="password")
+    if st.button("사용자 추가"):
         try:
-            conn.execute("DELETE FROM events WHERE id = ?", (event_id,))
-            conn.commit()
-            st.success("프로젝트가 삭제되었습니다.")
-        except sqlite3.Error as e:
-            st.error(f"프로젝트 삭제 중 오류가 발생했습니다: {str(e)}")
-        finally:
-            conn.close()
+            add_user(new_username, new_name, new_password)
+            st.success("사용자가 추가되었습니다.")
+        except sqlite3.IntegrityError:
+            st.error("이미 존재하는 사용자명입니다.")
+        except Exception as e:
+            st.error(f"사용자 추가 중 오류가 발생했습니다: {str(e)}")
 
-def check_password(event_id):
-    conn = get_db_connection()
-    if conn:
-        try:
-            stored_password = conn.execute("SELECT password FROM events WHERE id = ?", (event_id,)).fetchone()['password']
-            input_password = st.text_input("비밀번호를 입력하세요:", type="password", key=f"password_{event_id}")
-            if st.button("확인", key=f"confirm_{event_id}") or input_password:
-                if bcrypt.checkpw(input_password.encode('utf-8'), stored_password):
-                    st.success("비밀번호가 일치합니다.")
-                    return True
-                else:
-                    st.error("비밀번호가 일치하지 않습니다.")
-        finally:
-            conn.close()
-    return False
+    st.header("기존 사용자 목록")
+    users = get_users()
+    for user in users:
+        st.write(f"사용자명: {user['username']}, 이름: {user['name']}")
 
-def load_event_data(event_id):
-    conn = get_db_connection()
-    if conn:
-        try:
-            event_data = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
-            if event_data:
-                st.session_state.event_data = dict(event_data)
-                st.session_state.event_data['components'] = json.loads(st.session_state.event_data.get('components', '{}'))
-        finally:
-            conn.close()
+def event_management():
+    menu = st.radio("선택하세요:", ["과거 기록 불러오기", "새로 만들기"])
 
-def create_new_event():
-    st.session_state.event_data = {}
-    st.session_state.current_event = None
-    event_name = st.text_input("새 용역명을 입력하세요:")
-    password = st.text_input("비밀번호를 설정하세요:", type="password")
-    if event_name and password and st.button("생성"):
-        save_new_event(event_name, password)
-        st.success("새 용역이 생성되었습니다. 이제 정보를 입력해주세요.")
-        st.experimental_rerun()
+    if menu == "과거 기록 불러오기":
+        load_past_events()
+    elif menu == "새로 만들기":
+        create_new_event()
 
-def save_new_event(event_name, password):
-    conn = get_db_connection()
-    if conn:
-        try:
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            conn.execute("INSERT INTO events (event_name, password) VALUES (?, ?)", (event_name, hashed_password))
-            conn.commit()
-        finally:
-            conn.close()
-
-def main():
-    st.title("이벤트 플래너")
-    init_app()
-
-    # 사용자 인증 설정
-    names = ["관리자"]
-    usernames = ["admin"]
-    passwords = ["admin123"]  # 실제 사용 시 더 강력한 비밀번호를 사용하세요
-
-    hashed_passwords = stauth.Hasher(passwords).generate()
-
-    authenticator = stauth.Authenticate(names, usernames, hashed_passwords,
-        "event_planner", "abcdef", cookie_expiry_days=30)
-
-    name, authentication_status, username = authenticator.login("로그인", "main")
-
-    if authentication_status:
-        authenticator.logout("로그아웃", "main")
-        st.write(f"환영합니다 *{name}*")
-        
-        menu = st.radio("선택하세요:", ["과거 기록 불러오기", "새로 만들기"])
-
-        if menu == "과거 기록 불러오기":
-            load_past_events()
-        elif menu == "새로 만들기":
-            create_new_event()
-
-        if st.session_state.current_event is not None:
-            display_event_info()
-    elif authentication_status == False:
-        st.error("사용자명/비밀번호가 incorrect입니다")
-    elif authentication_status == None:
-        st.warning("사용자명과 비밀번호를 입력해주세요")
+    if st.session_state.current_event is not None:
+        display_event_info()
 
 def display_event_info():
     st.title("이벤트 기획 정의서")
@@ -682,6 +629,44 @@ def display_event_info():
     with col3:
         if st.session_state.step < 3 and st.button("다음 단계로"):
             st.session_state.step = min(st.session_state.step + 1, 3)
+
+def main():
+    st.title("이벤트 플래너")
+    init_app()
+
+    users = get_users()
+    credentials = {"usernames": {}}
+    for user in users:
+        credentials["usernames"][user["username"]] = {
+            "name": user["name"],
+            "password": user["password"]
+        }
+
+    authenticator = stauth.Authenticate(
+        credentials,
+        "event_planner",
+        "abcdef",
+        cookie_expiry_days=30
+    )
+
+    name, authentication_status, username = authenticator.login("로그인", "main")
+
+    if authentication_status:
+        authenticator.logout("로그아웃", "main")
+        st.write(f"환영합니다 *{name}*")
+        
+        if username == "admin":  # 관리자 계정일 경우
+            menu = st.sidebar.selectbox("메뉴", ["이벤트 관리", "사용자 관리"])
+            if menu == "이벤트 관리":
+                event_management()
+            elif menu == "사용자 관리":
+                admin_page()
+        else:
+            event_management()
+    elif authentication_status == False:
+        st.error("사용자명/비밀번호가 incorrect입니다")
+    elif authentication_status == None:
+        st.warning("사용자명과 비밀번호를 입력해주세요")
 
 if __name__ == "__main__":
     main()
