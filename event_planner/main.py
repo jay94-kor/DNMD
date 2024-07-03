@@ -266,7 +266,10 @@ def save_data():
 def generate_excel():
     event_data = st.session_state.event_data
     df_full = pd.DataFrame([event_data])
-    df_full['components'] = df_full['components'].apply(json.dumps)
+    
+    # 'components' 열이 존재하는지 확인하고, 존재하면 JSON으로 변환
+    if 'components' in df_full.columns:
+        df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
 
     df_partial = pd.DataFrame(columns=['카테고리', '진행 상황', '선택된 항목', '세부사항'])
     for category, component in event_data.get('components', {}).items():
