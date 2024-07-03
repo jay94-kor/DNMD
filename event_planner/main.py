@@ -72,6 +72,8 @@ def init_db() -> None:
                             (id INTEGER PRIMARY KEY AUTOINCREMENT,
                              event_name TEXT,
                              client_name TEXT,
+                             manager_name TEXT,
+                             manager_contact TEXT,
                              event_type TEXT,
                              contract_type TEXT,
                              scale INTEGER,
@@ -120,8 +122,10 @@ def basic_info() -> None:
     event_data = st.session_state.event_data
     st.header("기본 정보")
     event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=int(event_data.get('scale', 0)), key="scale_input_basic")
-    event_data['event_name'] = st.text_input("행사명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
+    event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
+    event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic", required=True)
+    event_data['manager_contact'] = st.text_input("담당자 연락처", value=event_data.get('manager_contact', ''), key="manager_contact_basic", required=True)
 
     default_index = EVENT_TYPES.index(event_data.get('event_type', EVENT_TYPES[0]))
     event_data['event_type'] = render_option_menu("용역 유형", EVENT_TYPES, ['calendar-event', 'camera-video'], default_index, orientation='horizontal', key="event_type")
@@ -295,7 +299,7 @@ def generate_summary_excel():
 def add_basic_info(worksheet, event_data):
     worksheet.insert_rows(0, amount=10)
     worksheet['A1'] = "기본 정보"
-    worksheet['A2'] = f"행사명: {event_data.get('event_name', '')}"
+    worksheet['A2'] = f"용역명: {event_data.get('event_name', '')}"
     worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
     worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
     worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
@@ -345,7 +349,7 @@ def generate_category_excel(category, component, filename):
             
             worksheet.insert_rows(0, amount=10)
             worksheet['A1'] = "기본 정보"
-            worksheet['A2'] = f"행사명: {event_name}"
+            worksheet['A2'] = f"용역명: {event_name}"
             worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
             worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
             worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
@@ -432,16 +436,26 @@ def load_past_events():
     conn = get_db_connection()
     if conn:
         try:
-            events = conn.execute("SELECT id, event_name FROM events").fetchall()
-            event_names = [event['event_name'] for event in events]
-            selected_event = st.selectbox("용역명을 선택하세요:", event_names)
-            
-            if selected_event:
-                event_id = next(event['id'] for event in events if event['event_name'] == selected_event)
-                if check_password(event_id):
-                    load_event_data(event_id)
-                    st.session_state.current_event = event_id
-                    st.experimental_rerun()
+            events = conn.execute("SELECT id, event_name, client_name, manager_name FROM events").fetchall()
+            if events:
+                st.subheader("저장된 프로젝트 목록")
+                for event in events:
+                    col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+                    with col1:
+                        st.write(event['event_name'])
+                    with col2:
+                        st.write(event['client_name'])
+                    with col3:
+                        st.write(event['manager_name'])
+                    with col4:
+                        if st.button("수정하기", key=f"edit_{event['id']}"):
+                            if check_password(event['id']):
+                                load_event_data(event['id'])
+                                st.session_state.current_event = event['id']
+                                st.session_state.authenticated = True
+                                st.experimental_rerun()
+            else:
+                st.info("저장된 프로젝트가 없습니다.")
         finally:
             conn.close()
 
