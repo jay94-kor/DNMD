@@ -23,19 +23,19 @@ STATUS_OPTIONS = item_options['STATUS_OPTIONS']
 MEDIA_ITEMS = item_options['MEDIA_ITEMS']
 CATEGORIES = item_options['CATEGORIES']
 
-
-# JSON 파일에서 item_options 로드
-with open(JSON_PATH, 'r', encoding='utf-8') as file:
-    item_options = json.load(file)
-
+# 예외 처리 세분화 예시 (get_db_connection 함수)
 def get_db_connection() -> Optional[sqlite3.Connection]:
     try:
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
         return conn
-    except sqlite3.Error as e:
-        st.error(f"데이터베이스 연결 오류: {e}")
-        return None
+    except sqlite3.OperationalError:
+        st.error("데이터베이스 파일을 찾을 수 없습니다.")
+    except sqlite3.DatabaseError:
+        st.error("데이터베이스 파일이 손상되었습니다.")
+    except Exception as e:
+        st.error(f"예상치 못한 오류가 발생했습니다: {str(e)}")
+    return None
 
 def init_db() -> None:
     conn = get_db_connection()
@@ -62,7 +62,12 @@ def init_db() -> None:
                              components TEXT)''')
         conn.close()
 
+# 주석 추가 예시
 def init_app() -> None:
+    """
+    애플리케이션 초기화 함수
+    세션 상태를 설정하고 데이터베이스를 초기화합니다.
+    """
     if 'step' not in st.session_state:
         st.session_state.step = 0
     if 'event_data' not in st.session_state:
