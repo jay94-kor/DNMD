@@ -66,7 +66,10 @@ def add_contract_type_column() -> None:
     conn = get_db_connection()
     if conn:
         with conn:
-            conn.execute('''ALTER TABLE events ADD COLUMN contract_type TEXT''')
+            cursor = conn.execute("PRAGMA table_info(events)")
+            columns = [info[1] for info in cursor.fetchall()]
+            if 'contract_type' not in columns:
+                conn.execute('''ALTER TABLE events ADD COLUMN contract_type TEXT''')
         conn.close()
 
 def init_app() -> None:
