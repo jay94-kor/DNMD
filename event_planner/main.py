@@ -249,14 +249,17 @@ def service_components():
 
 def budget_info():
     st.header("예산 정보")
-    event_data = st.session_state.event_data
+    if 'contract_amount' not in st.session_state:
+        st.session_state.contract_amount = 0
+    if 'include_vat' not in st.session_state:
+        st.session_state.include_vat = False
 
     # 계약금액 입력
     col1, col2 = st.columns([3, 1])
     with col1:
-        event_data['contract_amount'] = st.number_input("계약 금액 (원)", min_value=0, value=event_data.get('contract_amount', 0), step=10000, key="contract_amount")
+        st.session_state.contract_amount = st.number_input("계약 금액 (원)", min_value=0, value=st.session_state.contract_amount, step=10000, key="contract_amount")
     with col2:
-        event_data['include_vat'] = st.checkbox("부가세 포함", value=event_data.get('include_vat', False), key="include_vat")
+        st.session_state.include_vat = st.checkbox("부가세 포함", value=st.session_state.include_vat, key="include_vat")
 
     # 작은 버튼 스타일 정의
     button_style = """
@@ -271,47 +274,52 @@ def budget_info():
     st.markdown(button_style, unsafe_allow_html=True)
 
     # 금액 조정 버튼
+    def change_amount(amount):
+        st.session_state.contract_amount = max(0, st.session_state.contract_amount + amount)
+        st.experimental_rerun()
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("+1억", key="add_100m"):
-            event_data['contract_amount'] += 100000000
+            change_amount(100000000)
     with col2:
         if st.button("+1000만원", key="add_10m"):
-            event_data['contract_amount'] += 10000000
+            change_amount(10000000)
     with col3:
         if st.button("+100만원", key="add_1m"):
-            event_data['contract_amount'] += 1000000
+            change_amount(1000000)
     with col4:
         if st.button("+10만원", key="add_100k"):
-            event_data['contract_amount'] += 100000
+            change_amount(100000)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("-1억", key="sub_100m"):
-            event_data['contract_amount'] = max(0, event_data['contract_amount'] - 100000000)
+            change_amount(-100000000)
     with col2:
         if st.button("-1000만원", key="sub_10m"):
-            event_data['contract_amount'] = max(0, event_data['contract_amount'] - 10000000)
+            change_amount(-10000000)
     with col3:
         if st.button("-100만원", key="sub_1m"):
-            event_data['contract_amount'] = max(0, event_data['contract_amount'] - 1000000)
+            change_amount(-1000000)
     with col4:
         if st.button("-10만원", key="sub_100k"):
-            event_data['contract_amount'] = max(0, event_data['contract_amount'] - 100000)
+            change_amount(-100000)
 
     # 부가세 계산
-    if event_data['include_vat']:
-        vat_amount = event_data['contract_amount'] / 11
-        excluding_vat = event_data['contract_amount'] - vat_amount
-        st.write(f"부가세 포함 금액: {event_data['contract_amount']:,} 원")
+    if st.session_state.include_vat:
+        vat_amount = st.session_state.contract_amount / 11
+        excluding_vat = st.session_state.contract_amount - vat_amount
+        st.write(f"부가세 포함 금액: {st.session_state.contract_amount:,} 원")
         st.write(f"공급가액: {excluding_vat:,.0f} 원")
         st.write(f"부가세: {vat_amount:,.0f} 원")
     else:
-        vat_amount = event_data['contract_amount'] * 0.1
-        including_vat = event_data['contract_amount'] + vat_amount
-        st.write(f"공급가액: {event_data['contract_amount']:,} 원")
+        vat_amount = st.session_state.contract_amount * 0.1
+        including_vat = st.session_state.contract_amount + vat_amount
+        st.write(f"공급가액: {st.session_state.contract_amount:,} 원")
         st.write(f"부가세: {vat_amount:,.0f} 원")
         st.write(f"부가세 포함 금액: {including_vat:,.0f} 원")
+
 
     # 예상 영업이익 계산
     profit_percent = st.number_input("예상 영업이익 (%)", min_value=0.0, max_value=100.0, value=event_data.get('profit_percent', 0.0), key="profit_percent")
