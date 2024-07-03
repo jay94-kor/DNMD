@@ -162,7 +162,7 @@ def service_components():
         
         component['items'] = st.multiselect(
             f"{category} 항목 선택",
-            item_options.get(category, []),
+            CATEGORIES.get(category, []),
             default=component.get('items', []),
             key=f"{category}_items"
         )
@@ -176,6 +176,23 @@ def service_components():
 
     # 선택되지 않은 카테고리 제거
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
+
+def handle_item_details(item: str, component: Dict[str, Any]) -> None:
+    if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
+                "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
+                "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
+                "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
+        component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0), key=f"{item}_quantity")
+        component[f'{item}_unit'] = "편"
+    elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
+        component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0), key=f"{item}_quantity")
+        component[f'{item}_unit'] = "컷"
+    else:
+        component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0), key=f"{item}_quantity")
+        component[f'{item}_unit'] = "개"
+    
+    component[f'{item}_details'] = st.text_area(f"{item} 세부사항", value=component.get(f'{item}_details', ''), key=f"{item}_details")
+
 
 def select_categories(event_data: Dict[str, Any]) -> List[str]:
     categories = list(item_options['CATEGORIES'].keys())
@@ -199,21 +216,6 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
 
     return selected_categories
 
-def handle_item_details(item: str, component: Dict[str, Any]) -> None:
-    if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
-                "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
-                "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
-                "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
-        component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0), key=f"{item}_quantity")
-        component[f'{item}_unit'] = "편"
-    elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
-        component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0), key=f"{item}_quantity")
-        component[f'{item}_unit'] = "컷"
-    else:
-        component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0), key=f"{item}_quantity")
-        component[f'{item}_unit'] = "개"
-    
-    component[f'{item}_details'] = st.text_area(f"{item} 세부사항", value=component.get(f'{item}_details', ''), key=f"{item}_details")
 
 def generate_summary_excel():
     event_data = st.session_state.event_data
