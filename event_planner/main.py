@@ -355,9 +355,9 @@ def main():
     
     col1, col2, col3 = st.columns([2,6,2])
     with col2:
-        st.session_state.step = option_menu("단계", step_names, icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], menu_icon="cast", default_index=st.session_state.step, orientation="horizontal")
+        selected_step = option_menu("단계", step_names, icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], menu_icon="cast", default_index=st.session_state.get('step', 0), orientation="horizontal")
+        st.session_state.step = step_names.index(selected_step)
     
-    # step이 functions 딕셔너리의 키 범위 내에 있는지 확인
     if 0 <= st.session_state.step < len(functions):
         functions[st.session_state.step]()
     else:
