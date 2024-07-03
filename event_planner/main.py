@@ -1,6 +1,6 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
-from datetime import date, datetime
+from datetime import date, timedelta
 import sqlite3
 import json
 import pandas as pd
@@ -71,14 +71,19 @@ def basic_info():
         event_data['production_type'] = selected_production_type
 
         if selected_production_type == "연간 제작건":
-            start_date = st.date_input("제작 시작일", value=event_data.get('start_date', date.today()))
-            end_date = st.date_input("제작 종료일", value=event_data.get('end_date', date.today()))
+            col1, col2 = st.columns(2)
+            with col1:
+                start_date = st.date_input("제작 시작일", value=event_data.get('start_date', date.today()))
+            with col2:
+                end_date = st.date_input("제작 종료일", value=event_data.get('end_date', start_date + timedelta(days=1)))
 
             if start_date > end_date:
-                st.error("제작 시작일은 종료일보다 나중일 수 없습니다.")
-            else:
-                event_data['start_date'] = start_date
-                event_data['end_date'] = end_date
+                end_date = start_date + timedelta(days=1)
+                st.warning("제작 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
+
+            event_data['start_date'] = start_date
+            event_data['end_date'] = end_date
+
 
         elif selected_production_type in ["단건", "시리즈 물"]:
             num_videos = st.number_input(f"{selected_production_type} 제작 편수", min_value=1, value=event_data.get('num_videos', 1))
@@ -97,14 +102,18 @@ def basic_info():
     if event_data['event_type'] == "오프라인 이벤트":
         event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=event_data.get('scale', 0))
         
-        start_date = st.date_input("행사 시작일", value=event_data.get('start_date', date.today()))
-        end_date = st.date_input("행사 종료일", value=event_data.get('end_date', date.today()))
+        col1, col2 = st.columns(2)
+        with col1:
+            start_date = st.date_input("행사 시작일", value=event_data.get('start_date', date.today()))
+        with col2:
+            end_date = st.date_input("행사 종료일", value=event_data.get('end_date', start_date + timedelta(days=1)))
 
         if start_date > end_date:
-            st.error("행사 시작일은 종료일보다 나중일 수 없습니다.")
-        else:
-            event_data['start_date'] = start_date
-            event_data['end_date'] = end_date
+            end_date = start_date + timedelta(days=1)
+            st.warning("행사 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
+
+        event_data['start_date'] = start_date
+        event_data['end_date'] = end_date
         
         setup_options = ["전날부터", "당일"]
         teardown_options = ["당일 철수", "다음날 철수"]
