@@ -99,7 +99,7 @@ def add_contract_type_column() -> None:
             columns = [column[1] for column in cursor.fetchall()]
             if 'contract_type' not in columns:
                 conn.execute('''ALTER TABLE events ADD COLUMN contract_type TEXT''')
-                st.success("contract_type 열이 성공적으로 추가되었습니다.")
+                                st.success("contract_type 열이 성공적으로 추가되었습니다.")
         except sqlite3.OperationalError as e:
             st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
 
