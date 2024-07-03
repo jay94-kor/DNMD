@@ -173,15 +173,25 @@ def service_components():
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
 
 def select_categories(event_data: Dict[str, Any]) -> List[str]:
+    categories = list(item_options['CATEGORIES'].keys())
+    default_categories = event_data.get('selected_categories', [])
+
     if event_data.get('event_type') == "영상 제작":
-        selected_categories = ["미디어"]
-        st.write("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 선택되었습니다.")
+        if "미디어" not in default_categories:
+            default_categories.append("미디어")
+        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인":
-        selected_categories = ["미디어"]
-        st.write("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 선택되었습니다.")
-    else:
-        categories = list(item_options.keys())
-        selected_categories = st.multiselect("카테고리 선택", categories, default=event_data.get('selected_categories', []), key="selected_categories")
+        if "미디어" not in default_categories:
+            default_categories.append("미디어")
+        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+
+    selected_categories = st.multiselect(
+        "카테고리 선택",
+        categories,
+        default=default_categories,
+        key="selected_categories"
+    )
+
     return selected_categories
 
 def handle_item_details(item: str, component: Dict[str, Any]) -> None:
