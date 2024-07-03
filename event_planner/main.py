@@ -146,26 +146,28 @@ def basic_info():
 
 def venue_info():
     st.header("장소 정보")
-    event_data = st.session_state.event_data
+    if 'venue_decided' not in st.session_state:
+        st.session_state.venue_decided = "아니오"
+    if 'venue_type' not in st.session_state:
+        st.session_state.venue_type = "실내"
 
     venue_decided_options = ["예", "아니오"]
-    default_venue_decided = venue_decided_options.index(event_data.get('venue_decided', "아니오"))
-    event_data['venue_decided'] = render_option_menu("장소가 정확히 정해졌나요?", venue_decided_options, ['check-circle', 'x-circle'], default_venue_decided, 'horizontal')
+    st.session_state.venue_decided = render_option_menu("장소가 정확히 정해졌나요?", venue_decided_options, ['check-circle', 'x-circle'], venue_decided_options.index(st.session_state.venue_decided), 'horizontal', key="venue_decided")
     
-    if event_data['venue_decided'] == "예":
-        event_data['venue_name'] = st.text_input("장소명", event_data.get('venue_name', ''))
-        venue_types = ["실내", "실외", "혼합", "온라인"]
-        default_venue_type = venue_types.index(event_data.get('venue_type', "실내"))
-        event_data['venue_type'] = render_option_menu("실내/실외", venue_types, ['house', 'tree', 'houses', 'laptop'], default_venue_type, 'horizontal')
+    venue_types = ["실내", "실외", "혼합", "온라인"]
+    st.session_state.venue_type = render_option_menu("실내/실외", venue_types, ['house', 'tree', 'houses', 'laptop'], venue_types.index(st.session_state.venue_type), 'horizontal', key="venue_type")
 
-        if event_data['venue_type'] != "온라인":
-            event_data['address'] = st.text_input("주소", event_data.get('address', ''))
+    if st.session_state.venue_decided == "예":
+        st.session_state.venue_name = st.text_input("장소명", st.session_state.get('venue_name', ''), key="venue_name")
+
+        if st.session_state.venue_type != "온라인":
+            st.session_state.address = st.text_input("주소", st.session_state.get('address', ''), key="address")
 
         capacity_type_options = ["범위", "단일 값"]
-        default_capacity_type = capacity_type_options.index(event_data.get('capacity_type', "범위"))
-        capacity_type = render_option_menu("참여 인원 입력 방식", capacity_type_options, ['bar-chart', '123'], default_capacity_type, 'horizontal')
+        capacity_type = render_option_menu("참여 인원 입력 방식", capacity_type_options, ['bar-chart', '123'], capacity_type_options.index(st.session_state.get('capacity_type', "범위")), 'horizontal', key="capacity_type")
+        st.session_state.capacity_type = capacity_type
 
-        current_capacity = event_data.get('capacity', '0-0')
+        current_capacity = st.session_state.get('capacity', '0-0')
         if isinstance(current_capacity, int):
             current_min = current_max = current_capacity
         elif isinstance(current_capacity, str) and '-' in current_capacity:
@@ -174,18 +176,18 @@ def venue_info():
             current_min = current_max = 0
 
         if capacity_type == "범위":
-            min_capacity = st.number_input("최소 참여 인원", min_value=0, value=current_min)
-            max_capacity = st.number_input("최대 참여 인원", min_value=0, value=current_max)
-            event_data['capacity'] = f"{min_capacity}-{max_capacity}"
+            min_capacity = st.number_input("최소 참여 인원", min_value=0, value=current_min, key="min_capacity")
+            max_capacity = st.number_input("최대 참여 인원", min_value=0, value=current_max, key="max_capacity")
+            st.session_state.capacity = f"{min_capacity}-{max_capacity}"
         else:
-            event_data['capacity'] = st.number_input("참여 인원", min_value=0, value=current_min)
+            st.session_state.capacity = st.number_input("참여 인원", min_value=0, value=current_min, key="capacity")
 
         facilities = ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"]
-        event_data['facilities'] = st.multiselect("행사장 보유 시설 및 장비", facilities, default=event_data.get('facilities', []))
+        st.session_state.facilities = st.multiselect("행사장 보유 시설 및 장비", facilities, default=st.session_state.get('facilities', []), key="facilities")
     else:
-        event_data['desired_region'] = st.text_input("희망 지역", event_data.get('desired_region', ''))
-        event_data['desired_capacity'] = st.number_input("희망 참여 인원", min_value=0, value=int(event_data.get('desired_capacity', 0)))
-
+        st.session_state.desired_region = st.text_input("희망 지역", st.session_state.get('desired_region', ''), key="desired_region")
+        st.session_state.desired_capacity = st.number_input("희망 참여 인원", min_value=0, value=int(st.session_state.get('desired_capacity', 0)), key="desired_capacity")
+        
 def service_components():
     st.header("용역 구성 요소")
     event_data = st.session_state.event_data
