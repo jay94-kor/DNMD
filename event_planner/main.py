@@ -104,8 +104,12 @@ def init_db() -> None:
                              components TEXT,
                              password_hash TEXT)''')
             
-            # 기존 테이블에 password_hash 컬럼 추가
-            conn.execute('''ALTER TABLE events ADD COLUMN password_hash TEXT''')
+            # 기존 테이블에 password_hash 컬럼 추가 (이미 존재하는 경우 무시)
+            try:
+                conn.execute('''ALTER TABLE events ADD COLUMN password_hash TEXT''')
+            except sqlite3.OperationalError:
+                # 컬럼이 이미 존재하는 경우 무시
+                pass
 
 def add_contract_type_column() -> None:
     with db_pool.get_connection() as conn:
