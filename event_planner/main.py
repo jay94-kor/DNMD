@@ -545,14 +545,14 @@ def load_past_events():
                     with col3:
                         st.write(event['manager_name'])
                     with col4:
-                        if st.button("수정하기", key=f"edit_{event['id']}"):
+                        if st.button("수정", key=f"edit_{event['id']}"):
                             if check_password(event['id']):
                                 load_event_data(event['id'])
                                 st.session_state.current_event = event['id']
                                 st.session_state.authenticated = True
                                 st.experimental_rerun()
                     with col5:
-                        if st.button("삭제하기", key=f"delete_{event['id']}"):
+                        if st.button("삭제", key=f"delete_{event['id']}"):
                             if check_password(event['id']):
                                 delete_event(event['id'])
                                 st.experimental_rerun()
@@ -579,7 +579,7 @@ def check_password(event_id):
         try:
             stored_password = conn.execute("SELECT password FROM events WHERE id = ?", (event_id,)).fetchone()['password']
             input_password = st.text_input("비밀번호를 입력하세요:", type="password", key=f"password_{event_id}")
-            if input_password:
+            if st.button("확인", key=f"confirm_{event_id}") or input_password:
                 if bcrypt.checkpw(input_password.encode('utf-8'), stored_password):
                     st.success("비밀번호가 일치합니다.")
                     return True
