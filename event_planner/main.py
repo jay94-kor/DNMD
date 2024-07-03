@@ -162,9 +162,12 @@ def venue_info():
         st.session_state.venue_type = venue_type
 
     capacity_type_options = ["인원 범위로 입력", "인원으로 입력"]
-    capacity_type = render_option_menu("참여 인원 입력 방식", capacity_type_options, ['bar-chart', '123'], capacity_type_options.index(st.session_state.get('capacity_type', "범위")), 'horizontal', key="capacity_type_menu")
+    capacity_type = render_option_menu("참여 인원 입력 방식", capacity_type_options, ['bar-chart', '123'], 
+                                       capacity_type_options.index(st.session_state.get('capacity_type', "인원 범위로 입력")), 
+                                       'horizontal', key="capacity_type_menu")
     if capacity_type != st.session_state.get('capacity_type'):
         st.session_state.capacity_type = capacity_type
+
 
     if st.session_state.venue_decided == "예":
         st.session_state.venue_name = st.text_input("장소명", st.session_state.get('venue_name', ''), key="venue_name_input")
