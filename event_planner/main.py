@@ -358,11 +358,10 @@ def main():
         current_step = st.session_state.get('step', 0)
         if not isinstance(current_step, int) or current_step < 0 or current_step >= len(step_names):
             current_step = 0  # 유효하지 않은 값일 경우 기본값으로 설정
-        default_step = step_names[current_step]
         selected_step = option_menu("단계", step_names, 
                                     icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
                                     menu_icon="cast", 
-                                    default=default_step, 
+                                    default_index=current_step,  # default_index 사용
                                     orientation="horizontal")
         st.session_state.step = step_names.index(selected_step)
     
