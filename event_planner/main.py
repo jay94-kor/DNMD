@@ -12,6 +12,7 @@ import bcrypt
 from contextlib import contextmanager
 import logging
 import streamlit_authenticator as stauth
+import hashlib
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
@@ -183,7 +184,7 @@ def load_past_events():
             
             if events:
                 for event in events:
-                    col1, col2, col3, col4 = st.columns([3, 3, 2, 2])
+                    col1, col2, col3, col4, col5 = st.columns([3, 3, 2, 1, 1])
                     with col1:
                         st.write(event['event_name'])
                     with col2:
@@ -192,13 +193,33 @@ def load_past_events():
                         st.write(event['contract_amount'])
                     with col4:
                         if st.button("수정", key=f"edit_{event['id']}"):
-                            st.session_state.current_event = event['id']
-                            st.session_state.auth_required = True
-                            st.experimental_rerun()
+                            show_password_prompt(event['id'], "edit")
+                    with col5:
+                        if st.button("삭제", key=f"delete_{event['id']}"):
+                            show_password_prompt(event['id'], "delete")
             else:
                 st.info("저장된 프로젝트가 없습니다.")
         finally:
             conn.close()
+
+def show_password_prompt(event_id, action):
+    st.session_state.temp_event_id = event_id
+    st.session_state.temp_action = action
+    st.session_state.show_password_prompt = True
+    st.experimental_rerun()
+
+def check_project_password(event_id, password):
+    conn = get_db_connection()
+    if conn:
+        try:
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+            result = conn.execute("SELECT * FROM events WHERE id = ? AND password_hash = ?", 
+                                  (event_id, hashed_password)).fetchone()
+            return result is not None
+        finally:
+            conn.close()
+    return False
+
 
 # 이벤트 암호 확인 함수
 def check_password(event_id: int) -> bool:
@@ -282,7 +303,12 @@ def delete_event(event_id: int) -> None:
             conn.close()
 
 # 이벤트 데이터 불러오기 함수
-def load_event_data(event_id: int) -> None:
+def edit_event(event_id):
+    load_event_data(event_id)
+    st.session_state.step = 0  # 기본 정보 페이지부터 시작
+    display_event_info()
+
+def load_event_data(event_id):
     conn = get_db_connection()
     if conn:
         try:
@@ -676,51 +702,35 @@ def main():
     st.title("이벤트 플래너")
     init_db()
 
-    if 'auth_required' not in st.session_state:
-        st.session_state.auth_required = False
+    if 'show_password_prompt' not in st.session_state:
+        st.session_state.show_password_prompt = False
     if 'current_event' not in st.session_state:
         st.session_state.current_event = None
-    if 'step' not in st.session_state:
-        st.session_state.step = 0
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = False
-    if 'event_data' not in st.session_state:
-        st.session_state.event_data = {}
+    if 'temp_event_id' not in st.session_state:
+        st.session_state.temp_event_id = None
+    if 'temp_action' not in st.session_state:
+        st.session_state.temp_action = None
 
-    if not st.session_state.auth_required:
+    if st.session_state.show_password_prompt:
+        password = st.text_input("프로젝트 비밀번호를 입력하세요:", type="password")
+        if st.button("확인"):
+            if check_project_password(st.session_state.temp_event_id, password):
+                if st.session_state.temp_action == "edit":
+                    st.session_state.current_event = st.session_state.temp_event_id
+                elif st.session_state.temp_action == "delete":
+                    delete_event(st.session_state.temp_event_id)
+                st.session_state.show_password_prompt = False
+                st.experimental_rerun()
+            else:
+                st.error("비밀번호가 올바르지 않습니다.")
+
+    else:
         load_past_events()
         if st.session_state.current_event is None:
             create_new_event()
-    else:
-        st.header("관리자 로그인")
-        users = get_users()
-        credentials = {"usernames": {}}
-        for user in users:
-            credentials["usernames"][user["username"]] = {
-                "name": user["name"],
-                "password": user["password"]
-            }
+        else:
+            edit_event(st.session_state.current_event)
 
-        authenticator = stauth.Authenticate(
-            credentials,
-            "event_planner",
-            "abcdef",
-            cookie_expiry_days=30
-        )
-
-        name, authentication_status, username = authenticator.login("로그인", "main")
-
-        if authentication_status:
-            authenticator.logout("로그아웃", "main")
-            st.write(f"환영합니다 *{name}*")
-            st.session_state.authenticated = True
-            st.session_state.auth_required = False
-            load_event_data(st.session_state.current_event)
-            display_event_info()
-        elif authentication_status == False:
-            st.error("사용자명/비밀번호가 일치하지 않습니다.")
-        elif authentication_status == None:
-            st.warning("사용자명과 비밀번호를 입력해주세요.")
 
 if __name__ == "__main__":
     main()
