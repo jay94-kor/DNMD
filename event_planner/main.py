@@ -14,7 +14,7 @@ import logging
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
-DATABASE = 'database.db'
+DATABASE = 'event_planner.db'
 JSON_PATH = os.path.join(os.path.dirname(__file__), 'item_options.json')
 
 # JSON 파일에서 item_options 로드
