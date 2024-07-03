@@ -181,7 +181,7 @@ def venue_info():
             event_data['capacity'] = st.number_input("참여 인원", min_value=0, value=current_min)
 
         facilities = ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"]
-        event_data['facilities'] = st.multiselect("시설 및 장비", facilities, default=event_data.get('facilities', []))
+        event_data['facilities'] = st.multiselect("행사장 보유 시설 및 장비", facilities, default=event_data.get('facilities', []))
     else:
         event_data['desired_region'] = st.text_input("희망 지역", event_data.get('desired_region', ''))
         event_data['desired_capacity'] = st.number_input("희망 참여 인원", min_value=0, value=int(event_data.get('desired_capacity', 0)))
