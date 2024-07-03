@@ -478,9 +478,10 @@ def check_password(event_id):
     if conn:
         try:
             stored_password = conn.execute("SELECT password FROM events WHERE id = ?", (event_id,)).fetchone()['password']
-            input_password = st.text_input("비밀번호를 입력하세요:", type="password")
+            input_password = st.text_input("비밀번호를 입력하세요:", type="password", key=f"password_{event_id}")
             if input_password:
                 if bcrypt.checkpw(input_password.encode('utf-8'), stored_password):
+                    st.success("비밀번호가 일치합니다.")
                     return True
                 else:
                     st.error("비밀번호가 일치하지 않습니다.")
