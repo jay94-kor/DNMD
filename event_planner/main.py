@@ -67,58 +67,25 @@ def basic_info():
     event_data['event_type'] = render_option_menu("용역 유형", event_types, ['camera-video', 'calendar-event'], default_index, orientation='horizontal', key="event_type")
 
     if event_data['event_type'] == "영상 제작":
-        production_types = ["연간 제작건", "단건", "시리즈 물"]
-        selected_production_type = st.radio("제작 유형 선택", production_types, index=production_types.index(event_data.get('production_type', production_types[0])), key="production_type")
-        event_data['production_type'] = selected_production_type
+        # 영상 제작 선택 시 일정 관련 정보만 표시
+        col1, col2 = st.columns(2)
+        with col1:
+            start_date = st.date_input("과업 시작일", value=event_data.get('start_date', date.today()), key="start_date")
+        with col2:
+            end_date = st.date_input("과업 종료일", value=event_data.get('end_date', start_date + timedelta(days=365)), key="end_date")
 
-        if selected_production_type == "연간 제작건":
-            col1, col2 = st.columns(2)
-            with col1:
-                start_date = st.date_input("과업 시작일", value=event_data.get('start_date', date.today()), key="start_date")
-            with col2:
-                end_date = st.date_input("과업 종료일", value=event_data.get('end_date', start_date + timedelta(days=365)), key="end_date")
+        if start_date > end_date:
+            end_date = start_date + timedelta(days=365)
+            st.warning("과업 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
 
-            if start_date > end_date:
-                end_date = start_date + timedelta(days=365)
-                st.warning("과업 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
-
-            event_data['start_date'] = start_date
-            event_data['end_date'] = end_date
-            
-            # 과업 기간 계산
-            duration = (end_date - start_date).days
-            months = duration // 30
-            days = duration % 30
-            st.write(f"과업 기간: {months}개월 {days}일")
-
-        elif selected_production_type in ["단건", "시리즈 물"]:
-            num_videos = st.number_input(f"{selected_production_type} 제작 편수", min_value=1, value=event_data.get('num_videos', 1))
-            event_data['num_videos'] = num_videos
-
-            output_schedule = st.date_input("예상 아웃풋 일정", value=event_data.get('output_schedule', date.today()))
-            event_data['output_schedule'] = output_schedule
-
-        # 제작 분류 선택 부분 (모든 제작 유형에 공통)
-        categories = ["숏폼", "교육영상", "강의영상", "현장 스케치", "유튜브", "다큐멘터리", "광고", "기타"]
-        selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []), key="selected_categories")
-        event_data['selected_categories'] = selected_categories
-
-        for i, category in enumerate(selected_categories):
-            st.subheader(f"{category} 상세 정보")
-            
-            status_options = ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"]
-            status = st.selectbox(f"{category} 진행 상황", status_options, index=status_options.index(event_data.get(f'{category}_status', status_options[0])), key=f"category_status_{i}")
-            event_data[f'{category}_status'] = status
-
-            col1, col2 = st.columns(2)
-            with col1:
-                count = st.number_input(f"{category} 제작 편수", min_value=0, value=event_data.get(f'{category}_count', 0), key=f"category_count_{i}")
-                event_data[f'{category}_count'] = count
-            with col2:
-                length = st.number_input(f"{category} 편당 길이 (분)", min_value=0, value=event_data.get(f'{category}_length', 0), key=f"category_length_{i}")
-                event_data[f'{category}_length'] = length
-            
-            st.write(f"{category}: {count}편, 각 {length}분, 상태: {status}")
+        event_data['start_date'] = start_date
+        event_data['end_date'] = end_date
+        
+        # 과업 기간 계산
+        duration = (end_date - start_date).days
+        months = duration // 30
+        days = duration % 30
+        st.write(f"과업 기간: {months}개월 {days}일")
 
     if event_data['event_type'] == "오프라인 이벤트":
         event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=event_data.get('scale', 0))
@@ -147,6 +114,11 @@ def basic_info():
 
 def venue_info():
     st.header("장소 정보")
+    event_data = st.session_state.event_data
+
+    if event_data.get('event_type') == "영상 제작":
+        st.write("영상 제작 프로젝트는 장소 정보가 필요하지 않습니다.")
+        return
     if 'venue_decided' not in st.session_state:
         st.session_state.venue_decided = "아니오"
     if 'venue_type' not in st.session_state:
@@ -203,12 +175,21 @@ def service_components():
     st.header("용역 구성 요소")
     event_data = st.session_state.event_data
 
-    categories = [
-        "기술 및 혁신", "네트워킹", "디자인", "마케팅 및 홍보", "미디어", "부대 행사",
-        "섭외 / 인력", "시스템", "F&B", "제작 / 렌탈", "청소 / 관리", "출입 통제", "하드웨어"
-    ]
+    if event_data.get('event_type') == "영상 제작":
+        # 영상 제작 선택 시 미디어 카테고리 자동 선택
+        selected_categories = ["미디어"]
+        st.write("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 선택되었습니다.")
+    elif event_data.get('venue_type') == "온라인":
+        # 온라인 이벤트 선택 시 미디어 카테고리 자동 선택
+        selected_categories = ["미디어"]
+        st.write("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 선택되었습니다.")
+    else:
+        categories = [
+            "기술 및 혁신", "네트워킹", "디자인", "마케팅 및 홍보", "미디어", "부대 행사",
+            "섭외 / 인력", "시스템", "F&B", "제작 / 렌탈", "청소 / 관리", "출입 통제", "하드웨어"
+        ]
+        selected_categories = st.multiselect("카테고리 선택", categories, default=event_data.get('selected_categories', []))
 
-    selected_categories = st.multiselect("카테고리 선택", categories, default=event_data.get('selected_categories', []))
     event_data['selected_categories'] = selected_categories
 
     event_data['components'] = event_data.get('components', {})
@@ -259,13 +240,13 @@ def service_components():
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
 
 
-
 def budget_info():
     st.header("예산 정보")
-    if 'contract_amount' not in st.session_state:
-        st.session_state.contract_amount = 0
-    if 'include_vat' not in st.session_state:
-        st.session_state.include_vat = False
+    event_data = st.session_state.event_data
+    if 'contract_amount' not in event_data:
+        event_data['contract_amount'] = 0
+    if 'include_vat' not in event_data:
+        event_data['include_vat'] = False
 
     # 계약금액 입력
     col1, col2 = st.columns([3, 1])
@@ -324,19 +305,41 @@ def budget_info():
         if st.button("-10만원", key="sub_100k"):
             change_amount(-100000)
 
-    # 부가세 계산
-    if st.session_state.include_vat:
-        vat_amount = st.session_state.contract_amount / 11
-        excluding_vat = st.session_state.contract_amount - vat_amount
-        st.write(f"부가세 포함 금액: {st.session_state.contract_amount:,} 원")
+# 부가세 계산
+    if event_data['include_vat']:
+        vat_amount = event_data['contract_amount'] / 11
+        excluding_vat = event_data['contract_amount'] - vat_amount
+        st.write(f"부가세 포함 금액: {event_data['contract_amount']:,} 원")
         st.write(f"공급가액: {excluding_vat:,.0f} 원")
         st.write(f"부가세: {vat_amount:,.0f} 원")
     else:
-        vat_amount = st.session_state.contract_amount * 0.1
-        including_vat = st.session_state.contract_amount + vat_amount
-        st.write(f"공급가액: {st.session_state.contract_amount:,} 원")
+        vat_amount = event_data['contract_amount'] * 0.1
+        including_vat = event_data['contract_amount'] + vat_amount
+        st.write(f"공급가액: {event_data['contract_amount']:,} 원")
         st.write(f"부가세: {vat_amount:,.0f} 원")
         st.write(f"부가세 포함 금액: {including_vat:,.0f} 원")
+
+    # 기준 금액 설정
+    base_amount = excluding_vat if event_data.get('include_vat', False) else event_data['contract_amount']
+
+    # 예산 배분
+    st.subheader("예산 배분")
+    total_percentage = 0
+    budget_allocation = {}
+
+    for category in event_data['selected_categories']:
+        percentage = st.slider(f"{category} 비율 (%)", 0, 100, event_data.get(f'{category}_percentage', 0), 1)
+        event_data[f'{category}_percentage'] = percentage
+        total_percentage += percentage
+        budget_allocation[category] = base_amount * (percentage / 100)
+
+    if total_percentage != 100:
+        st.warning(f"전체 비율의 합이 100%가 되어야 합니다. 현재: {total_percentage}%")
+
+    # 예산 배분 결과 표시
+    st.subheader("카테고리별 예산")
+    for category, amount in budget_allocation.items():
+        st.write(f"{category}: {amount:,.0f} 원")
 
     # 예상 영업이익 계산
     event_data = st.session_state.event_data
@@ -407,53 +410,93 @@ def generate_excel():
 
     df_partial = pd.DataFrame(columns=['카테고리', '진행 상황', '선택된 항목', '세부사항'])
     for category, component in event_data.get('components', {}).items():
-        df_partial = df_partial.append({
+        df_partial = pd.concat([df_partial, pd.DataFrame({
             '카테고리': category,
             '진행 상황': component['status'],
             '선택된 항목': ', '.join(component['items']),
             '세부사항': ', '.join([f"{item}: {component.get(f'{item}_quantity', '')} {component.get(f'{item}_unit', '')}" for item in component['items']])
-        }, ignore_index=True)
+        }, index=[0])], ignore_index=True)
 
-    filename = f"이벤트_기획_{event_data['event_name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    with pd.ExcelWriter(filename) as writer:
-        df_full.to_excel(writer, sheet_name='전체 행사 보고서', index=False)
-        df_partial.to_excel(writer, sheet_name='부분 발주요청서', index=False)
+    event_name = event_data.get('event_name', '무제')
+    filename = f"이벤트_기획_{event_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    try:
+        with pd.ExcelWriter(filename) as writer:
+            df_full.to_excel(writer, sheet_name='전체 행사 보고서', index=False)
+            df_partial.to_excel(writer, sheet_name='부분 발주요청서', index=False)
 
-    st.success(f"엑셀 보고서가 생성되었습니다: {filename}")
-    with open(filename, "rb") as file:
-        st.download_button(
-            label="엑셀 보고서 다운로드",
-            data=file,
-            file_name=filename,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        st.success(f"엑셀 보고서가 생성되었습니다: {filename}")
+        
+        with open(filename, "rb") as file:
+            st.download_button(
+                label="엑셀 보고서 다운로드",
+                data=file,
+                file_name=filename,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    except Exception as e:
+        st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
+
+def summary():
+    st.header("요약")
+    event_data = st.session_state.event_data
+
+    st.subheader("기본 정보")
+    st.write(f"행사명: {event_data.get('event_name', '미정')}")
+    st.write(f"클라이언트명: {event_data.get('client_name', '미정')}")
+    st.write(f"용역 유형: {event_data.get('event_type', '미정')}")
+    st.write(f"행사 기간: {event_data.get('start_date', '미정')} ~ {event_data.get('end_date', '미정')}")
+
+    st.subheader("장소 정보")
+    st.write(f"장소명: {event_data.get('venue_name', '미정')}")
+    st.write(f"장소 유형: {event_data.get('venue_type', '미정')}")
+    st.write(f"주소: {event_data.get('address', '미정')}")
+    st.write(f"수용 인원: {event_data.get('capacity', '미정')}")
+
+    st.subheader("예산 정보")
+    st.write(f"계약 금액: {event_data.get('contract_amount', 0):,} 원")
+    st.write(f"예상 영업이익: {event_data.get('expected_profit', 0):,} 원")
+
+    st.subheader("용역 구성 요소")
+    for category, component in event_data.get('components', {}).items():
+        st.write(f"{category}:")
+        st.write(f"  진행 상황: {component.get('status', '미정')}")
+        st.write(f"  선택된 항목: {', '.join(component.get('items', []))}")
+
+    if st.button("엑셀 보고서 생성"):
+        generate_excel()
+
+    if st.button("데이터 저장"):
+        save_data()
 
 def main():
-    if 'event_data' not in st.session_state:
-        st.session_state.event_data = {}
-        init_app()
+    st.set_page_config(page_title="이벤트 플래너", page_icon="🎉", layout="wide")
     st.title("이벤트 플래너")
 
-    functions = [basic_info, venue_info, budget_info, service_components]
+    init_app()
+
+    steps = ["기본 정보", "장소 정보", "용역 구성 요소", "예산 정보", "요약"]
+    functions = [basic_info, venue_info, service_components, budget_info, summary]
+
+    st.sidebar.title("단계")
+    for i, step in enumerate(steps):
+        if st.sidebar.button(step, key=f"step_{i}"):
+            st.session_state.step = i
+
     functions[st.session_state.step]()
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         if st.session_state.step > 0:
-            if st.button("이전", key='prev'):
+            if st.button("이전"):
                 st.session_state.step -= 1
                 st.experimental_rerun()
-    with col3:
-        if st.session_state.step < len(functions) - 1:
-            if st.button("다음", key='next'):
+
+    with col2:
+        if st.session_state.step < len(steps) - 1:
+            if st.button("다음"):
                 st.session_state.step += 1
                 st.experimental_rerun()
-        else:
-            if st.button("완료", key='complete'):
-                st.success("이벤트 계획이 완료되었습니다!")
-                save_data()
-                progress_tracking()
-                generate_excel()
 
 if __name__ == "__main__":
     main()
