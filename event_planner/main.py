@@ -13,6 +13,9 @@ DATABASE = 'database.db'
 JSON_PATH = os.path.join(os.path.dirname(__file__), 'item_options.json')
 EVENT_TYPES = ["영상 제작", "오프라인 이벤트"]
 STATUS_OPTIONS = ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"]
+EVENT_TYPES = ["오프라인 이벤트", "영상 제작"]
+CONTRACT_TYPES = ["입찰", "수의계약", "B2B"]
+
 
 # JSON 파일에서 item_options 로드
 with open(JSON_PATH, 'r', encoding='utf-8') as file:
@@ -36,6 +39,7 @@ def init_db() -> None:
                              event_name TEXT,
                              client_name TEXT,
                              event_type TEXT,
+                             contract_type TEXT,
                              scale INTEGER,
                              start_date DATE,
                              end_date DATE,
@@ -71,7 +75,11 @@ def basic_info() -> None:
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
 
     default_index = EVENT_TYPES.index(event_data.get('event_type', EVENT_TYPES[0]))
-    event_data['event_type'] = render_option_menu("용역 유형", EVENT_TYPES, ['camera-video', 'calendar-event'], default_index, orientation='horizontal', key="event_type")
+    event_data['event_type'] = render_option_menu("용역 유형", EVENT_TYPES, ['calendar-event', 'camera-video'], default_index, orientation='horizontal', key="event_type")
+
+    # 용역 종류 추가
+    default_contract_index = CONTRACT_TYPES.index(event_data.get('contract_type', CONTRACT_TYPES[0]))
+    event_data['contract_type'] = render_option_menu("용역 종류", CONTRACT_TYPES, ['file-earmark-text', 'person-lines-fill', 'building'], default_contract_index, orientation='horizontal', key="contract_type")
 
     st.header("예산 정보")
     event_data['contract_amount'] = st.number_input("총 계약 금액", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
@@ -313,11 +321,12 @@ def save_event_data(event_data):
     if conn:
         try:
             with conn:
-                conn.execute('''INSERT INTO events (event_name, client_name, event_type, scale, start_date, end_date, setup_start, teardown, venue_name, venue_type, address, capacity, facilities, contract_amount, expected_profit, components)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                conn.execute('''INSERT INTO events (event_name, client_name, event_type, contract_type, scale, start_date, end_date, setup_start, teardown, venue_name, venue_type, address, capacity, facilities, contract_amount, expected_profit, components)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                              (event_data.get('event_name', ''),
                               event_data.get('client_name', ''),
                               event_data.get('event_type', ''),
+                              event_data.get('contract_type', ''),  # 새로운 필드 추가
                               event_data.get('scale', 0),
                               event_data.get('start_date', ''),
                               event_data.get('end_date', ''),
