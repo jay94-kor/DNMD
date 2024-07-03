@@ -324,53 +324,53 @@ def save_event_data(event_data):
         st.error("데이터베이스 연결에 실패했습니다.")
 
 # 엑셀 보고서 생성 함수
-def generate_excel():
+def generate_summary_excel():
     event_data = st.session_state.event_data
     event_name = event_data.get('event_name', '무제')
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
-    # 전체 행사 보고서 생성
-    df_full = pd.DataFrame([event_data])
-    if 'components' in df_full.columns:
-        df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
-    
-    filename = f"이벤트_기획_{event_name}_{timestamp}.xlsx"
+    filename = f"이벤트_기획_정의서_{event_name}_{timestamp}.xlsx"
     
     try:
         with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-            df_full.to_excel(writer, sheet_name='전체 행사 보고서', index=False)
+            # 전체 행사 요약 정의서 생성
+            df_full = pd.DataFrame([event_data])
+            if 'components' in df_full.columns:
+                df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
+            df_full.to_excel(writer, sheet_name='전체 행사 요약', index=False)
             
-            # 각 용역 요소별 발주요청서 생성
-            for category, component in event_data.get('components', {}).items():
-                df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
-                for item in component.get('items', []):
-                    quantity = component.get(f'{item}_quantity', 0)
-                    unit = component.get(f'{item}_unit', '개')
-                    details = component.get(f'{item}_details', '')
-                    df_component = pd.concat([df_component, pd.DataFrame({
-                        '항목': [item],
-                        '수량': [quantity],
-                        '단위': [unit],
-                        '세부사항': [details]
-                    })], ignore_index=True)
-                
-                sheet_name = f'{category} 발주요청서'
-                df_component.to_excel(writer, sheet_name=sheet_name, index=False)
-                
-                # 추가 정보 기입
-                workbook = writer.book
-                worksheet = workbook[sheet_name]
-                worksheet['A1'] = f"행사명: {event_name}"
-                worksheet['A2'] = f"카테고리: {category}"
-                worksheet['A3'] = f"진행 상황: {component.get('status', '')}"
-                worksheet['A4'] = f"예산: {component.get('budget', 0)}원"
-                worksheet.insert_rows(5)  # 빈 행 삽입
+            # 기본 정보 추가
+            workbook = writer.book
+            worksheet = workbook['전체 행사 요약']
+            worksheet.insert_rows(0, amount=10)
+            worksheet['A1'] = "기본 정보"
+            worksheet['A2'] = f"행사명: {event_name}"
+            worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
+            worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
+            worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
+            worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
+            worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
+            worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
+            worksheet['A9'] = f"철수: {event_data.get('teardown', '')}"
+            
+            # 예산 정보 추가
+            worksheet['A11'] = "예산 정보"
+            worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}원"
+            worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}원"
+            
+            # 카테고리별 예산 정보 추가
+            worksheet['A15'] = "카테고리별 예산"
+            row = 16
+            for cat, comp in event_data.get('components', {}).items():
+                budget = comp.get('budget', 0)
+                worksheet[f'A{row}'] = f"{cat}: {budget}원"
+                row += 1
         
-        st.success(f"엑셀 보고서가 생성되었습니다: {filename}")
+        st.success(f"엑셀 정의서가 생성되었습니다: {filename}")
         
         with open(filename, "rb") as file:
             st.download_button(
-                label="엑셀 보고서 다운로드",
+                label="엑셀 정의서 다운로드",
                 data=file,
                 file_name=filename,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -378,8 +378,67 @@ def generate_excel():
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
 
-    if st.button("엑셀 보고서 생성"):
-        generate_excel()
+def generate_category_excel(category, component):
+    event_data = st.session_state.event_data
+    event_name = event_data.get('event_name', '무제')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
+    
+    try:
+        with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+            df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
+            for item in component.get('items', []):
+                quantity = component.get(f'{item}_quantity', 0)
+                unit = component.get(f'{item}_unit', '개')
+                details = component.get(f'{item}_details', '')
+                df_component = pd.concat([df_component, pd.DataFrame({
+                    '항목': [item],
+                    '수량': [quantity],
+                    '단위': [unit],
+                    '세부사항': [details]
+                })], ignore_index=True)
+            
+            df_component.to_excel(writer, sheet_name=f'{category} 발주요청서', index=False)
+            
+            # 추가 정보 기입
+            workbook = writer.book
+            worksheet = workbook[f'{category} 발주요청서']
+            
+            # 기본 정보 추가
+            worksheet.insert_rows(0, amount=10)
+            worksheet['A1'] = "기본 정보"
+            worksheet['A2'] = f"행사명: {event_name}"
+            worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
+            worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
+            worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
+            worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
+            worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
+            worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
+            worksheet['A9'] = f"철수: {event_data.get('teardown', '')}"
+            
+            # 예산 정보 추가
+            worksheet['A11'] = "예산 정보"
+            worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}원"
+            worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}원"
+            
+            # 발주요청서 정보 추가
+            worksheet['A15'] = "발주요청서"
+            worksheet['A16'] = f"카테고리: {category}"
+            worksheet['A17'] = f"진행 상황: {component.get('status', '')}"
+            worksheet['A18'] = f"예산: {component.get('budget', 0)}원"
+        
+        st.success(f"엑셀 발주요청서가 생성되었습니다: {filename}")
+        
+        with open(filename, "rb") as file:
+            st.download_button(
+                label=f"{category} 발주요청서 다운로드",
+                data=file,
+                file_name=filename,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    except Exception as e:
+        st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
 
 def summary():
     st.header("요약")
@@ -426,6 +485,12 @@ def summary():
         save_event_data(event_data)
         st.success("이벤트 정보가 저장되었습니다.")
 
+    if st.button("엑셀 정의서 생성"):
+        generate_summary_excel()
+
+    for category, component in event_data.get('components', {}).items():
+        if st.button(f"{category} 발주요청서 생성"):
+            generate_category_excel(category, component)
 
 def main():
     st.set_page_config(page_title="이벤트 플래너", page_icon="🎉", layout="wide")
