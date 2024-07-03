@@ -107,7 +107,9 @@ def init_db() -> None:
                             (id INTEGER PRIMARY KEY AUTOINCREMENT,
                              username TEXT UNIQUE,
                              name TEXT,
-                             password TEXT)''')
+                             password TEXT,
+                             email TEXT UNIQUE,
+                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
 
 def add_contract_type_column() -> None:
     with db_pool.get_connection() as conn:
@@ -133,11 +135,11 @@ def add_manager_name_column() -> None:
         except sqlite3.OperationalError as e:
             st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
 
-def add_user(username: str, name: str, password: str) -> None:
+def add_user(username: str, name: str, password: str, email: str) -> None:
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     with db_pool.get_connection() as conn:
-        conn.execute("INSERT INTO users (username, name, password) VALUES (?, ?, ?)",
-                     (username, name, hashed_password))
+        conn.execute("INSERT INTO users (username, name, password, email) VALUES (?, ?, ?, ?)",
+                     (username, name, hashed_password, email))
 
 def get_users() -> List[Dict[str, Any]]:
     with db_pool.get_connection() as conn:
@@ -629,10 +631,12 @@ def display_event_info():
     with col3:
         if st.session_state.step < 3 and st.button("다음 단계로"):
             st.session_state.step = min(st.session_state.step + 1, 3)
+            
 def register_user():
     st.subheader("회원가입")
     new_username = st.text_input("사용자명")
     new_name = st.text_input("이름")
+    new_email = st.text_input("이메일")
     new_password = st.text_input("비밀번호", type="password")
     confirm_password = st.text_input("비밀번호 확인", type="password")
 
@@ -643,10 +647,10 @@ def register_user():
             st.error("비밀번호는 최소 8자 이상이어야 합니다.")
         else:
             try:
-                add_user(new_username, new_name, new_password)
+                add_user(new_username, new_name, new_password, new_email)
                 st.success("회원가입이 완료되었습니다. 이제 로그인할 수 있습니다.")
             except sqlite3.IntegrityError:
-                st.error("이미 존재하는 사용자명입니다.")
+                st.error("이미 존재하는 사용자명 또는 이메일입니다.")
             except Exception as e:
                 st.error(f"회원가입 중 오류가 발생했습니다: {str(e)}")
 
