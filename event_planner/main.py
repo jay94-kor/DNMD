@@ -58,24 +58,24 @@ def basic_info():
     st.header("기본 정보")
     event_data = st.session_state.event_data
 
-    event_data['event_name'] = st.text_input("행사명", value=event_data.get('event_name', ''))
-    event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''))
+    event_data['event_name'] = st.text_input("행사명", value=event_data.get('event_name', ''), key="event_name")
+    event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name")
 
     event_types = ["영상 제작", "오프라인 이벤트"]
     default_index = event_types.index(event_data.get('event_type', event_types[0]))
-    event_data['event_type'] = render_option_menu("용역 유형", event_types, ['camera-video', 'calendar-event'], default_index)
+    event_data['event_type'] = render_option_menu("용역 유형", event_types, ['camera-video', 'calendar-event'], default_index, key="event_type")
 
     if event_data['event_type'] == "영상 제작":
         production_types = ["연간 제작건", "단건", "시리즈 물"]
-        selected_production_type = st.radio("제작 유형 선택", production_types, index=production_types.index(event_data.get('production_type', production_types[0])))
+        selected_production_type = st.radio("제작 유형 선택", production_types, index=production_types.index(event_data.get('production_type', production_types[0])), key="production_type")
         event_data['production_type'] = selected_production_type
 
         if selected_production_type == "연간 제작건":
             col1, col2 = st.columns(2)
             with col1:
-                start_date = st.date_input("과업 시작일", value=event_data.get('start_date', date.today()))
+                start_date = st.date_input("과업 시작일", value=event_data.get('start_date', date.today()), key="start_date")
             with col2:
-                end_date = st.date_input("과업 종료일", value=event_data.get('end_date', start_date + timedelta(days=365)))
+                end_date = st.date_input("과업 종료일", value=event_data.get('end_date', start_date + timedelta(days=365)), key="end_date")
 
             if start_date > end_date:
                 end_date = start_date + timedelta(days=365)
@@ -83,27 +83,26 @@ def basic_info():
 
             event_data['start_date'] = start_date
             event_data['end_date'] = end_date
-
-        # 과업 기간 계산
+            
+            # 과업 기간 계산
             duration = (end_date - start_date).days
             months = duration // 30
             days = duration % 30
             st.write(f"과업 기간: {months}개월 {days}일")
 
         # 제작 분류 선택 부분
-            categories = ["숏폼", "유튜브", "다큐멘터리", "광고", "기타"]
-            selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []))
-            event_data['selected_categories'] = selected_categories
+        categories = ["숏폼", "유튜브", "다큐멘터리", "광고", "기타"]
+        selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []), key="selected_categories")
+        event_data['selected_categories'] = selected_categories
 
-            for category in selected_categories:
-                count = st.number_input(f"{category} 제작 건수", min_value=0, value=event_data.get(f'{category}_count', 0))
-                event_data[f'{category}_count'] = count
-                st.write(f"{category}: {count}편")
+        for i, category in enumerate(selected_categories):
+            count = st.number_input(f"{category} 제작 건수", min_value=0, value=event_data.get(f'{category}_count', 0), key=f"category_count_{i}")
+            event_data[f'{category}_count'] = count
+            st.write(f"{category}: {count}편")
 
-
-        elif selected_production_type in ["단건", "시리즈 물"]:
-            num_videos = st.number_input(f"{selected_production_type} 제작 편수", min_value=1, value=event_data.get('num_videos', 1))
-            event_data['num_videos'] = num_videos
+    elif selected_production_type in ["단건", "시리즈 물"]:
+        num_videos = st.number_input(f"{selected_production_type} 제작 편수", min_value=1, value=event_data.get('num_videos', 1))
+        event_data['num_videos'] = num_videos
 
         output_schedule = st.date_input("예상 아웃풋 일정", value=event_data.get('output_schedule', date.today()))
         event_data['output_schedule'] = output_schedule
