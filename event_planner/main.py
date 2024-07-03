@@ -179,13 +179,15 @@ def load_past_events():
                         st.write(event['manager_name'])
                     with col4:
                         if st.button("수정", key=f"edit_{event['id']}"):
-                            load_event_data(event['id'])
-                            st.session_state.current_event = event['id']
-                            st.experimental_rerun()
+                            if check_password(event['id']):
+                                load_event_data(event['id'])
+                                st.session_state.current_event = event['id']
+                                st.experimental_rerun()
                     with col5:
                         if st.button("삭제", key=f"delete_{event['id']}"):
-                            delete_event(event['id'])
-                            st.experimental_rerun()
+                            if check_password(event['id']):
+                                delete_event(event['id'])
+                                st.experimental_rerun()
             else:
                 st.info("저장된 프로젝트가 없습니다.")
         finally:
@@ -197,7 +199,7 @@ def check_password(event_id: int) -> bool:
         if conn:
             stored_password = conn.execute("SELECT password FROM events WHERE id = ?", (event_id,)).fetchone()['password']
             input_password = st.text_input("비밀번호를 입력하세요:", type="password", key=f"password_{event_id}")
-            if input_password and (st.button("확인", key=f"confirm_{event_id}") or input_password):
+            if input_password and st.button("확인", key=f"confirm_{event_id}"):
                 if bcrypt.checkpw(input_password.encode('utf-8'), stored_password):
                     st.success("비밀번호가 일치합니다.")
                     return True
@@ -210,6 +212,7 @@ def check_password(event_id: int) -> bool:
         if conn:
             conn.close()
     return False
+
 
 def create_new_event():
     st.session_state.event_data = {}
@@ -673,7 +676,6 @@ def main():
         cookie_expiry_days=30
     )
 
-    # 로그인/회원가입 선택
     auth_option = st.radio("선택하세요:", ["로그인", "회원가입"])
 
     if auth_option == "로그인":
@@ -690,13 +692,13 @@ def main():
                 elif menu == "사용자 관리":
                     admin_page()
             else:
-                event_management()
+                st.error("관리자 전용 페이지입니다.")
         elif authentication_status == False:
-            st.error("사용자명/비밀번호가 incorrect입니다")
+            st.error("사용자명/비밀번호가 일치하지 않습니다.")
         elif authentication_status == None:
-            st.warning("사용자명과 비밀번호를 입력해주세요")
+            st.warning("사용자명과 비밀번호를 입력해주세요.")
     else:
-        register_user()
+        st.warning("회원가입은 관리자에게 문의하세요.")
 
 if __name__ == "__main__":
     main()
