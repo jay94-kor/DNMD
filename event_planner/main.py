@@ -299,6 +299,11 @@ def save_event_data(event_data):
     if conn:
         cursor = conn.cursor()
         components_json = json.dumps(event_data.get('components', {}))
+        
+        # 날짜를 문자열로 변환
+        start_date = event_data.get('start_date').isoformat() if event_data.get('start_date') else None
+        end_date = event_data.get('end_date').isoformat() if event_data.get('end_date') else None
+        
         cursor.execute('''INSERT OR REPLACE INTO events
                           (event_name, client_name, event_type, scale, start_date, end_date,
                            setup_start, teardown, venue_name, venue_type, address, capacity,
@@ -306,7 +311,7 @@ def save_event_data(event_data):
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                        (event_data.get('event_name'), event_data.get('client_name'),
                         json.dumps(event_data.get('event_type')), event_data.get('scale'),
-                        event_data.get('start_date'), event_data.get('end_date'),
+                        start_date, end_date,
                         event_data.get('setup'), event_data.get('teardown'),
                         event_data.get('venue_name'), event_data.get('venue_type'),
                         event_data.get('address'), event_data.get('capacity'),
@@ -315,6 +320,8 @@ def save_event_data(event_data):
         conn.commit()
         conn.close()
         st.success("데이터가 성공적으로 저장되었습니다.")
+    else:
+        st.error("데이터베이스 연결에 실패했습니다.")
 
 # 엑셀 보고서 생성 함수
 def generate_excel():
