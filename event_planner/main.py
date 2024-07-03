@@ -66,9 +66,24 @@ def init_db() -> None:
 def add_contract_type_column() -> None:
     conn = get_db_connection()
     if conn:
-        with conn:
-            conn.execute('''ALTER TABLE events ADD COLUMN contract_type TEXT''')
-        conn.close()
+        try:
+            with conn:
+                # 먼저 열이 존재하는지 확인합니다
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA table_info(events)")
+                columns = [column[1] for column in cursor.fetchall()]
+                
+                if 'contract_type' not in columns:
+                    conn.execute('''ALTER TABLE events ADD COLUMN contract_type TEXT''')
+                    st.success("contract_type 열이 성공적으로 추가되었습니다.")
+                else:
+                    st.info("contract_type 열이 이미 존재합니다.")
+        except sqlite3.OperationalError as e:
+            st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
+        finally:
+            conn.close()
+    else:
+        st.error("데이터베이스 연결에 실패했습니다.")
 
 def init_app() -> None:
     """
