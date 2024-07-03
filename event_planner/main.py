@@ -62,6 +62,7 @@ def init_db() -> None:
                              components TEXT)''')
         conn.close()
 
+
 # 주석 추가 예시
 def init_app() -> None:
     """
