@@ -356,7 +356,8 @@ def main():
     col1, col2, col3 = st.columns([2,6,2])
     with col2:
         current_step = st.session_state.get('step', 0)
-        current_step = max(0, min(current_step, len(step_names) - 1))  # 유효한 범위 내로 제한
+        if not isinstance(current_step, int) or current_step < 0 or current_step >= len(step_names):
+            current_step = 0  # 유효하지 않은 값일 경우 기본값으로 설정
         default_step = step_names[current_step]
         selected_step = option_menu("단계", step_names, 
                                     icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
