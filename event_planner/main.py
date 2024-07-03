@@ -326,29 +326,46 @@ def save_event_data(event_data):
 # 엑셀 보고서 생성 함수
 def generate_excel():
     event_data = st.session_state.event_data
-    df_full = pd.DataFrame([event_data])
+    event_name = event_data.get('event_name', '무제')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
-    # 'components' 열이 존재하는지 확인하고, 존재하면 JSON으로 변환
+    # 전체 행사 보고서 생성
+    df_full = pd.DataFrame([event_data])
     if 'components' in df_full.columns:
         df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
-
-    df_partial = pd.DataFrame(columns=['카테고리', '진행 상황', '선택된 항목', '세부사항'])
-    for category, component in event_data.get('components', {}).items():
-        df_partial = pd.concat([df_partial, pd.DataFrame({
-            '카테고리': category,
-            '진행 상황': component['status'],
-            '선택된 항목': ', '.join(component['items']),
-            '세부사항': ', '.join([f"{item}: {component.get(f'{item}_quantity', '')} {component.get(f'{item}_unit', '')}" for item in component['items']])
-        }, index=[0])], ignore_index=True)
-
-    event_name = event_data.get('event_name', '무제')
-    filename = f"이벤트_기획_{event_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    filename = f"이벤트_기획_{event_name}_{timestamp}.xlsx"
     
     try:
-        with pd.ExcelWriter(filename) as writer:
+        with pd.ExcelWriter(filename, engine='openpyxl') as writer:
             df_full.to_excel(writer, sheet_name='전체 행사 보고서', index=False)
-            df_partial.to_excel(writer, sheet_name='부분 발주요청서', index=False)
-
+            
+            # 각 용역 요소별 발주요청서 생성
+            for category, component in event_data.get('components', {}).items():
+                df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
+                for item in component.get('items', []):
+                    quantity = component.get(f'{item}_quantity', 0)
+                    unit = component.get(f'{item}_unit', '개')
+                    details = component.get(f'{item}_details', '')
+                    df_component = pd.concat([df_component, pd.DataFrame({
+                        '항목': [item],
+                        '수량': [quantity],
+                        '단위': [unit],
+                        '세부사항': [details]
+                    })], ignore_index=True)
+                
+                sheet_name = f'{category} 발주요청서'
+                df_component.to_excel(writer, sheet_name=sheet_name, index=False)
+                
+                # 추가 정보 기입
+                workbook = writer.book
+                worksheet = workbook[sheet_name]
+                worksheet['A1'] = f"행사명: {event_name}"
+                worksheet['A2'] = f"카테고리: {category}"
+                worksheet['A3'] = f"진행 상황: {component.get('status', '')}"
+                worksheet['A4'] = f"예산: {component.get('budget', 0)}원"
+                worksheet.insert_rows(5)  # 빈 행 삽입
+        
         st.success(f"엑셀 보고서가 생성되었습니다: {filename}")
         
         with open(filename, "rb") as file:
@@ -360,6 +377,9 @@ def generate_excel():
             )
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
+
+    if st.button("엑셀 보고서 생성"):
+        generate_excel()
 
 def summary():
     st.header("요약")
