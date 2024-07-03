@@ -629,6 +629,26 @@ def display_event_info():
     with col3:
         if st.session_state.step < 3 and st.button("다음 단계로"):
             st.session_state.step = min(st.session_state.step + 1, 3)
+def register_user():
+    st.subheader("회원가입")
+    new_username = st.text_input("사용자명")
+    new_name = st.text_input("이름")
+    new_password = st.text_input("비밀번호", type="password")
+    confirm_password = st.text_input("비밀번호 확인", type="password")
+
+    if st.button("회원가입"):
+        if new_password != confirm_password:
+            st.error("비밀번호가 일치하지 않습니다.")
+        elif len(new_password) < 8:
+            st.error("비밀번호는 최소 8자 이상이어야 합니다.")
+        else:
+            try:
+                add_user(new_username, new_name, new_password)
+                st.success("회원가입이 완료되었습니다. 이제 로그인할 수 있습니다.")
+            except sqlite3.IntegrityError:
+                st.error("이미 존재하는 사용자명입니다.")
+            except Exception as e:
+                st.error(f"회원가입 중 오류가 발생했습니다: {str(e)}")
 
 def main():
     st.title("이벤트 플래너")
@@ -649,24 +669,30 @@ def main():
         cookie_expiry_days=30
     )
 
-    name, authentication_status, username = authenticator.login("로그인", "main")
+    # 로그인/회원가입 선택
+    auth_option = st.radio("선택하세요:", ["로그인", "회원가입"])
 
-    if authentication_status:
-        authenticator.logout("로그아웃", "main")
-        st.write(f"환영합니다 *{name}*")
-        
-        if username == "admin":  # 관리자 계정일 경우
-            menu = st.sidebar.selectbox("메뉴", ["이벤트 관리", "사용자 관리"])
-            if menu == "이벤트 관리":
+    if auth_option == "로그인":
+        name, authentication_status, username = authenticator.login("로그인", "main")
+
+        if authentication_status:
+            authenticator.logout("로그아웃", "main")
+            st.write(f"환영합니다 *{name}*")
+            
+            if username == "admin":  # 관리자 계정일 경우
+                menu = st.sidebar.selectbox("메뉴", ["이벤트 관리", "사용자 관리"])
+                if menu == "이벤트 관리":
+                    event_management()
+                elif menu == "사용자 관리":
+                    admin_page()
+            else:
                 event_management()
-            elif menu == "사용자 관리":
-                admin_page()
-        else:
-            event_management()
-    elif authentication_status == False:
-        st.error("사용자명/비밀번호가 incorrect입니다")
-    elif authentication_status == None:
-        st.warning("사용자명과 비밀번호를 입력해주세요")
+        elif authentication_status == False:
+            st.error("사용자명/비밀번호가 incorrect입니다")
+        elif authentication_status == None:
+            st.warning("사용자명과 비밀번호를 입력해주세요")
+    else:
+        register_user()
 
 if __name__ == "__main__":
     main()
