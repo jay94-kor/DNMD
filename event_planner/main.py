@@ -73,16 +73,32 @@ def basic_info():
         if selected_production_type == "연간 제작건":
             col1, col2 = st.columns(2)
             with col1:
-                start_date = st.date_input("제작 시작일", value=event_data.get('start_date', date.today()))
+                start_date = st.date_input("과업 시작일", value=event_data.get('start_date', date.today()))
             with col2:
-                end_date = st.date_input("제작 종료일", value=event_data.get('end_date', start_date + timedelta(days=1)))
+                end_date = st.date_input("과업 종료일", value=event_data.get('end_date', start_date + timedelta(days=365)))
 
             if start_date > end_date:
-                end_date = start_date + timedelta(days=1)
-                st.warning("제작 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
+                end_date = start_date + timedelta(days=365)
+                st.warning("과업 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
 
             event_data['start_date'] = start_date
             event_data['end_date'] = end_date
+
+        # 과업 기간 계산
+            duration = (end_date - start_date).days
+            months = duration // 30
+            days = duration % 30
+            st.write(f"과업 기간: {months}개월 {days}일")
+
+        # 제작 분류 선택 부분
+            categories = ["숏폼", "유튜브", "다큐멘터리", "광고", "기타"]
+            selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []))
+            event_data['selected_categories'] = selected_categories
+
+            for category in selected_categories:
+                count = st.number_input(f"{category} 제작 건수", min_value=0, value=event_data.get(f'{category}_count', 0))
+                event_data[f'{category}_count'] = count
+                st.write(f"{category}: {count}편")
 
 
         elif selected_production_type in ["단건", "시리즈 물"]:
