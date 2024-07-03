@@ -165,8 +165,18 @@ def venue_info():
         else:
             st.session_state.capacity = st.number_input("참여 인원", min_value=0, value=current_min, key="capacity_input")
 
-        facilities = ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"]
-        st.session_state.facilities = st.multiselect("행사장 보유 시설 및 장비", facilities, default=st.session_state.get('facilities', []), key="facilities_input")
+        if st.session_state.venue_type in ["실내", "혼합"]:
+            facilities = ["없음", "무대", "음향 시스템", "조명 시스템", "빔 프로젝터", "LED", "Wi-Fi", "주차장", "기타"]
+            selected_facilities = st.multiselect("행사장 보유 시설 및 장비", facilities, default=st.session_state.get('facilities', []), key="facilities_input")
+            
+            if "기타" in selected_facilities:
+                other_facilities = st.text_input("기타 시설 및 장비를 입력해주세요", key="other_facilities_input")
+                if other_facilities:
+                    selected_facilities = [facility if facility != "기타" else f"기타: {other_facilities}" for facility in selected_facilities]
+            
+            st.session_state.facilities = selected_facilities
+        else:
+            st.session_state.facilities = []  # 실외인 경우 시설 정보를 비움
     else:
         st.session_state.desired_region = st.text_input("희망 지역", st.session_state.get('desired_region', ''), key="desired_region_input")
         st.session_state.desired_capacity = st.number_input("희망 참여 인원", min_value=0, value=int(st.session_state.get('desired_capacity', 0)), key="desired_capacity_input")
