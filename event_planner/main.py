@@ -357,20 +357,24 @@ def main():
     with col2:
         st.session_state.step = option_menu("단계", step_names, icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], menu_icon="cast", default_index=st.session_state.step, orientation="horizontal")
     
-    functions[st.session_state.step]()
+    # step이 functions 딕셔너리의 키 범위 내에 있는지 확인
+    if 0 <= st.session_state.step < len(functions):
+        functions[st.session_state.step]()
+    else:
+        st.error(f"잘못된 단계입니다: {st.session_state.step}")
     
     if st.session_state.step < 3:
         col1, col2, col3 = st.columns([6,1,3])
         with col3:
             if st.button("다음 단계로"):
-                st.session_state.step += 1
+                st.session_state.step = min(st.session_state.step + 1, 3)
                 st.experimental_rerun()
     
     if st.session_state.step > 0:
         col1, col2, col3 = st.columns([3,1,6])
         with col1:
             if st.button("이전 단계로"):
-                st.session_state.step -= 1
+                st.session_state.step = max(st.session_state.step - 1, 0)
                 st.experimental_rerun()
 
 if __name__ == "__main__":
