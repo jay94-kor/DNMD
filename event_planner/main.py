@@ -90,37 +90,34 @@ def basic_info():
             days = duration % 30
             st.write(f"과업 기간: {months}개월 {days}일")
 
-            # 제작 분류 선택 부분
-            categories = ["숏폼", "교육영상", "강의영상", "현장 스케치", "유튜브", "다큐멘터리", "광고", "기타"]
-            selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []), key="selected_categories")
-            event_data['selected_categories'] = selected_categories
+        elif selected_production_type in ["단건", "시리즈 물"]:
+            num_videos = st.number_input(f"{selected_production_type} 제작 편수", min_value=1, value=event_data.get('num_videos', 1))
+            event_data['num_videos'] = num_videos
 
-            for i, category in enumerate(selected_categories):
-                st.subheader(f"{category} 상세 정보")
-                col1, col2 = st.columns(2)
-                with col1:
-                    count = st.number_input(f"{category} 제작 편수", min_value=0, value=event_data.get(f'{category}_count', 0), key=f"category_count_{i}")
-                    event_data[f'{category}_count'] = count
-                with col2:
-                    length = st.number_input(f"{category} 편당 길이 (분)", min_value=0, value=event_data.get(f'{category}_length', 0), key=f"category_length_{i}")
-                    event_data[f'{category}_length'] = length
-                
-                st.write(f"{category}: {count}편, 각 {length}분")
+            output_schedule = st.date_input("예상 아웃풋 일정", value=event_data.get('output_schedule', date.today()))
+            event_data['output_schedule'] = output_schedule
 
-
-    elif selected_production_type in ["단건", "시리즈 물"]:
-        num_videos = st.number_input(f"{selected_production_type} 제작 편수", min_value=1, value=event_data.get('num_videos', 1))
-        event_data['num_videos'] = num_videos
-
-        output_schedule = st.date_input("예상 아웃풋 일정", value=event_data.get('output_schedule', date.today()))
-        event_data['output_schedule'] = output_schedule
-
+        # 제작 분류 선택 부분 (모든 제작 유형에 공통)
         categories = ["숏폼", "교육영상", "강의영상", "현장 스케치", "유튜브", "다큐멘터리", "광고", "기타"]
-        selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []))
+        selected_categories = st.multiselect("제작 분류 선택", categories, default=event_data.get('selected_categories', []), key="selected_categories")
         event_data['selected_categories'] = selected_categories
 
-        for category in selected_categories:
-            event_data[f'{category}_count'] = st.number_input(f"{category} 제작 건수", min_value=0, value=event_data.get(f'{category}_count', 0))
+        for i, category in enumerate(selected_categories):
+            st.subheader(f"{category} 상세 정보")
+            
+            status_options = ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"]
+            status = st.selectbox(f"{category} 진행 상황", status_options, index=status_options.index(event_data.get(f'{category}_status', status_options[0])), key=f"category_status_{i}")
+            event_data[f'{category}_status'] = status
+
+            col1, col2 = st.columns(2)
+            with col1:
+                count = st.number_input(f"{category} 제작 편수", min_value=0, value=event_data.get(f'{category}_count', 0), key=f"category_count_{i}")
+                event_data[f'{category}_count'] = count
+            with col2:
+                length = st.number_input(f"{category} 편당 길이 (분)", min_value=0, value=event_data.get(f'{category}_length', 0), key=f"category_length_{i}")
+                event_data[f'{category}_length'] = length
+            
+            st.write(f"{category}: {count}편, 각 {length}분, 상태: {status}")
 
     if event_data['event_type'] == "오프라인 이벤트":
         event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=event_data.get('scale', 0))
