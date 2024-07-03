@@ -256,7 +256,7 @@ def budget_info():
     with col1:
         event_data['contract_amount'] = st.number_input("계약 금액 (원)", min_value=0, value=event_data.get('contract_amount', 0), step=10000, key="contract_amount")
     with col2:
-        event_data['include_vat'] = st.toggle("부가세 포함", value=event_data.get('include_vat', False), key="include_vat")
+        event_data['include_vat'] = st.checkbox("부가세 포함", value=event_data.get('include_vat', False), key="include_vat")
 
     # 금액 조정 버튼
     col1, col2, col3, col4 = st.columns(4)
