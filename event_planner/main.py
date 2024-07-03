@@ -71,6 +71,10 @@ def basic_info():
     default_index = event_types.index(event_data.get('event_type', event_types[0]))
     event_data['event_type'] = render_option_menu("용역 유형", event_types, ['camera-video', 'calendar-event'], default_index, orientation='horizontal', key="event_type")
 
+    st.header("예산 정보")
+    event_data['contract_amount'] = st.number_input("총 계약 금액", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
+    event_data['expected_profit'] = st.number_input("총 예상 수익", min_value=0, value=event_data.get('expected_profit', 0), key="expected_profit")
+
     if event_data['event_type'] == "영상 제작":
         col1, col2 = st.columns(2)
         with col1:
@@ -137,7 +141,7 @@ def service_components():
         st.write("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 선택되었습니다.")
     else:
         categories = list(item_options.keys())
-        selected_categories = st.multiselect("카테고리 선택", categories, default=event_data.get('selected_categories', []))
+        selected_categories = st.multiselect("카테고리 선택", categories, default=event_data.get('selected_categories', []), key="selected_categories")
 
     event_data['selected_categories'] = selected_categories
 
@@ -155,6 +159,8 @@ def service_components():
             default=component.get('items', []),
             key=f"{category}_items"
         )
+
+        component['budget'] = st.number_input(f"{category} 예산", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
 
         for item in component['items']:
             if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
@@ -200,22 +206,6 @@ def service_components():
 
     # 선택되지 않은 카테고리 제거
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
-
-def budget_info():
-    event_data = st.session_state.event_data
-    st.header("예산 정보")
-
-    event_data['contract_amount'] = st.number_input("총 계약 금액", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
-    event_data['expected_profit'] = st.number_input("총 예상 수익", min_value=0, value=event_data.get('expected_profit', 0), key="expected_profit")
-
-    st.subheader("카테고리별 예산")
-    total_budget = 0
-    for category, component in event_data.get('components', {}).items():
-        st.write(f"**{category}**")
-        component['budget'] = st.number_input(f"{category} 예산", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
-        total_budget += component['budget']
-
-    st.write(f"**총 예산: {total_budget}원**")
 
 def generate_summary_excel():
     event_data = st.session_state.event_data
@@ -268,6 +258,9 @@ def generate_summary_excel():
                 file_name=filename,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+        
+        save_event_data(event_data)
+        
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
 
@@ -330,9 +323,11 @@ def generate_category_excel(category, component):
                 file_name=filename,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+        
+        save_event_data(event_data)
+        
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
-
 
 def save_event_data(event_data):
     conn = get_db_connection()
@@ -402,15 +397,11 @@ def summary():
         total_budget += budget
     st.write(f"**총 예산: {total_budget}원**")
 
-    if st.button("저장"):
-        save_event_data(event_data)
-        st.success("이벤트 정보가 저장되었습니다.")
-
-    if st.button("엑셀 정의서 생성"):
+    if st.button("엑셀 정의서 생성 및 저장"):
         generate_summary_excel()
 
     for category, component in event_data.get('components', {}).items():
-        if st.button(f"{category} 발주요청서 생성"):
+        if st.button(f"{category} 발주요청서 생성 및 저장"):
             generate_category_excel(category, component)
 
 def main():
@@ -419,8 +410,8 @@ def main():
 
     init_app()
 
-    steps = ["기본 정보", "장소 정보", "용역 구성 요소", "예산 정보", "요약"]
-    functions = [basic_info, venue_info, service_components, budget_info, summary]
+    steps = ["기본 정보", "장소 정보", "용역 구성 요소", "요약"]
+    functions = [basic_info, venue_info, service_components, summary]
 
     st.sidebar.title("단계")
     for i, step in enumerate(steps):
