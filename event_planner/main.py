@@ -205,7 +205,7 @@ def service_components():
             "네트워킹": ["행사전 미팅 스케줄링", "행사전 참가자 매칭"],
             "디자인": ["로고", "캐릭터", "2D", "3D"],
             "마케팅 및 홍보": ["오프라인 (옥외 매체)", "오프라인 (지하철, 버스, 택시)", "온라인 (뉴스레터)", "온라인 (인플루언서)", "온라인 (키워드)", "온라인 (SNS / 바이럴)", "온라인 (SNS / 유튜브 비용집행)", "PR (기자회견 / 기자 컨택)", "PR (매체 광고)", "PR (보도자료 작성 및 배포)"],
-            "미디어": ["유튜브 (예능)","유튜브 (교육 / 강의)","유튜브 (인터뷰 형식)","숏폼 (재편집)","숏폼 (신규 제작)","웹드라마","2D / 모션그래픽 제작", "3D 영상 제작", "드론 렌탈 및 운영", "행사 배경 영상", "행사 사전 영상", "사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)", "스케치 영상 제작", "애니메이션 제작", "중계 라이브 스트리밍", "중계 실시간 자막", "중계 촬영 / 편집", "프로젝션 맵핑 / 미디어 파사드", "VR/AR 콘텐츠 제작"],
+            "미디어": ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상",  "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작","사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)","중계 촬영 및 라이브 스트리밍", "중계 실시간 자막", "중계 편집","프로젝션 맵핑 / 미디어 파사드", "VR/AR 콘텐츠 제작"],           
             "부대 행사": ["놀이 시설", "레크레이션", "자판기 (아이템 / 굿즈 등)", "자판기 (음료 / 스낵 / 솜사탕 등)", "체험 부스 (게임존)", "체험 부스 (과학 실험)", "체험 부스 (로봇 체험)", "체험 부스 (심리상담)", "체험 부스 (진로상담)", "체험 부스 (퍼스널 컬러)", "체험 부스 (VR/AR)", "키오스크"],
             "섭외 / 인력": ["가수", "강사", "경호 (행사 전반)", "경호 (VIP)", "공연팀 (댄스)", "공연팀 (서커스 / 마술 / 퍼포먼스)", "공연팀 (음악)", "공연팀 (전통)", "배우", "번역", "연사", "요원 (소방안전)", "요원 (응급처치)", "의전 도우미", "인플루언서", "코미디언", "통역 인력 및 장비 세팅", "패널 토론 진행자", "MC (기념식 / 시상식 등)", "MC (축제 / 페스티벌 등)", "STAFF (안전관리)", "STAFF (행사 운영)", "STAFF (행사 진행)"],
             "시스템": ["음향 설치 및 운영", "음향 오퍼레이터", "조명 (공연)", "조명 (스피치 및 일반)", "LED 디스플레이 설치 및 운영"],
@@ -219,8 +219,41 @@ def service_components():
         component['items'] = st.multiselect(f"{category} 항목 선택", item_options.get(category, []), default=component.get('items', []))
 
         for item in component['items']:
-            if item == "행사전 미팅 스케줄링":
-                col1, col2 = st.columns(2)
+            if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
+                        "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
+                        "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
+                        "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
+                component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0))
+                component[f'{item}_unit'] = "편"
+            
+            elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
+                component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0))
+                component[f'{item}_unit'] = "A컷 장수"
+            
+            elif item in ["중계 촬영 및 라이브 스트리밍", "중계 실시간 자막"]:
+                component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0))
+                component[f'{item}_unit'] = "회"
+                component[f'{item}_camera_recording'] = st.checkbox("카메라별 녹화본 필요", key=f"{item}_camera_recording")
+                component[f'{item}_td_recording'] = st.checkbox("TD 중계본 녹화 필요", key=f"{item}_td_recording")
+            
+            elif item == "중계 편집":
+                component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0))
+                component[f'{item}_unit'] = "편"
+                component[f'{item}_edit_types'] = st.multiselect("편집 유형", ["통합본", "요약본", "하이라이트"], default=component.get(f'{item}_edit_types', []))
+            
+            elif item == "프로젝션 맵핑 / 미디어 파사드":
+                component[f'{item}_quantity'] = st.number_input(f"{item} 회차", min_value=0, value=component.get(f'{item}_quantity', 0))
+                component[f'{item}_unit'] = "회"
+                component[f'{item}_start_date'] = st.date_input(f"{item} 전시 시작일", value=component.get(f'{item}_start_date', date.today()))
+                component[f'{item}_end_date'] = st.date_input(f"{item} 전시 종료일", value=component.get(f'{item}_end_date', date.today()))
+            
+            elif item == "VR/AR 콘텐츠 제작":
+                component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0))
+                component[f'{item}_unit'] = "개"
+                component[f'{item}_details'] = st.text_area(f"{item} 상세사항", value=component.get(f'{item}_details', ''), help="상세사항을 반드시 입력해주세요.")
+
+            elif item == "행사전 미팅 스케줄링":
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     component[f'{item}_quantity'] = st.number_input(f"{item} 오픈 희망 일정", min_value=1, value=component.get(f'{item}_quantity', 1))
                 with col2:
@@ -229,7 +262,8 @@ def service_components():
                         options=["주", "일", "월"],
                         index=["주", "일", "월"].index(component.get(f'{item}_unit', "주"))
                     )
-                st.write(f"{item} 오픈 희망 일정: 행사 {component[f'{item}_quantity']} {component[f'{item}_unit']} 전")
+                with col3:
+                    st.write(f"{item} 오픈 희망 일정: 행사 {component[f'{item}_quantity']} {component[f'{item}_unit']} 전")
             else:
                 component[f'{item}_quantity'] = st.number_input(f"{item} 수량", min_value=0, value=component.get(f'{item}_quantity', 0))
                 component[f'{item}_unit'] = st.text_input(f"{item} 단위", value=component.get(f'{item}_unit', '개'))
