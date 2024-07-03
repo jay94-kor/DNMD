@@ -51,8 +51,8 @@ def init_app():
         st.session_state.event_data = {}
     init_db()
 
-def render_option_menu(title, options, icons, default_index, orientation='vertical'):
-    return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation)
+def render_option_menu(title, options, icons, default_index, orientation='vertical', key=None):
+    return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation, key=key)
 
 def basic_info():
     st.header("기본 정보")
@@ -63,7 +63,7 @@ def basic_info():
 
     event_types = ["영상 제작", "오프라인 이벤트"]
     default_index = event_types.index(event_data.get('event_type', event_types[0]))
-    event_data['event_type'] = render_option_menu("용역 유형", event_types, ['camera-video', 'calendar-event'], default_index, key="event_type")
+    event_data['event_type'] = render_option_menu("용역 유형", event_types, ['camera-video', 'calendar-event'], default_index, orientation='horizontal', key="event_type")
 
     if event_data['event_type'] == "영상 제작":
         production_types = ["연간 제작건", "단건", "시리즈 물"]
