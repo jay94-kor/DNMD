@@ -258,6 +258,18 @@ def budget_info():
     with col2:
         event_data['include_vat'] = st.checkbox("부가세 포함", value=event_data.get('include_vat', False), key="include_vat")
 
+    # 작은 버튼 스타일 정의
+    button_style = """
+        <style>
+        .stButton>button {
+            font-size: 12px;
+            padding: 2px 6px;
+            margin: 1px;
+        }
+        </style>
+    """
+    st.markdown(button_style, unsafe_allow_html=True)
+
     # 금액 조정 버튼
     col1, col2, col3, col4 = st.columns(4)
     with col1:
