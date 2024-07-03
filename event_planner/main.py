@@ -355,7 +355,12 @@ def main():
     
     col1, col2, col3 = st.columns([2,6,2])
     with col2:
-        selected_step = option_menu("단계", step_names, icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], menu_icon="cast", default_index=st.session_state.get('step', 0), orientation="horizontal")
+        default_step = step_names[st.session_state.get('step', 0)]
+        selected_step = option_menu("단계", step_names, 
+                                    icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
+                                    menu_icon="cast", 
+                                    default=default_step, 
+                                    orientation="horizontal")
         st.session_state.step = step_names.index(selected_step)
     
     if 0 <= st.session_state.step < len(functions):
