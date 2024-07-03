@@ -269,8 +269,8 @@ def budget_info():
     st.header("예산 정보")
     event_data = st.session_state.event_data
 
-    event_data['contract_amount'] = st.number_input("계약 금액", min_value=0, value=event_data.get('contract_amount', 0))
-    event_data['expected_profit'] = st.number_input("예상 수익", min_value=0, value=event_data.get('expected_profit', 0))
+    event_data['contract_amount'] = st.number_input("총 계약 금액", min_value=0, value=event_data.get('contract_amount', 0))
+    event_data['expected_profit'] = st.number_input("총 예상 수익", min_value=0, value=event_data.get('expected_profit', 0))
 
     st.subheader("카테고리별 예산")
     total_budget = 0
@@ -391,8 +391,8 @@ def summary():
             st.write(f"- {item}: {component.get(f'{item}_quantity', 0)} {component.get(f'{item}_unit', '개')}")
 
     st.subheader("예산 정보")
-    st.write(f"계약 금액: {event_data.get('contract_amount', 0)}원")
-    st.write(f"예상 수익: {event_data.get('expected_profit', 0)}원")
+    st.write(f"총 계약 금액: {event_data.get('contract_amount', 0)}원")
+    st.write(f"총 예상 수익: {event_data.get('expected_profit', 0)}원")
 
     st.subheader("카테고리별 예산")
     total_budget = 0
