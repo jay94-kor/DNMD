@@ -172,8 +172,16 @@ def load_past_events():
     if conn:
         try:
             events = conn.execute("SELECT id, event_name, client_name, contract_amount FROM events").fetchall()
-            if events:
+            
+            col1, col2 = st.columns([3, 1])
+            with col1:
                 st.subheader("저장된 프로젝트 목록")
+            with col2:
+                if st.button("새로 만들기", key="create_new_event"):
+                    st.session_state.current_event = None
+                    st.experimental_rerun()
+            
+            if events:
                 for event in events:
                     col1, col2, col3, col4 = st.columns([3, 3, 2, 2])
                     with col1:
@@ -681,6 +689,8 @@ def main():
 
     if not st.session_state.auth_required:
         load_past_events()
+        if st.session_state.current_event is None:
+            create_new_event()
     else:
         st.header("관리자 로그인")
         users = get_users()
