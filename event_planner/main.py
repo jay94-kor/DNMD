@@ -102,15 +102,10 @@ def init_db() -> None:
                              contract_amount INTEGER,
                              expected_profit INTEGER,
                              components TEXT,
-                             password TEXT)''')
+                             password_hash TEXT)''')
             
-            conn.execute('''CREATE TABLE IF NOT EXISTS users
-                            (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                             username TEXT UNIQUE,
-                             name TEXT,
-                             password TEXT,
-                             email TEXT UNIQUE,
-                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+            # 기존 테이블에 password_hash 컬럼 추가
+            conn.execute('''ALTER TABLE events ADD COLUMN password_hash TEXT''')
 
 def add_contract_type_column() -> None:
     with db_pool.get_connection() as conn:
@@ -261,13 +256,12 @@ def create_new_event():
                 st.success("새 용역이 생성되었습니다. 이제 정보를 입력해주세요.")
                 st.experimental_rerun()
 
-# 새로운 이벤트 저장 함수
 def save_new_event(event_name: str, password: str) -> None:
     conn = get_db_connection()
     if conn:
         try:
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            conn.execute("INSERT INTO events (event_name, password) VALUES (?, ?)", (event_name, hashed_password))
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+            conn.execute("INSERT INTO events (event_name, password_hash) VALUES (?, ?)", (event_name, hashed_password))
             conn.commit()
         finally:
             conn.close()
