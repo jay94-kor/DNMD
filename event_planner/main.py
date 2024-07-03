@@ -103,6 +103,19 @@ def add_contract_type_column() -> None:
         except sqlite3.OperationalError as e:
             st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
 
+def add_manager_name_column() -> None:
+    with db_pool.get_connection() as conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(events)")
+            columns = [column[1] for column in cursor.fetchall()]
+            if 'manager_name' not in columns:
+                conn.execute('''ALTER TABLE events ADD COLUMN manager_name TEXT''')
+                st.success("manager_name 열이 성공적으로 추가되었습니다.")
+        except sqlite3.OperationalError as e:
+            st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
+
+
 def init_app() -> None:
     if 'step' not in st.session_state:
         st.session_state.step = 0
@@ -114,6 +127,7 @@ def init_app() -> None:
         st.session_state.current_event = None
     init_db()
     add_contract_type_column()
+    add_manager_name_column()  # 새로 추가된 함수 호출
 
 def render_option_menu(title: str, options: List[str], icons: List[str], default_index: int, orientation: str = 'vertical', key: Optional[str] = None) -> str:
     return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation, key=key)
