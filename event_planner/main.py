@@ -163,7 +163,7 @@ def venue_info():
 
         capacity_type_options = ["범위", "단일 값"]
         default_capacity_type = capacity_type_options.index(event_data.get('capacity_type', "범위"))
-        capacity_type = render_option_menu("수용 인원 입력 방식", capacity_type_options, ['bar-chart', '123'], default_capacity_type, 'horizontal')
+        capacity_type = render_option_menu("참여 인원 입력 방식", capacity_type_options, ['bar-chart', '123'], default_capacity_type, 'horizontal')
 
         current_capacity = event_data.get('capacity', '0-0')
         if isinstance(current_capacity, int):
@@ -174,17 +174,17 @@ def venue_info():
             current_min = current_max = 0
 
         if capacity_type == "범위":
-            min_capacity = st.number_input("최소 수용 인원", min_value=0, value=current_min)
-            max_capacity = st.number_input("최대 수용 인원", min_value=0, value=current_max)
+            min_capacity = st.number_input("최소 참여 인원", min_value=0, value=current_min)
+            max_capacity = st.number_input("최대 참여 인원", min_value=0, value=current_max)
             event_data['capacity'] = f"{min_capacity}-{max_capacity}"
         else:
-            event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=current_min)
+            event_data['capacity'] = st.number_input("참여 인원", min_value=0, value=current_min)
 
         facilities = ["무대", "음향 시스템", "조명 시스템", "프로젝터", "스크린", "Wi-Fi", "주차장", "기타"]
         event_data['facilities'] = st.multiselect("시설 및 장비", facilities, default=event_data.get('facilities', []))
     else:
         event_data['desired_region'] = st.text_input("희망 지역", event_data.get('desired_region', ''))
-        event_data['desired_capacity'] = st.number_input("희망 수용 인원", min_value=0, value=int(event_data.get('desired_capacity', 0)))
+        event_data['desired_capacity'] = st.number_input("희망 참여 인원", min_value=0, value=int(event_data.get('desired_capacity', 0)))
 
 def service_components():
     st.header("용역 구성 요소")
