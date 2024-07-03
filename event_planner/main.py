@@ -62,8 +62,13 @@ def init_db() -> None:
                              components TEXT)''')
         conn.close()
 
+def add_contract_type_column() -> None:
+    conn = get_db_connection()
+    if conn:
+        with conn:
+            conn.execute('''ALTER TABLE events ADD COLUMN contract_type TEXT''')
+        conn.close()
 
-# 주석 추가 예시
 def init_app() -> None:
     """
     애플리케이션 초기화 함수
@@ -74,6 +79,7 @@ def init_app() -> None:
     if 'event_data' not in st.session_state:
         st.session_state.event_data = {}
     init_db()
+    add_contract_type_column()  # 새로운 열 추가
 
 def render_option_menu(title: str, options: List[str], icons: List[str], default_index: int, orientation: str = 'vertical', key: Optional[str] = None) -> str:
     return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation, key=key)
