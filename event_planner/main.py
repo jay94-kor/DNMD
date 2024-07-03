@@ -201,6 +201,9 @@ def service_components():
                 ["발주처의 지정", "동일 과업 진행 경험", "퀄리티 만족한 경험"],
                 key=f"{category}_vendor_reason"
             )
+            component['vendor_name'] = st.text_input("선호 업체 상호명", value=component.get('vendor_name', ''), key=f"{category}_vendor_name")
+            component['vendor_contact'] = st.text_input("선호 업체 연락처", value=component.get('vendor_contact', ''), key=f"{category}_vendor_contact")
+            component['vendor_manager'] = st.text_input("선호 업체 담당자명", value=component.get('vendor_manager', ''), key=f"{category}_vendor_manager")
 
         for item in component['items']:
             handle_item_details(item, component)
@@ -377,11 +380,14 @@ def generate_category_excel(category, component, filename):
             worksheet['A17'] = f"진행 상황: {component.get('status', '')}"
             worksheet['A18'] = f"예산: {component.get('budget', 0)}만원"
 
-                # 선호 업체 정보 추가
+             # 선호 업체 정보 추가
             worksheet['A19'] = f"선호 업체 여부: {'예' if component.get('preferred_vendor', False) else '아니오'}"
             if component.get('preferred_vendor', False):
                 worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
-        
+                worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
+                worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
+                worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
+            
             # 스타일 적용
             title_font = Font(bold=True, size=14)
             subtitle_font = Font(bold=True, size=12)
