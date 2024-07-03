@@ -190,7 +190,17 @@ def service_components():
             key=f"{category}_items"
         )
 
-        component['budget'] = st.number_input(f"{category} 예산", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
+        component['budget'] = st.number_input(f"{category} 예산 (만원)", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
+
+        # 선호 업체 여부 확인
+        component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
+        
+        if component['preferred_vendor']:
+            component['vendor_reason'] = st.radio(
+                "선호하는 이유를 선택해주세요:",
+                ["발주처의 지정", "동일 과업 진행 경험", "퀄리티 만족한 경험"],
+                key=f"{category}_vendor_reason"
+            )
 
         for item in component['items']:
             handle_item_details(item, component)
@@ -199,6 +209,7 @@ def service_components():
 
     # 선택되지 않은 카테고리 제거
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
+
 
 def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
@@ -303,8 +314,8 @@ def add_basic_info(worksheet, event_data):
     worksheet['A9'] = f"철수: {event_data.get('teardown', '')}"
     
     worksheet['A11'] = "예산 정보"
-    worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}원"
-    worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}원"
+    worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}만원"
+    worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}만원"
 
     # 스타일 적용
     title_font = Font(bold=True, size=14)
@@ -357,14 +368,19 @@ def generate_category_excel(category, component, filename):
             
             # 예산 정보 추가
             worksheet['A11'] = "예산 정보"
-            worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}원"
-            worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}원"
+            worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}만원"
+            worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}만원"
             
             # 발주요청서 정보 추가
             worksheet['A15'] = "발주요청서"
             worksheet['A16'] = f"카테고리: {category}"
             worksheet['A17'] = f"진행 상황: {component.get('status', '')}"
-            worksheet['A18'] = f"예산: {component.get('budget', 0)}원"
+            worksheet['A18'] = f"예산: {component.get('budget', 0)}만원"
+
+                # 선호 업체 정보 추가
+            worksheet['A19'] = f"선호 업체 여부: {'예' if component.get('preferred_vendor', False) else '아니오'}"
+            if component.get('preferred_vendor', False):
+                worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
         
             # 스타일 적용
             title_font = Font(bold=True, size=14)
