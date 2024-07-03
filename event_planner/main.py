@@ -135,17 +135,20 @@ def add_manager_name_column() -> None:
         except sqlite3.OperationalError as e:
             st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
 
+# 사용자 추가 함수
 def add_user(username: str, name: str, password: str, email: str) -> None:
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     with db_pool.get_connection() as conn:
         conn.execute("INSERT INTO users (username, name, password, email) VALUES (?, ?, ?, ?)",
                      (username, name, hashed_password, email))
 
+# 사용자 가져오기 함수
 def get_users() -> List[Dict[str, Any]]:
     with db_pool.get_connection() as conn:
         users = conn.execute("SELECT username, name, password FROM users").fetchall()
     return [dict(user) for user in users]
 
+# 초기화 함수
 def init_app() -> None:
     if 'step' not in st.session_state:
         st.session_state.step = 0
@@ -159,40 +162,37 @@ def init_app() -> None:
     add_contract_type_column()
     add_manager_name_column()
 
+# 옵션 메뉴 렌더링 함수
 def render_option_menu(title: str, options: List[str], icons: List[str], default_index: int, orientation: str = 'vertical', key: Optional[str] = None) -> str:
     return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation, key=key)
 
+# 과거 이벤트 불러오기 함수
 def load_past_events():
     conn = get_db_connection()
     if conn:
         try:
-            events = conn.execute("SELECT id, event_name, client_name, manager_name FROM events").fetchall()
+            events = conn.execute("SELECT id, event_name, client_name, contract_amount FROM events").fetchall()
             if events:
                 st.subheader("저장된 프로젝트 목록")
                 for event in events:
-                    col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 1, 1])
+                    col1, col2, col3, col4 = st.columns([3, 3, 2, 2])
                     with col1:
                         st.write(event['event_name'])
                     with col2:
                         st.write(event['client_name'])
                     with col3:
-                        st.write(event['manager_name'])
+                        st.write(event['contract_amount'])
                     with col4:
                         if st.button("수정", key=f"edit_{event['id']}"):
-                            if check_password(event['id']):
-                                load_event_data(event['id'])
-                                st.session_state.current_event = event['id']
-                                st.experimental_rerun()
-                    with col5:
-                        if st.button("삭제", key=f"delete_{event['id']}"):
-                            if check_password(event['id']):
-                                delete_event(event['id'])
-                                st.experimental_rerun()
+                            st.session_state.current_event = event['id']
+                            st.session_state.auth_required = True
+                            st.experimental_rerun()
             else:
                 st.info("저장된 프로젝트가 없습니다.")
         finally:
             conn.close()
 
+# 이벤트 암호 확인 함수
 def check_password(event_id: int) -> bool:
     try:
         conn = get_db_connection()
@@ -213,7 +213,7 @@ def check_password(event_id: int) -> bool:
             conn.close()
     return False
 
-
+# 새로운 이벤트 생성 함수
 def create_new_event():
     st.session_state.event_data = {}
     st.session_state.current_event = None
@@ -232,6 +232,7 @@ def create_new_event():
                 st.success("새 용역이 생성되었습니다. 이제 정보를 입력해주세요.")
                 st.experimental_rerun()
 
+# 새로운 이벤트 저장 함수
 def save_new_event(event_name: str, password: str) -> None:
     conn = get_db_connection()
     if conn:
@@ -242,8 +243,8 @@ def save_new_event(event_name: str, password: str) -> None:
         finally:
             conn.close()
 
+# 이벤트 데이터 저장 함수
 def save_event_data(event_data: Dict[str, Any]) -> None:
-    """이벤트 데이터를 데이터베이스에 저장합니다."""
     try:
         with db_pool.get_connection() as conn:
             conn.execute(f'''UPDATE events SET 
@@ -259,6 +260,7 @@ def save_event_data(event_data: Dict[str, Any]) -> None:
         logging.error(error_msg)
         st.error(error_msg)
 
+# 이벤트 삭제 함수
 def delete_event(event_id: int) -> None:
     conn = get_db_connection()
     if conn:
@@ -271,6 +273,7 @@ def delete_event(event_id: int) -> None:
         finally:
             conn.close()
 
+# 이벤트 데이터 불러오기 함수
 def load_event_data(event_id: int) -> None:
     conn = get_db_connection()
     if conn:
@@ -282,6 +285,7 @@ def load_event_data(event_id: int) -> None:
         finally:
             conn.close()
 
+# 기본 정보 입력 함수
 def basic_info() -> None:
     event_data = st.session_state.event_data
     st.header("기본 정보")
@@ -349,6 +353,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['setup_start'] = st.text_input("셋업 시작", value=event_data.get('setup_start', ''), key="setup_start")
     event_data['teardown'] = st.text_input("철수", value=event_data.get('teardown', ''), key="teardown")
 
+# 장소 정보 입력 함수
 def venue_info() -> None:
     event_data = st.session_state.event_data
     st.header("장소 정보")
@@ -359,6 +364,7 @@ def venue_info() -> None:
     event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
     event_data['facilities'] = st.text_area("시설", value=event_data.get('facilities', ''), key="facilities")
 
+# 용역 구성 요소 입력 함수
 def service_components() -> None:
     event_data = st.session_state.event_data
     st.header("용역 구성 요소")
@@ -579,9 +585,10 @@ def admin_page():
     new_username = st.text_input("사용자명")
     new_name = st.text_input("이름")
     new_password = st.text_input("비밀번호", type="password")
+    new_email = st.text_input("이메일")
     if st.button("사용자 추가"):
         try:
-            add_user(new_username, new_name, new_password)
+            add_user(new_username, new_name, new_password, new_email)
             st.success("사용자가 추가되었습니다.")
         except sqlite3.IntegrityError:
             st.error("이미 존재하는 사용자명입니다.")
@@ -634,7 +641,7 @@ def display_event_info():
     with col3:
         if st.session_state.step < 3 and st.button("다음 단계로"):
             st.session_state.step = min(st.session_state.step + 1, 3)
-            
+
 def register_user():
     st.subheader("회원가입")
     new_username = st.text_input("사용자명")
@@ -659,46 +666,51 @@ def register_user():
 
 def main():
     st.title("이벤트 플래너")
-    init_app()
+    init_db()
 
-    users = get_users()
-    credentials = {"usernames": {}}
-    for user in users:
-        credentials["usernames"][user["username"]] = {
-            "name": user["name"],
-            "password": user["password"]
-        }
+    if 'auth_required' not in st.session_state:
+        st.session_state.auth_required = False
+    if 'current_event' not in st.session_state:
+        st.session_state.current_event = None
+    if 'step' not in st.session_state:
+        st.session_state.step = 0
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+    if 'event_data' not in st.session_state:
+        st.session_state.event_data = {}
 
-    authenticator = stauth.Authenticate(
-        credentials,
-        "event_planner",
-        "abcdef",
-        cookie_expiry_days=30
-    )
+    if not st.session_state.auth_required:
+        load_past_events()
+    else:
+        st.header("관리자 로그인")
+        users = get_users()
+        credentials = {"usernames": {}}
+        for user in users:
+            credentials["usernames"][user["username"]] = {
+                "name": user["name"],
+                "password": user["password"]
+            }
 
-    auth_option = st.radio("선택하세요:", ["로그인", "회원가입"])
+        authenticator = stauth.Authenticate(
+            credentials,
+            "event_planner",
+            "abcdef",
+            cookie_expiry_days=30
+        )
 
-    if auth_option == "로그인":
         name, authentication_status, username = authenticator.login("로그인", "main")
 
         if authentication_status:
             authenticator.logout("로그아웃", "main")
             st.write(f"환영합니다 *{name}*")
-            
-            if username == "admin":  # 관리자 계정일 경우
-                menu = st.sidebar.selectbox("메뉴", ["이벤트 관리", "사용자 관리"])
-                if menu == "이벤트 관리":
-                    event_management()
-                elif menu == "사용자 관리":
-                    admin_page()
-            else:
-                st.error("관리자 전용 페이지입니다.")
+            st.session_state.authenticated = True
+            st.session_state.auth_required = False
+            load_event_data(st.session_state.current_event)
+            display_event_info()
         elif authentication_status == False:
             st.error("사용자명/비밀번호가 일치하지 않습니다.")
         elif authentication_status == None:
             st.warning("사용자명과 비밀번호를 입력해주세요.")
-    else:
-        st.warning("회원가입은 관리자에게 문의하세요.")
 
 if __name__ == "__main__":
     main()
