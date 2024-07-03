@@ -604,7 +604,6 @@ def save_new_event(event_name, password):
             conn.close()
 
 def main():
-    main_page()
     st.title("이벤트 플래너")
     init_app()
     
