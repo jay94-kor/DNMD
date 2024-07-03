@@ -216,7 +216,15 @@ def service_components():
             "하드웨어": ["노트북 렌탈", "태블릿 렌탈", "프린터 렌탈"]
         }
 
-        component['items'] = st.multiselect(f"{category} 항목 선택", item_options.get(category, []), default=component.get('items', []))
+        # 기존 선택 항목 중 현재 옵션에 없는 항목 제거
+        existing_items = component.get('items', [])
+        valid_items = [item for item in existing_items if item in item_options.get(category, [])]
+
+        component['items'] = st.multiselect(
+            f"{category} 항목 선택",
+            item_options.get(category, []),
+            default=valid_items
+        )
 
         for item in component['items']:
             if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
