@@ -5,3 +5,4 @@ streamlit-option-menu==0.3.5
 numpy==1.26.4
 python-dateutil==2.8.2
 bcrypt
+streamlit-authenticator==0.2.3

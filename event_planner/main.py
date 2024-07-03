@@ -11,6 +11,7 @@ from typing import Dict, Any, List, Optional
 import bcrypt
 from contextlib import contextmanager
 import logging
+import streamlit_authenticator as stauth
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
@@ -142,6 +143,35 @@ def init_app() -> None:
 
 def render_option_menu(title: str, options: List[str], icons: List[str], default_index: int, orientation: str = 'vertical', key: Optional[str] = None) -> str:
     return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation, key=key)
+
+def load_past_events():
+    conn = get_db_connection()
+    if conn:
+        try:
+            events = conn.execute("SELECT id, event_name, client_name, manager_name FROM events").fetchall()
+            if events:
+                st.subheader("저장된 프로젝트 목록")
+                for event in events:
+                    col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 1, 1])
+                    with col1:
+                        st.write(event['event_name'])
+                    with col2:
+                        st.write(event['client_name'])
+                    with col3:
+                        st.write(event['manager_name'])
+                    with col4:
+                        if st.button("수정", key=f"edit_{event['id']}"):
+                            load_event_data(event['id'])
+                            st.session_state.current_event = event['id']
+                            st.experimental_rerun()
+                    with col5:
+                        if st.button("삭제", key=f"delete_{event['id']}"):
+                            delete_event(event['id'])
+                            st.experimental_rerun()
+            else:
+                st.info("저장된 프로젝트가 없습니다.")
+        finally:
+            conn.close()
 
 def main_page():
     st.title("이벤트 플래너")
@@ -529,38 +559,6 @@ def save_event_data(event_data):
         logging.error(error_msg)
         st.error(error_msg)
 
-def load_past_events():
-    conn = get_db_connection()
-    if conn:
-        try:
-            events = conn.execute("SELECT id, event_name, client_name, manager_name FROM events").fetchall()
-            if events:
-                st.subheader("저장된 프로젝트 목록")
-                for event in events:
-                    col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 1, 1])
-                    with col1:
-                        st.write(event['event_name'])
-                    with col2:
-                        st.write(event['client_name'])
-                    with col3:
-                        st.write(event['manager_name'])
-                    with col4:
-                        if st.button("수정", key=f"edit_{event['id']}"):
-                            if check_password(event['id']):
-                                load_event_data(event['id'])
-                                st.session_state.current_event = event['id']
-                                st.session_state.authenticated = True
-                                st.experimental_rerun()
-                    with col5:
-                        if st.button("삭제", key=f"delete_{event['id']}"):
-                            if check_password(event['id']):
-                                delete_event(event['id'])
-                                st.experimental_rerun()
-            else:
-                st.info("저장된 프로젝트가 없습니다.")
-        finally:
-            conn.close()
-
 def delete_event(event_id):
     conn = get_db_connection()
     if conn:
@@ -623,16 +621,36 @@ def save_new_event(event_name, password):
 def main():
     st.title("이벤트 플래너")
     init_app()
-    
-    menu = st.radio("선택하세요:", ["과거 기록 불러오기", "새로 만들기"])
 
-    if menu == "과거 기록 불러오기":
-        load_past_events()
-    elif menu == "새로 만들기":
-        create_new_event()
+    # 사용자 인증 설정
+    names = ["관리자"]
+    usernames = ["admin"]
+    passwords = ["admin123"]  # 실제 사용 시 더 강력한 비밀번호를 사용하세요
 
-    if st.session_state.current_event is not None:
-        display_event_info()
+    hashed_passwords = stauth.Hasher(passwords).generate()
+
+    authenticator = stauth.Authenticate(names, usernames, hashed_passwords,
+        "event_planner", "abcdef", cookie_expiry_days=30)
+
+    name, authentication_status, username = authenticator.login("로그인", "main")
+
+    if authentication_status:
+        authenticator.logout("로그아웃", "main")
+        st.write(f"환영합니다 *{name}*")
+        
+        menu = st.radio("선택하세요:", ["과거 기록 불러오기", "새로 만들기"])
+
+        if menu == "과거 기록 불러오기":
+            load_past_events()
+        elif menu == "새로 만들기":
+            create_new_event()
+
+        if st.session_state.current_event is not None:
+            display_event_info()
+    elif authentication_status == False:
+        st.error("사용자명/비밀번호가 incorrect입니다")
+    elif authentication_status == None:
+        st.warning("사용자명과 비밀번호를 입력해주세요")
 
 def display_event_info():
     st.title("이벤트 기획 정의서")
