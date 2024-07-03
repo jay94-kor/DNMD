@@ -198,6 +198,9 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
     categories = list(item_options['CATEGORIES'].keys())
     default_categories = event_data.get('selected_categories', [])
 
+    # default_categories가 categories에 포함되는지 확인
+    default_categories = [cat for cat in default_categories if cat in categories]
+
     if event_data.get('event_type') == "영상 제작":
         if "미디어" not in default_categories:
             default_categories.append("미디어")
