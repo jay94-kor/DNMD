@@ -196,7 +196,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     )
     
     total_amount = event_data['contract_amount'] + event_data.get('additional_amount', 0)
-    expected_profit = original_amount * (event_data['expected_profit_percentage'] / 100)
+    expected_profit = round(original_amount * (event_data['expected_profit_percentage'] / 100))
     
     event_data['expected_profit'] = expected_profit
     
