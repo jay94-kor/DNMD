@@ -109,10 +109,10 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
         default_index=0,
         orientation="horizontal",
         styles={
-            "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
+            "container": {"padding": "0!important", "background-color": "#e0f7fa"},  # 연한 푸른색 배경
             "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
-            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},  # 연한 빨간색 호버, 토마토 색상 아이콘
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#b2ebf2", "--icon-color": "#ff6347"},  # 연한 푸른색 호버, 토마토 색상 아이콘
+            "nav-link-selected": {"background-color": "#00796b", "color": "white", "--icon-color": "white"},  # 진한 푸른색 배경, 흰색 글자, 흰색 아이콘
         },
         key=key
     )
@@ -138,10 +138,10 @@ def display_event_info():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#ffe6e6"},  # 연한 빨간색 배경
+            "container": {"padding": "0!important", "background-color": "#e0f7fa"},  # 연한 푸른색 배경
             "icon": {"color": "#ff6347", "font-size": "25px"},  # 토마토 색상 아이콘
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},  # 연한 빨간색 호버, 토마토 색상 아이콘
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#b2ebf2", "--icon-color": "#ff6347"},  # 연한 푸른색 호버, 토마토 색상 아이콘
+            "nav-link-selected": {"background-color": "#00796b", "color": "white", "--icon-color": "white"},  # 진한 푸른색 배경, 흰색 글자, 흰색 아이콘
         },
     )
     
