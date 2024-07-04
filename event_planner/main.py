@@ -101,81 +101,30 @@ def init_db() -> None:
                              contract_amount INTEGER,
                              expected_profit INTEGER,
                              components TEXT,
-                             password TEXT)''')
+                             password_hash TEXT)''')
             
-            conn.execute('''CREATE TABLE IF NOT EXISTS users
-                            (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                             username TEXT UNIQUE,
-                             name TEXT,
-                             password TEXT,
-                             email TEXT UNIQUE,
-                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+            try:
+                conn.execute('''ALTER TABLE events ADD COLUMN password_hash TEXT''')
+            except sqlite3.OperationalError:
+                pass
 
-def add_contract_type_column() -> None:
-    with db_pool.get_connection() as conn:
-        try:
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA table_info(events)")
-            columns = [column[1] for column in cursor.fetchall()]
-            if 'contract_type' not in columns:
-                conn.execute('''ALTER TABLE events ADD COLUMN contract_type TEXT''')
-                st.success("contract_type 열이 성공적으로 추가되었습니다.")
-        except sqlite3.OperationalError as e:
-            st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
-
-def add_manager_name_column() -> None:
-    with db_pool.get_connection() as conn:
-        try:
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA table_info(events)")
-            columns = [column[1] for column in cursor.fetchall()]
-            if 'manager_name' not in columns:
-                conn.execute('''ALTER TABLE events ADD COLUMN manager_name TEXT''')
-                st.success("manager_name 열이 성공적으로 추가되었습니다.")
-        except sqlite3.OperationalError as e:
-            st.error(f"데이터베이스 수정 중 오류 발생: {str(e)}")
-
-# 사용자 추가 함수
-def add_user(username: str, name: str, password: str, email: str) -> None:
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    with db_pool.get_connection() as conn:
-        conn.execute("INSERT INTO users (username, name, password, email) VALUES (?, ?, ?, ?)",
-                     (username, name, hashed_password, email))
-
-# 사용자 가져오기 함수
-def get_users() -> List[Dict[str, Any]]:
-    with db_pool.get_connection() as conn:
-        users = conn.execute("SELECT username, name, password FROM users").fetchall()
-    return [dict(user) for user in users]
-
-# 초기화 함수
-def init_app() -> None:
-    if 'step' not in st.session_state:
-        st.session_state.step = 0
-    if 'event_data' not in st.session_state:
-        st.session_state.event_data = {}
-    if 'authenticated' not in st.session_state:
-        st.session_state.authenticated = False
-    if 'current_event' not in st.session_state:
-        st.session_state.current_event = None
-    init_db()
-    add_contract_type_column()
-    add_manager_name_column()
-
-# 옵션 메뉴 렌더링 함수
-def render_option_menu(title: str, options: List[str], icons: List[str], default_index: int, orientation: str = 'vertical', key: Optional[str] = None) -> str:
-    return option_menu(title, options, icons=icons, menu_icon="list", default_index=default_index, orientation=orientation, key=key)
-
-# 과거 이벤트 불러오기 함수
 def load_past_events():
     conn = get_db_connection()
     if conn:
         try:
             events = conn.execute("SELECT id, event_name, client_name, contract_amount FROM events").fetchall()
-            if events:
+            
+            col1, col2 = st.columns([3, 1])
+            with col1:
                 st.subheader("저장된 프로젝트 목록")
+            with col2:
+                if st.button("새로 만들기", key="create_new_event"):
+                    st.session_state.current_event = None
+                    st.experimental_rerun()
+            
+            if events:
                 for event in events:
-                    col1, col2, col3, col4 = st.columns([3, 3, 2, 2])
+                    col1, col2, col3, col4, col5 = st.columns([3, 3, 2, 1, 1])
                     with col1:
                         st.write(event['event_name'])
                     with col2:
@@ -184,62 +133,20 @@ def load_past_events():
                         st.write(event['contract_amount'])
                     with col4:
                         if st.button("수정", key=f"edit_{event['id']}"):
-                            st.session_state.current_event = event['id']
-                            st.session_state.auth_required = True
-                            st.experimental_rerun()
+                            if st.session_state.is_admin:
+                                st.session_state.current_event = event['id']
+                                st.experimental_rerun()
+                            else:
+                                show_password_prompt(event['id'], "edit")
+                    with col5:
+                        if st.button("삭제", key=f"delete_{event['id']}"):
+                            if st.session_state.is_admin:
+                                delete_event(event['id'])
+                                st.experimental_rerun()
+                            else:
+                                show_password_prompt(event['id'], "delete")
             else:
                 st.info("저장된 프로젝트가 없습니다.")
-        finally:
-            conn.close()
-
-# 이벤트 암호 확인 함수
-def check_password(event_id: int) -> bool:
-    try:
-        conn = get_db_connection()
-        if conn:
-            stored_password = conn.execute("SELECT password FROM events WHERE id = ?", (event_id,)).fetchone()['password']
-            input_password = st.text_input("비밀번호를 입력하세요:", type="password", key=f"password_{event_id}")
-            if input_password and st.button("확인", key=f"confirm_{event_id}"):
-                if bcrypt.checkpw(input_password.encode('utf-8'), stored_password):
-                    st.success("비밀번호가 일치합니다.")
-                    return True
-                else:
-                    st.error("비밀번호가 일치하지 않습니다.")
-    except Exception as e:
-        logging.error(f"Error checking password for event {event_id}: {e}")
-        st.error(f"비밀번호 확인 중 오류가 발생했습니다: {str(e)}")
-    finally:
-        if conn:
-            conn.close()
-    return False
-
-# 새로운 이벤트 생성 함수
-def create_new_event():
-    st.session_state.event_data = {}
-    st.session_state.current_event = None
-    event_name = st.text_input("새 용역명을 입력하세요:")
-    password = st.text_input("비밀번호를 설정하세요:", type="password")
-    confirm_password = st.text_input("비밀번호 확인:", type="password")
-    
-    if event_name and password and confirm_password:
-        if len(password) < 8:
-            st.warning("비밀번호는 최소 8자리여야 합니다.")
-        elif password != confirm_password:
-            st.warning("비밀번호가 일치하지 않습니다.")
-        else:
-            if st.button("생성"):
-                save_new_event(event_name, password)
-                st.success("새 용역이 생성되었습니다. 이제 정보를 입력해주세요.")
-                st.experimental_rerun()
-
-# 새로운 이벤트 저장 함수
-def save_new_event(event_name: str, password: str) -> None:
-    conn = get_db_connection()
-    if conn:
-        try:
-            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            conn.execute("INSERT INTO events (event_name, password) VALUES (?, ?)", (event_name, hashed_password))
-            conn.commit()
         finally:
             conn.close()
 
