@@ -9,7 +9,6 @@ import os
 from typing import Dict, Any, List
 import logging
 import re
-import emoji
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
@@ -142,7 +141,7 @@ def display_event_info():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 연한 파란색 배경
+            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 연한 파란색 ���경
             "icon": {"color": "darkblue", "font-size": "25px"}, 
             "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb"},
             "nav-link-selected": {"background-color": "#1976d2"},  # 진한 파란색
@@ -178,7 +177,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     )
 
     event_data['vat_included'] = render_option_menu(
-        "부가세 포함 ���부",
+        "부가세 포함 부",
         config['VAT_OPTIONS'],
         "vat_included"
     ) == config['VAT_OPTIONS'][0]
@@ -295,14 +294,11 @@ def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
     
     def format_region(region: str) -> str:
         region_emojis = {
-            "서울": ":seoul_tower:", "부산": ":busan:", "인천": ":incheon:", 
-            "대구": ":daegu:", "대전": ":daejeon:", "광주": ":gwangju:", 
-            "울산": ":ulsan:", "세종": ":sejong:", "경기도": ":gyeonggi:", 
-            "강원도": ":gangwon:", "충청북도": ":chungbuk:", "충청남도": ":chungnam:", 
-            "전라북도": ":jeonbuk:", "전라남도": ":jeonnam:", "경상북도": ":gyeongbuk:", 
-            "경상남도": ":gyeongnam:", "제주도": ":jeju:"
+            "서울": "🗼", "부산": "🌉", "인천": "🛳️", "대구": "🌆", "대전": "🏙️", "광주": "🏞️", 
+            "울산": "🏭", "세종": "🏛️", "경기도": "🏘️", "강원도": "⛰️", "충청북도": "🌳", "충청남도": "🌊", 
+            "전라북도": "🍚", "전라남도": "🌴", "경상북도": "🍎", "경상남도": "🐘", "제주도": "🍊"
         }
-        return emoji.emojize(f"{region_emojis.get(region, ':round_pushpin:')} {region}")
+        return f"{region_emojis.get(region, '📍')} {region}"
     
     event_data['desired_region'] = st.selectbox(
         "희망하는 지역",
@@ -353,7 +349,7 @@ def handle_venue_facilities(event_data: Dict[str, Any]) -> None:
             event_data['other_facilities'] = st.text_input("기타 시설 입력", key="other_facility_input")
 
 def handle_venue_budget(event_data: Dict[str, Any]) -> None:
-    event_data['venue_budget'] = st.number_input("장소 대관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
+    event_data['venue_budget'] = st.number_input("장소 ���관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
 
 def service_components() -> None:
     event_data = st.session_state.event_data
@@ -459,7 +455,7 @@ def generate_summary_excel() -> None:
         st.success(f"엑셀 정의서가 성공적으로 생성되었습니다: {summary_filename}")
         
         with open(summary_filename, "rb") as file:
-            st.download_button(label="전체 행사 요약 정의서 다운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            st.download_button(label="전체 행사 요약 정의서 ��운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         
         for category, component in event_data.get('components', {}).items():
             category_filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
