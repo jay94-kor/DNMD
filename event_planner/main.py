@@ -89,11 +89,12 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
     manager_contact = st.text_input(
         "담당자 연락처",
         value=event_data.get('manager_contact', ''),
-        help="형식: 010-1234-5678",
+        help="숫자만 입력해주세요 (예: 01012345678)",
         key="manager_contact_basic"
     )
     if manager_contact:
-        event_data['manager_contact'] = format_phone_number(re.sub(r'\D', '', manager_contact))
+        manager_contact = ''.join(filter(str.isdigit, manager_contact))
+        event_data['manager_contact'] = format_phone_number(manager_contact)
     
     st.write(f"입력된 연락처: {event_data.get('manager_contact', '')}")
 
@@ -275,7 +276,7 @@ def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
         return f"{region_emojis.get(region, '📍')} {region}"
     
     event_data['desired_region'] = st.selectbox(
-        "희망하는 지역",
+        "희망���는 지역",
         options=major_regions,
         index=major_regions.index(event_data.get('desired_region', major_regions[0])),
         format_func=format_region,
@@ -381,7 +382,7 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
         key=f"{category}_items"
     )
 
-    component['budget'] = st.number_input(f"{category} 예산 (만원)", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
+    component['budget'] = st.number_input(f"{category} 예산 (원)", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
 
     handle_preferred_vendor(component, category)
 
@@ -467,58 +468,69 @@ def generate_summary_excel() -> None:
         st.exception(e)
 
 def add_basic_info(ws, event_data):
-    ws['A1'] = "기본 정보"
-    ws['A2'] = "용역명"
-    ws['B2'] = event_data.get('event_name', '')
-    ws['A3'] = "고객사"
-    ws['B3'] = event_data.get('client_name', '')
-    ws['A4'] = "담당자명"
-    ws['B4'] = event_data.get('manager_name', '')
-    ws['C4'] = "담당자 직급"
-    ws['D4'] = event_data.get('manager_position', '')
-    ws['A5'] = "담당자 연락처"
-    ws['B5'] = event_data.get('manager_contact', '')
-    ws['A6'] = "행사 유형"
-    ws['B6'] = event_data.get('event_type', '')
-    ws['C6'] = "용역 종류"
-    ws['D6'] = event_data.get('contract_type', '')
-    ws['A7'] = "규모"
-    ws['B7'] = f"{event_data.get('scale', '')}명"
-    ws['A8'] = "시작일"
-    ws['B8'] = str(event_data.get('start_date', ''))
-    ws['C8'] = "종료일"
-    ws['D8'] = str(event_data.get('end_date', ''))
-    ws['A9'] = "셋업 시작"
-    ws['B9'] = event_data.get('setup_start', '')
-    ws['C9'] = "철수"
-    ws['D9'] = event_data.get('teardown', '')
+    ws['A1'] = "용역명"
+    ws['B1'] = event_data.get('event_name', '')
+    ws['C1'] = "고객사"
+    ws['D1'] = event_data.get('client_name', '')
     
-    ws['A11'] = "예산 정보"
-    ws['A12'] = "총 계약 금액"
-    ws['B12'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
-    ws['A13'] = "예상 수익률"
-    ws['B13'] = f"{event_data.get('expected_profit_percentage', 0)}%"
-    ws['A14'] = "예상 수익 금액"
-    ws['B14'] = f"{format_currency(event_data.get('expected_profit', 0))} 원"
+    ws['A2'] = "담당자명"
+    ws['B2'] = event_data.get('manager_name', '')
+    ws['C2'] = "담당자 직급"
+    ws['D2'] = event_data.get('manager_position', '')
+    
+    ws['A3'] = "담당자 연락처"
+    ws['B3'] = event_data.get('manager_contact', '')
+    ws['C3'] = "행사 유형"
+    ws['D3'] = event_data.get('event_type', '')
+    
+    ws['A4'] = "용역 종류"
+    ws['B4'] = event_data.get('contract_type', '')
+    ws['C4'] = "규모"
+    ws['D4'] = f"{event_data.get('scale', '')}명"
+    
+    ws['A5'] = "시작일"
+    ws['B5'] = str(event_data.get('start_date', ''))
+    ws['C5'] = "종료일"
+    ws['D5'] = str(event_data.get('end_date', ''))
+    
+    ws['A6'] = "셋업 시작"
+    ws['B6'] = event_data.get('setup_start', '')
+    ws['C6'] = "철수"
+    ws['D6'] = event_data.get('teardown', '')
+    
+    ws['A7'] = "총 계약 금액"
+    ws['B7'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
+    ws['C7'] = "예상 수익률"
+    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}%"
+    
+    ws['A8'] = "예상 수익 금액"
+    ws['B8'] = f"{format_currency(event_data.get('expected_profit', 0))} 원"
+    ws['C8'] = "장소 확정 상태"
+    ws['D8'] = event_data.get('venue_status', '')
+    
+    # 열 너비 설정
+    for col in ['A', 'B', 'C', 'D']:
+        ws.column_dimensions[col].width = 30
+    
+    # 스타일 적용
+    apply_styles(ws)
 
 def add_venue_info(ws, event_data):
-    ws['A16'] = "장소 정보"
-    ws['A17'] = "장소 확정 상태"
-    ws['B17'] = event_data.get('venue_status', '')
-    ws['A18'] = "장소 유형"
-    ws['B18'] = event_data.get('venue_type', '')
+    ws['A10'] = "장소 유형"
+    ws['B10'] = event_data.get('venue_type', '')
     
     if event_data.get('venue_type') != "온라인":
-        ws['A19'] = "장소명"
-        ws['B19'] = event_data.get('venue_name', '')
-        ws['A20'] = "주소"
-        ws['B20'] = event_data.get('venue_address', '')
-        ws['A21'] = "연락처"
-        ws['B21'] = event_data.get('venue_contact', '')
+        ws['A11'] = "장소명"
+        ws['B11'] = event_data.get('venue_name', '')
+        ws['C11'] = "주소"
+        ws['D11'] = event_data.get('venue_address', '')
+    else:
+        ws['A11'] = "온라인 플랫폼"
+        ws['B11'] = event_data.get('online_platform', '')
 
 def add_service_components(ws, event_data):
-    ws['A22'] = "용역 구성 요소"
-    row = 23
+    ws['A13'] = "용역 구성 요소"
+    row = 14
     for category, component in event_data.get('components', {}).items():
         ws.cell(row=row, column=1, value=category)
         ws.cell(row=row, column=2, value="상태")
@@ -546,117 +558,66 @@ def apply_styles(ws):
     header_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
     border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
     
-    # 모든 셀에 테두리 적용
     for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
         for cell in row:
             cell.border = border
-    
-    # 헤더 스타일 적용
-    headers = ['A1', 'A9', 'A13', 'A18', 'A24']
-    for header in headers:
-        ws[header].fill = header_fill
-        ws[header].font = Font(bold=True)
-    
-    # 열 너비 설정
-    column_widths = {'A': 20, 'B': 30, 'C': 20, 'D': 30, 'E': 40}
-    for col, width in column_widths.items():
-        ws.column_dimensions[col].width = width
+            if cell.column_letter in ['A', 'C']:
+                cell.fill = header_fill
+                cell.font = Font(bold=True)
 
-def format_currency(value):
-    return "{:,.0f}".format(value)
+def format_currency(amount):
+    return "{:,}".format(amount)
 
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "전체 행사 요약"
     
-    # A열 너비 설정
-    ws.column_dimensions['A'].width = 28.17
-    ws.column_dimensions['B'].width = 30
-    ws.column_dimensions['C'].width = 28.17
-    ws.column_dimensions['D'].width = 30
+    # 열 너비 설정
+    for col in ['A', 'B', 'C', 'D']:
+        ws.column_dimensions[col].width = 30
     
     # 기본 정보 추가
-    ws['A1'] = "기본 정보"
-    ws['A2'] = "용역명"
-    ws['B2'] = event_data.get('event_name', '')
-    ws['A3'] = "고객사"
-    ws['B3'] = event_data.get('client_name', '')
-    ws['A4'] = "담당자명"
-    ws['B4'] = event_data.get('manager_name', '')
-    ws['C4'] = "담당자 직급"
-    ws['D4'] = event_data.get('manager_position', '')
-    ws['A5'] = "담당자 연락처"
-    ws['B5'] = event_data.get('manager_contact', '')
-    ws['A6'] = "행사 유형"
-    ws['B6'] = event_data.get('event_type', '')
-    ws['C6'] = "용역 종류"
-    ws['D6'] = event_data.get('contract_type', '')
-    ws['A7'] = "규모"
-    ws['B7'] = f"{event_data.get('scale', '')}명"
+    ws['A1'] = "용역명"
+    ws['B1'] = event_data.get('event_name', '')
+    ws['C1'] = "고객사"
+    ws['D1'] = event_data.get('client_name', '')
     
-    # 날짜 정보 추가
-    ws['A9'] = "날짜 정보"
-    ws['A10'] = "시작일"
-    ws['B10'] = str(event_data.get('start_date', ''))
-    ws['C10'] = "종료일"
-    ws['D10'] = str(event_data.get('end_date', ''))
-    ws['A11'] = "셋업 시작"
-    ws['B11'] = event_data.get('setup_start', '')
-    ws['C11'] = "철수"
-    ws['D11'] = event_data.get('teardown', '')
+    ws['A2'] = "담당자명"
+    ws['B2'] = event_data.get('manager_name', '')
+    ws['C2'] = "담당자 직급"
+    ws['D2'] = event_data.get('manager_position', '')
     
-    # 예산 정보 추가
-    ws['A13'] = "예산 정보"
-    ws['A14'] = "총 계약 금액"
-    ws['B14'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
-    ws['A15'] = "예상 수익률"
-    ws['B15'] = f"{event_data.get('expected_profit_percentage', 0)}%"
-    ws['A16'] = "예상 수익 금액"
-    ws['B16'] = f"{format_currency(event_data.get('expected_profit', 0))} 원"
+    ws['A3'] = "담당자 연락처"
+    ws['B3'] = event_data.get('manager_contact', '')
+    ws['C3'] = "행사 유형"
+    ws['D3'] = event_data.get('event_type', '')
     
-    # 장소 정보 추가
-    ws['A18'] = "장소 정보"
-    ws['A19'] = "장소 확정 상태"
-    ws['B19'] = event_data.get('venue_status', '')
-    ws['A20'] = "장소 유형"
-    ws['B20'] = event_data.get('venue_type', '')
+    ws['A4'] = "용역 종류"
+    ws['B4'] = event_data.get('contract_type', '')
+    ws['C4'] = "규모"
+    ws['D4'] = f"{event_data.get('scale', '')}명"
     
-    if event_data.get('venue_type') != "온라인":
-        ws['A21'] = "장소명"
-        ws['B21'] = event_data.get('venue_name', '')
-        ws['A22'] = "주소"
-        ws['B22'] = event_data.get('venue_address', '')
-    else:
-        ws['A21'] = "온라인 플랫폼"
-        ws['B21'] = event_data.get('online_platform', '')
+    ws['A5'] = "시작일"
+    ws['B5'] = str(event_data.get('start_date', ''))
+    ws['C5'] = "종료일"
+    ws['D5'] = str(event_data.get('end_date', ''))
     
-    # 용역 구성 요소 추가
-    ws['A24'] = "용역 구성 요소"
-    row = 25
-    for category, component in event_data.get('components', {}).items():
-        ws.cell(row=row, column=1, value=category)
-        ws.cell(row=row, column=2, value="상태")
-        ws.cell(row=row, column=3, value=component.get('status', ''))
-        ws.cell(row=row, column=4, value="예산")
-        ws.cell(row=row, column=5, value=f"{format_currency(component.get('budget', 0))} 원")
-        row += 1
-        
-        ws.cell(row=row, column=2, value="세부 항목")
-        ws.cell(row=row, column=3, value="수량")
-        ws.cell(row=row, column=4, value="단위")
-        ws.cell(row=row, column=5, value="세부 사항")
-        row += 1
-        
-        for item in component.get('items', []):
-            ws.cell(row=row, column=2, value=item)
-            ws.cell(row=row, column=3, value=component.get(f'{item}_quantity', 0))
-            ws.cell(row=row, column=4, value=component.get(f'{item}_unit', '개'))
-            ws.cell(row=row, column=5, value=component.get(f'{item}_details', ''))
-            row += 1
-        
-        row += 1  # 카테고리 간 빈 행 추가
-
+    ws['A6'] = "셋업 시작"
+    ws['B6'] = event_data.get('setup_start', '')
+    ws['C6'] = "철수"
+    ws['D6'] = event_data.get('teardown', '')
+    
+    ws['A7'] = "총 계약 금액"
+    ws['B7'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
+    ws['C7'] = "예상 수익률"
+    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}%"
+    
+    ws['A8'] = "예상 수익 금액"
+    ws['B8'] = f"{format_currency(event_data.get('expected_profit', 0))} 원"
+    ws['C8'] = "장소 확정 상태"
+    ws['D8'] = event_data.get('venue_status', '')
+    
     # 스타일 적용
     apply_styles(ws)
     
@@ -667,21 +628,12 @@ def apply_styles(ws):
     header_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
     border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
     
-    # 모든 셀에 테두리 적용
     for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
         for cell in row:
             cell.border = border
-    
-    # 헤더 스타일 적용
-    headers = ['A1', 'A9', 'A13', 'A18', 'A24']
-    for header in headers:
-        ws[header].fill = header_fill
-        ws[header].font = Font(bold=True)
-    
-    # 열 너비 설정
-    column_widths = {'A': 20, 'B': 30, 'C': 20, 'D': 30, 'E': 40}
-    for col, width in column_widths.items():
-        ws.column_dimensions[col].width = width
+            if cell.column_letter in ['A', 'C']:
+                cell.fill = header_fill
+                cell.font = Font(bold=True)
 
 def format_currency(amount):
     return "{:,}".format(amount)
@@ -866,17 +818,43 @@ def check_required_fields(step):
     return len(missing_fields) == 0, missing_fields
 
 def highlight_missing_fields(missing_fields):
+    field_names = {
+        'event_name': '용역명',
+        'client_name': '클라이언트명',
+        'manager_name': '담당자명',
+        'manager_position': '담당자 직급',
+        'manager_contact': '담당자 연락처',
+        'event_type': '용역 유형',
+        'contract_type': '용역 종류',
+        'scale': '예상 참여 관객 수',
+        'contract_amount': '총 계약 금액',
+        'expected_profit_percentage': '예상 수익률',
+        'start_date': '시작일',
+        'end_date': '종료일',
+        'setup_start': '셋업 시작',
+        'teardown': '철수',
+        'venue_status': '장소 확정 상태',
+        'venue_type': '장소 유형',
+        'desired_region': '희망하는 지역',
+        'desired_capacity': '희망하는 수용 인원',
+        'venues': '장소',
+        'selected_categories': '선택된 카테고리',
+        'components': '용역 구성 요소',
+        'status': '상태',
+        'items': '항목'
+    }
+
     for field in missing_fields:
         if '.' in field:
             category, subfield = field.split('.', 1)
-            st.error(f"{category} 카테고리의 {subfield} 항목을 입력해주세요.")
+            st.error(f"{field_names.get(category, category)} 카테고리의 {field_names.get(subfield, subfield)} 항목을 입력해주세요.")
         elif '[' in field:
             base, index = field.split('[')
             index = index.split(']')[0]
             subfield = field.split('.')[-1]
-            st.error(f"{base} 목록의 {int(index)+1}번째 항목의 {subfield}을(를) 입력해주세요.")
+            st.error(f"{field_names.get(base, base)} 목록의 {int(index)+1}번째 항목의 {field_names.get(subfield, subfield)}을(를) 입력해주세요.")
         else:
-            st.error(f"{field} 항목을 입력해주세요.")
+            st.error(f"{field_names.get(field, field)} 항목을 입력해주세요.")
 
 def main():
     st.title("이벤트 플래너")
