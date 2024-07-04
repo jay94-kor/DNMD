@@ -543,17 +543,26 @@ def add_service_components(ws, event_data):
         row += 1  # 카테고리 간 빈 행 추가
 
 def apply_styles(ws):
-    for col in ws.columns:
-        max_length = 0
-        column = col[0].column_letter
-        for cell in col:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(cell.value)
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        ws.column_dimensions[column].width = adjusted_width
+    header_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
+    border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    
+    for row in ws['A1:D20']:
+        for cell in row:
+            cell.border = border
+    
+    for row in ws['A22:E100']:
+        for cell in row:
+            cell.border = border
+    
+    for row in range(1, 23, 2):  # A1, A3, A5, ..., A21
+        cell = ws.cell(row=row, column=1)
+        cell.fill = header_fill
+    
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = 30
+    ws.column_dimensions['C'].width = 20
+    ws.column_dimensions['D'].width = 30
+    ws.column_dimensions['E'].width = 40
 
 def format_currency(value):
     return "{:,.0f}".format(value)
