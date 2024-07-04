@@ -276,7 +276,7 @@ def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
         return f"{region_emojis.get(region, '📍')} {region}"
     
     event_data['desired_region'] = st.selectbox(
-        "희망���는 지역",
+        "희망하는 지역",
         options=major_regions,
         index=major_regions.index(event_data.get('desired_region', major_regions[0])),
         format_func=format_region,
@@ -571,34 +571,29 @@ def create_category_excel(event_data: Dict[str, Any], category: str, component: 
     
     # 발주 요청 항목
     ws['A20'] = "발주 요청 항목"
-    df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
+    ws['A21'] = "카테고리"
+    ws['B21'] = category
+    ws['A22'] = "진행 상황"
+    ws['B22'] = component.get('status', '')
+    ws['A23'] = "예산"
+    ws['B23'] = f"{format_currency(component.get('budget', 0))} 원"
+    
+    # 항목 리스트 추가
+    ws['A25'] = "항목"
+    ws['B25'] = "수량"
+    ws['C25'] = "단위"
+    ws['D25'] = "세부사항"
+    
+    row = 26
     for item in component.get('items', []):
-        quantity = component.get(f'{item}_quantity', 0)
-        unit = component.get(f'{item}_unit', '개')
-        details = component.get(f'{item}_details', '')
-        new_row = pd.DataFrame({
-            '항목': [item],
-            '수량': [quantity],
-            '단위': [unit],
-            '세부사항': [details]
-        })
-        df_component = pd.concat([df_component, new_row], ignore_index=True)
-    
-    # 데이터프레임이 비어있는 경우 빈 행 추가
-    if df_component.empty:
-        df_component = pd.DataFrame({
-            '항목': ['항목 없음'],
-            '수량': [0],
-            '단위': ['-'],
-            '세부사항': ['-']
-        })
-    
-    for r, row in enumerate(dataframe_to_rows(df_component, index=False, header=True), 1):
-        for c, value in enumerate(row, 1):
-            ws.cell(row=r+23, column=c, value=value)
+        ws[f'A{row}'] = item
+        ws[f'B{row}'] = component.get(f'{item}_quantity', 0)
+        ws[f'C{row}'] = component.get(f'{item}_unit', '개')
+        ws[f'D{row}'] = component.get(f'{item}_details', '')
+        row += 1
     
     # 스타일 적용
-    apply_styles(ws, max_row=ws.max_row, max_col=4)
+    apply_styles(ws, max_row=row-1, max_col=4)
     
     wb.save(filename)
 
