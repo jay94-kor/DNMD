@@ -80,7 +80,20 @@ def handle_event_type(event_data: Dict[str, Any]) -> None:
 
 def handle_budget_info(event_data: Dict[str, Any]) -> None:
     st.header("예산 정보")
+    
+    contract_status_options = ["확정", "미확정", "추가 예정"]
+    event_data['contract_status'] = st.radio(
+        "계약 금액 상태",
+        contract_status_options,
+        index=contract_status_options.index(event_data.get('contract_status', '확정')),
+        horizontal=True
+    )
+    
     event_data['contract_amount'] = st.number_input("총 계약 금액", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
+    
+    if event_data['contract_status'] == "추가 예정":
+        event_data['additional_amount'] = st.number_input("추가 예정 금액", min_value=0, value=event_data.get('additional_amount', 0), key="additional_amount")
+    
     event_data['expected_profit'] = st.number_input("총 예상 수익", min_value=0, value=event_data.get('expected_profit', 0), key="expected_profit")
 
 def handle_video_production(event_data: Dict[str, Any]) -> None:
@@ -325,7 +338,8 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
     worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
     worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
-    worksheet['A9'] = f"철수: {event_data.get('teardown', '')}"
+    worksheet['A9'] = f"셋업 날짜: {event_data.get('setup_date', '')}"
+    worksheet['A10'] = f"철수: {event_data.get('teardown', '')}"
     
     worksheet['A11'] = "예산 정보"
     worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}만원"
