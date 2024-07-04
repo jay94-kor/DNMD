@@ -9,6 +9,7 @@ import os
 from typing import Dict, Any, List
 import logging
 import re
+import emoji
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
@@ -177,7 +178,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     )
 
     event_data['vat_included'] = render_option_menu(
-        "부가세 포함 여부",
+        "부가세 포함 ���부",
         config['VAT_OPTIONS'],
         "vat_included"
     ) == config['VAT_OPTIONS'][0]
@@ -291,10 +292,24 @@ def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
         "서울", "부산", "인천", "대구", "대전", "광주", "울산", "세종",
         "경기도", "강원도", "충청북도", "충청남도", "전라북도", "전라남도", "경상북도", "경상남도", "제주도"
     ]
-    event_data['desired_region'] = render_option_menu(
+    
+    def format_region(region: str) -> str:
+        region_emojis = {
+            "서울": ":seoul_tower:", "부산": ":busan:", "인천": ":incheon:", 
+            "대구": ":daegu:", "대전": ":daejeon:", "광주": ":gwangju:", 
+            "울산": ":ulsan:", "세종": ":sejong:", "경기도": ":gyeonggi:", 
+            "강원도": ":gangwon:", "충청북도": ":chungbuk:", "충청남도": ":chungnam:", 
+            "전라북도": ":jeonbuk:", "전라남도": ":jeonnam:", "경상북도": ":gyeongbuk:", 
+            "경상남도": ":gyeongnam:", "제주도": ":jeju:"
+        }
+        return emoji.emojize(f"{region_emojis.get(region, ':round_pushpin:')} {region}")
+    
+    event_data['desired_region'] = st.selectbox(
         "희망하는 지역",
-        major_regions,
-        "desired_region"
+        options=major_regions,
+        index=major_regions.index(event_data.get('desired_region', major_regions[0])),
+        format_func=format_region,
+        key="desired_region_selectbox"
     )
 
     event_data['specific_location'] = st.text_input("세부 지역 (선택사항)", value=event_data.get('specific_location', ''), key="specific_location")
