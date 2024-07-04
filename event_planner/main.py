@@ -84,7 +84,7 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
     event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic")
     
-    event_data['manager_position'] = render_button_menu(
+    event_data['manager_position'] = render_option_menu(
         "담당자 직급",
         options=["선임", "책임", "수석"],
         key="manager_position"
@@ -101,21 +101,34 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
     st.write(f"입력된 연락처: {event_data.get('manager_contact', '')}")
 
 def handle_event_type(event_data: Dict[str, Any]) -> None:
-    default_index = event_options.EVENT_TYPES.index(event_data.get('event_type', event_options.EVENT_TYPES[0]))
-    event_data['event_type'] = render_button_menu("용역 유형", event_options.EVENT_TYPES, "event_type")
-    event_data['contract_type'] = render_button_menu("용역 종류", event_options.CONTRACT_TYPES, "contract_type")
+    event_data['event_type'] = render_option_menu(
+        "용역 유형",
+        event_options.EVENT_TYPES,
+        [event_options.CATEGORY_ICONS.get(event_type, "🔹") for event_type in event_options.EVENT_TYPES],
+        0,
+        "horizontal",
+        "event_type"
+    )
+    event_data['contract_type'] = render_option_menu(
+        "용역 종류",
+        event_options.CONTRACT_TYPES,
+        [event_options.CATEGORY_ICONS.get(contract_type, "🔹") for contract_type in event_options.CONTRACT_TYPES],
+        0,
+        "horizontal",
+        "contract_type"
+    )
 
 def handle_budget_info(event_data: Dict[str, Any]) -> None:
     st.header("예산 정보")
     
     default_contract_status_index = config['CONTRACT_STATUS_OPTIONS'].index(event_data.get('contract_status', '확정'))
-    event_data['contract_status'] = render_button_menu(
+    event_data['contract_status'] = render_option_menu(
         "계약 금액 상태",
         config['CONTRACT_STATUS_OPTIONS'],
         "contract_status"
     )
 
-    event_data['vat_included'] = render_button_menu(
+    event_data['vat_included'] = render_option_menu(
         "부가세 포함 여부",
         config['VAT_OPTIONS'],
         "vat_included"
@@ -191,21 +204,21 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', date.today()), key="start_date")
     event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', event_data['start_date']), key="end_date")
 
-    event_data['setup_start'] = render_button_menu("셋업 시작", config['SETUP_OPTIONS'], "setup_start")
+    event_data['setup_start'] = render_option_menu("셋업 시작", config['SETUP_OPTIONS'], "setup_start")
 
     if event_data['setup_start'] == config['SETUP_OPTIONS'][0]:
         event_data['setup_date'] = event_data['start_date'] - timedelta(days=1)
     else:
         event_data['setup_date'] = event_data['start_date']
 
-    event_data['teardown'] = render_button_menu("철수", config['TEARDOWN_OPTIONS'], "teardown")
+    event_data['teardown'] = render_option_menu("철수", config['TEARDOWN_OPTIONS'], "teardown")
 
 def venue_info() -> None:
     event_data = st.session_state.event_data
     st.header("장소 정보")
 
     default_status_index = event_options.STATUS_OPTIONS.index(event_data.get('venue_status', event_options.STATUS_OPTIONS[-1]))
-    event_data['venue_status'] = render_button_menu("장소 확정 상태", event_options.STATUS_OPTIONS, "venue_status")
+    event_data['venue_status'] = render_option_menu("장소 확정 상태", event_options.STATUS_OPTIONS, "venue_status")
 
     if 'venues' not in event_data:
         event_data['venues'] = []
@@ -250,7 +263,7 @@ def venue_info() -> None:
     if default_venue_type not in venue_type_options:
         default_venue_type = '실내'
     default_venue_type_index = venue_type_options.index(default_venue_type)
-    event_data['venue_type'] = render_button_menu("희망하는 장소 유형", venue_type_options, "venue_type")
+    event_data['venue_type'] = render_option_menu("희망하는 장소 유형", venue_type_options, "venue_type")
 
     if event_data['venue_type'] in ["실내", "혼합"]:
         if event_data['venue_status'] != "알 수 없는 상태":
@@ -309,7 +322,7 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
     st.subheader(category)
     component = event_data['components'].get(category, {})
     
-    component['status'] = render_button_menu(
+    component['status'] = render_option_menu(
         f"{category} 진행 상황",
         event_options.STATUS_OPTIONS,
         f"{category}_status"
@@ -335,7 +348,7 @@ def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
     
     if component['preferred_vendor']:
-        component['vendor_reason'] = render_button_menu(
+        component['vendor_reason'] = render_option_menu(
             "선호하는 이유를 선택해주세요:",
             config['VENDOR_REASON_OPTIONS'],
             f"{category}_vendor_reason"
@@ -504,15 +517,15 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
 
-def render_button_menu(label: str, options: List[str], key: str) -> str:
-    st.write(label)
+def render_option_menu(label: str, options: List[str], key: str) -> str:
+    icons = [event_options.CATEGORY_ICONS.get(option, "🔹") for option in options]
     selected = st.session_state.get(key, options[0])
+    st.write(label)
     cols = st.columns(len(options))
     for i, option in enumerate(options):
-        icon = event_options.CATEGORY_ICONS.get(option, "")
-        if cols[i].button(f"{icon} {option}", key=f"{key}_{i}", type="primary" if option == selected else "secondary"):
+        if cols[i].button(f"{icons[i]} {option}", key=f"{key}_{i}", type="primary" if option == selected else "secondary"):
             st.session_state[key] = option
-            return option
+            selected = option
     return selected
 
 def main():
