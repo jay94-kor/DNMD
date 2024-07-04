@@ -822,6 +822,7 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
 def check_required_fields(step):
     event_data = st.session_state.event_data
     required_fields = []
+    missing_fields = []
 
     if step == 0:  # 기본 정보
         required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'scale', 'contract_amount', 'expected_profit_percentage']
@@ -837,23 +838,45 @@ def check_required_fields(step):
             else:
                 required_fields.extend(['venues'])
                 if event_data.get('venues'):
-                    for venue in event_data['venues']:
-                        if not venue.get('name') or not venue.get('address'):
-                            return False
+                    for i, venue in enumerate(event_data['venues']):
+                        if not venue.get('name'):
+                            missing_fields.append(f'venues[{i}].name')
+                        if not venue.get('address'):
+                            missing_fields.append(f'venues[{i}].address')
     elif step == 2:  # 용역 구성 요소
         if not event_data.get('selected_categories'):
-            return False
-        for category in event_data.get('selected_categories', []):
-            if category not in event_data.get('components', {}):
-                return False
-            component = event_data['components'][category]
-            if not component.get('status') or not component.get('items'):
-                return False
-        return True  # 모든 검사를 통과하면 True 반환
+            missing_fields.append('selected_categories')
+        else:
+            for category in event_data.get('selected_categories', []):
+                if category not in event_data.get('components', {}):
+                    missing_fields.append(f'components.{category}')
+                else:
+                    component = event_data['components'][category]
+                    if not component.get('status'):
+                        missing_fields.append(f'components.{category}.status')
+                    if not component.get('items'):
+                        missing_fields.append(f'components.{category}.items')
     else:
-        return True  # 정의서 생성 단계는 모든 필드가 이미 채워져 있어야 함
+        return True, []  # 정의서 생성 단계는 모든 필드가 이미 채워져 있어야 함
 
-    return all(event_data.get(field) for field in required_fields)
+    for field in required_fields:
+        if not event_data.get(field):
+            missing_fields.append(field)
+
+    return len(missing_fields) == 0, missing_fields
+
+def highlight_missing_fields(missing_fields):
+    for field in missing_fields:
+        if '.' in field:
+            category, subfield = field.split('.', 1)
+            st.error(f"{category} 카테고리의 {subfield} 항목을 입력해주세요.")
+        elif '[' in field:
+            base, index = field.split('[')
+            index = index.split(']')[0]
+            subfield = field.split('.')[-1]
+            st.error(f"{base} 목록의 {int(index)+1}번째 항목의 {subfield}을(를) 입력해주세요.")
+        else:
+            st.error(f"{field} 항목을 입력해주세요.")
 
 def main():
     st.title("이벤트 플래너")
@@ -906,11 +929,13 @@ def main():
     with col3:
         if current_step < len(functions) - 1:
             if st.button("다음 단계로"):
-                if check_required_fields(current_step):
+                fields_complete, missing_fields = check_required_fields(current_step)
+                if fields_complete:
                     st.session_state.step += 1
-                    st.rerun()  # 여기를 변경했습니다
+                    st.rerun()
                 else:
-                    st.error("모든 필수 항목을 입력해주요.")
+                    st.error("모든 필수 항목을 입력해주세요.")
+                    highlight_missing_fields(missing_fields)
 
 if __name__ == "__main__":
     main()
