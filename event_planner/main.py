@@ -48,19 +48,23 @@ def basic_info() -> None:
         handle_offline_event(event_data)
 
 def handle_general_info(event_data: Dict[str, Any]) -> None:
-    col1, col2, col3 = st.columns([1, 3, 1])
-    with col1:
-        if st.button("-50", key="decrease_scale"):
-            event_data['scale'] = max(0, event_data.get('scale', 0) - 50)
-    with col2:
-        event_data['scale'] = st.number_input("예상 참여 관객 수", 
-                                              min_value=0, 
-                                              value=event_data.get('scale', 0), 
-                                              step=50,
-                                              key="scale_input_basic")
-    with col3:
-        if st.button("+50", key="increase_scale"):
-            event_data['scale'] = event_data.get('scale', 0) + 50
+    def on_change_scale():
+        current_value = event_data.get('scale', 0)
+        new_value = st.session_state.scale_input_basic
+        if new_value > current_value:
+            event_data['scale'] = current_value + 50
+        elif new_value < current_value:
+            event_data['scale'] = max(0, current_value - 50)
+        st.session_state.scale_input_basic = event_data['scale']
+
+    event_data['scale'] = st.number_input(
+        "예상 참여 관객 수", 
+        min_value=0, 
+        value=event_data.get('scale', 0),
+        step=1,  # 여기서는 1로 설정하지만, 실제로는 on_change에서 50씩 변경됩니다.
+        key="scale_input_basic",
+        on_change=on_change_scale
+    )
 
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
