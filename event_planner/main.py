@@ -119,89 +119,6 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
     )
     return selected
 
-def display_event_info():
-    st.title("이벤트 기획 정의서")
-    
-    functions = {
-        0: basic_info,
-        1: venue_info,
-        2: service_components,
-        3: generate_summary_excel
-    }
-    
-    step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
-    
-    current_step = st.session_state.step
-    selected_step = option_menu(
-        None, 
-        step_names, 
-        icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
-        default_index=current_step, 
-        orientation='horizontal',
-        styles={
-            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 매우 연한 푸른색 배경
-            "icon": {"color": "#1976d2", "font-size": "25px"},  # 진한 푸른색 아이콘
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb", "--icon-color": "#1976d2"},  # 연한 푸른색 호버, 진한 푸른색 아이콘
-            "nav-link-selected": {"background-color": "#2196f3", "color": "white", "--icon-color": "white"},  # 중간 푸른색 배경, 흰색 글자, 흰색 아이콘
-        },
-    )
-    
-    if selected_step != step_names[current_step]:
-        st.session_state.step = step_names.index(selected_step)
-        st.rerun()  # 여기를 변경했습니다
-    
-    functions[current_step]()
-    
-    col1, col2, col3 = st.columns([1, 1, 1])
-    
-    with col1:
-        if current_step > 0:
-            if st.button("이전 단계로"):
-                st.session_state.step -= 1
-                st.rerun()  # 여기를 변경했습니다
-    
-    with col3:
-        if current_step < len(functions) - 1:
-            if st.button("다음 단계로"):
-                if check_required_fields(current_step):
-                    st.session_state.step += 1
-                    st.rerun()  # 여기를 변경했습니다
-                else:
-                    st.error("모든 필수 항목을 입력해주세요.")
-
-def check_required_fields(step):
-    event_data = st.session_state.event_data
-    if step == 0:  # 기본 정보
-        required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'scale', 'contract_amount', 'expected_profit_percentage']
-        if event_data.get('event_type') == "영상 제작":
-            required_fields.extend(['start_date', 'end_date'])
-        elif event_data.get('event_type') == "오프라인 이벤트":
-            required_fields.extend(['start_date', 'end_date', 'setup_start', 'teardown'])
-    elif step == 1:  # 장소 정보
-        if event_data.get('venue_type') != "온라인":
-            required_fields = ['venue_status', 'venue_type']
-            if event_data.get('venue_status') == "알 수 없는 상태":
-                required_fields.extend(['desired_region', 'desired_capacity'])
-            else:
-                required_fields.extend(['venues'])
-                if event_data.get('venues'):
-                    for venue in event_data['venues']:
-                        if not venue.get('name') or not venue.get('address'):
-                            return False
-    elif step == 2:  # 용역 구성 요소
-        if not event_data.get('selected_categories'):
-            return False
-        for category in event_data.get('selected_categories', []):
-            if category not in event_data.get('components', {}):
-                return False
-            component = event_data['components'][category]
-            if not component.get('status') or not component.get('items'):
-                return False
-    else:
-        return True  # 정의서 생성 단계는 모든 필드가 이미 채워져 있어야 함
-
-    return all(event_data.get(field) for field in required_fields)
-
 def handle_event_type(event_data: Dict[str, Any]) -> None:
     event_data['event_type'] = render_option_menu(
         "용역 유형",
@@ -487,7 +404,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
                 "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
                 "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
-                "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
+                "행사 사전 영상", "��케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
     elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
         component[unit_key] = "컷"
@@ -516,7 +433,7 @@ def generate_summary_excel() -> None:
                 st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
         
     except Exception as e:
-        st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
+        st.error(f"엑셀 파일 생성 ��� 오류가 발생했습니다: {str(e)}")
 
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
@@ -637,25 +554,6 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
 
-def render_option_menu(label: str, options: List[str], key: str) -> str:
-    icons = ["🔹" for _ in options]
-    selected = option_menu(
-        None, options,
-        icons=icons,
-        menu_icon="cast",
-        default_index=0,
-        orientation="horizontal",
-        styles={
-            "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
-            "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
-            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},  # 연한 빨간색 호버, 토마토 색상 아이콘
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
-        },
-        key=key
-    )
-    return selected
-
-
 def check_required_fields(step):
     event_data = st.session_state.event_data
     if step == 0:  # 기본 정보
@@ -706,8 +604,6 @@ def main():
         3: generate_summary_excel
     }
 
-    display_event_info()
-    
     step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
     
     current_step = st.session_state.step
@@ -718,10 +614,10 @@ def main():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#ffe6e6"},  # 연한 빨간색 배경
-            "icon": {"color": "#ff6347", "font-size": "25px"},  # 토마토 색상 아이콘
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},  # 연한 빨간색 호버, 토마토 색상 아이콘
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
+            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 매우 연한 푸른색 배경
+            "icon": {"color": "#1976d2", "font-size": "25px"},  # 진한 푸른색 아이콘
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb", "--icon-color": "#1976d2"},  # 연한 푸른색 호버, 진한 푸른색 아이콘
+            "nav-link-selected": {"background-color": "#2196f3", "color": "white", "--icon-color": "white"},  # 중간 푸른색 배경, 흰색 글자, 흰색 아이콘
         },
     )
     
@@ -742,8 +638,11 @@ def main():
     with col3:
         if current_step < len(functions) - 1:
             if st.button("다음 단계로"):
-                st.session_state.step += 1
-                st.rerun()  # 여기를 변경했습니다
+                if check_required_fields(current_step):
+                    st.session_state.step += 1
+                    st.rerun()  # 여기를 변경했습니다
+                else:
+                    st.error("모든 필수 항목을 입력해주세요.")
 
 if __name__ == "__main__":
     main()
