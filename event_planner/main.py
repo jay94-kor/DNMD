@@ -428,7 +428,11 @@ def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
 
     for i, category in enumerate(categories):
         with [col1, col2, col3, col4][i % 4]:
-            if st.checkbox(f"{event_options.CATEGORY_ICONS[category]} {category}", value=category in default_categories, key=f"category_{category}"):
+            if st.checkbox(
+                f"{event_options.CATEGORY_ICONS[category]} {category}",
+                value=category in default_categories,
+                key=f"category_{category}_{i}"  # 여기에 i를 추가하여 고유한 키 생성
+            ):
                 selected_categories.append(category)
 
     return selected_categories
