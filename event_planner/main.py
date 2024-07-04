@@ -463,7 +463,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
                 "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
                 "2D / 모션그래픽 제작", "3D 영상 제작", "사 배경 영상", 
-                "행사 사��� 영상", "스케치 영상 제작", "애니메이션 제작"]:
+                "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
     elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
         component[unit_key] = "컷"
