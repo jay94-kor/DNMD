@@ -571,7 +571,7 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
             "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
             "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
             "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},  # 연한 빨간색 호버, 토마토 색상 아이콘
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 ���경, 흰색 글자, 흰색 아이콘
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
         },
         key=key
     )
@@ -580,6 +580,8 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
 
 def check_required_fields(step):
     event_data = st.session_state.event_data
+    required_fields = []
+
     if step == 0:  # 기본 정보
         required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'scale', 'contract_amount', 'expected_profit_percentage']
         if event_data.get('event_type') == "영상 제작":
@@ -606,6 +608,7 @@ def check_required_fields(step):
             component = event_data['components'][category]
             if not component.get('status') or not component.get('items'):
                 return False
+        return True  # 모든 검사를 통과하면 True 반환
     else:
         return True  # 정의서 생성 단계는 모든 필드가 이미 채워져 있어야 함
 
