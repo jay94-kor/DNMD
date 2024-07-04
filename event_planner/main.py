@@ -192,10 +192,18 @@ def load_past_events():
                         st.write(event['contract_amount'])
                     with col4:
                         if st.button("수정", key=f"edit_{event['id']}"):
-                            show_password_prompt(event['id'], "edit")
+                            if st.session_state.is_admin:
+                                st.session_state.current_event = event['id']
+                                st.experimental_rerun()
+                            else:
+                                show_password_prompt(event['id'], "edit")
                     with col5:
                         if st.button("삭제", key=f"delete_{event['id']}"):
-                            show_password_prompt(event['id'], "delete")
+                            if st.session_state.is_admin:
+                                delete_event(event['id'])
+                                st.experimental_rerun()
+                            else:
+                                show_password_prompt(event['id'], "delete")
             else:
                 st.info("저장된 프로젝트가 없습니다.")
         finally:
@@ -241,7 +249,7 @@ def check_password(event_id: int) -> bool:
             conn.close()
     return False
 
-# 새로운 이벤트 생성 함수
+# 새로운 이벤트 생성 함
 def create_new_event():
     st.session_state.event_data = {}
     st.session_state.current_event = None
@@ -303,7 +311,7 @@ def delete_event(event_id: int) -> None:
 # 이벤트 데이터 불러오기 함수
 def edit_event(event_id):
     load_event_data(event_id)
-    st.session_state.step = 0  # 기본 정보 페이지부터 시작
+    st.session_state.step = 0  # 기본 보 페이지부터 시작
     display_event_info()
 
 def load_event_data(event_id):
@@ -373,7 +381,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     with col1:
         start_date = st.date_input("행사 시작일", value=event_data.get('start_date', date.today()), key="start_date")
     with col2:
-        end_date = st.date_input("행사 종료일", value=event_data.get('end_date', start_date + timedelta(days=1)), key="end_date")
+        end_date = st.date_input("행사 종료���", value=event_data.get('end_date', start_date + timedelta(days=1)), key="end_date")
 
     if start_date > end_date:
         end_date = start_date + timedelta(days=1)
@@ -394,9 +402,9 @@ def venue_info() -> None:
     event_data['venue_type'] = st.text_input("장소 유형", value=event_data.get('venue_type', ''), key="venue_type")
     event_data['address'] = st.text_input("주소", value=event_data.get('address', ''), key="address")
     event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
-    event_data['facilities'] = st.text_area("시설", value=event_data.get('facilities', ''), key="facilities")
+    event_data['facilities'] = st.text_area("시", value=event_data.get('facilities', ''), key="facilities")
 
-# 용역 구성 요소 입력 함수
+# 용역 ��� 요소 입력 함수
 def service_components() -> None:
     event_data = st.session_state.event_data
     st.header("용역 구성 요소")
@@ -454,7 +462,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     
     if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
                 "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
-                "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
+                "2D / 모션그래픽 제작", "3D 영상 제작", "사 배경 영상", 
                 "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
     elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
@@ -471,7 +479,7 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
 
     if event_data.get('event_type') == "영상 제작" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 ���가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
         st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
@@ -483,7 +491,7 @@ def generate_summary_excel() -> None:
     event_data = st.session_state.event_data
     event_name = event_data.get('event_name', '무제')
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    summary_filename = f"이벤트_기획_정의서_{event_name}_{timestamp}.xlsx"
+    summary_filename = f"이트_기획_정의서_{event_name}_{timestamp}.xlsx"
     
     try:
         create_excel_summary(event_data, summary_filename)
@@ -515,7 +523,7 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
 
 def add_basic_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data: Dict[str, Any]) -> None:
     worksheet.insert_rows(0, amount=10)
-    worksheet['A1'] = "기본 정보"
+    worksheet['A1'] = "본 정보"
     worksheet['A2'] = f"용역명: {event_data.get('event_name', '')}"
     worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
     worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
@@ -610,93 +618,43 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
 
-def admin_page():
-    st.title("관리자 페이지")
-    
-    st.header("새 사용자 추가")
-    new_username = st.text_input("사용자명")
-    new_name = st.text_input("이름")
-    new_password = st.text_input("비밀번호", type="password")
-    new_email = st.text_input("이메일")
-    if st.button("사용자 추가"):
-        try:
-            add_user(new_username, new_name, new_password, new_email)
-            st.success("사용자가 추가되었습니다.")
-        except sqlite3.IntegrityError:
-            st.error("이미 존재하는 사용자명입니다.")
-        except Exception as e:
-            st.error(f"사용자 추가 중 오류가 발생했습니다: {str(e)}")
-
-    st.header("기존 사용자 목록")
-    users = get_users()
-    for user in users:
-        st.write(f"사용자명: {user['username']}, 이름: {user['name']}")
-
-def event_management():
-    menu = st.radio("선택하세요:", ["과거 기록 불러오기", "새로 만들기"])
-
-    if menu == "과거 기록 불러오기":
-        load_past_events()
-    elif menu == "새로 만들기":
-        create_new_event()
-
-    if st.session_state.current_event is not None:
-        display_event_info()
-
-def display_event_info():
-    st.title("이벤트 기획 정의서")
-    
-    functions = {
-        0: basic_info,
-        1: venue_info,
-        2: service_components,
-        3: generate_summary_excel
+# 어드민 계정 설정
+admin_credentials = {
+    "usernames": {
+        "dnmd": {
+            "name": "Admin",
+            "password": stauth.Hasher(["dnmd1234"]).generate()[0]
+        }
     }
-    
-    step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
-    
-    col1, col2, col3 = st.columns([2,6,2])
-    with col2:
-        current_step = st.session_state.get('step', 0)
-        selected_step = render_option_menu("단계 선택", step_names, ['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], current_step, orientation='horizontal')
-        st.session_state.step = step_names.index(selected_step)
-    
-    if 0 <= st.session_state.step < len(functions):
-        functions[st.session_state.step]()
-    else:
-        st.error(f"잘못된 단계입니다: {st.session_state.step}")
-    
-    col1, col2, col3 = st.columns([3,4,3])
-    with col1:
-        if st.session_state.step > 0 and st.button("이전 단계로"):
-            st.session_state.step = max(st.session_state.step - 1, 0)
-    with col3:
-        if st.session_state.step < 3 and st.button("다음 단계로"):
-            st.session_state.step = min(st.session_state.step + 1, 3)
+}
 
-def register_user():
-    st.subheader("회원가입")
-    new_username = st.text_input("사용자명")
-    new_name = st.text_input("이름")
-    new_email = st.text_input("이메일")
-    new_password = st.text_input("비밀번호", type="password")
-    confirm_password = st.text_input("비밀번호 확인", type="password")
-
-    if st.button("회원가입"):
-        if new_password != confirm_password:
-            st.error("비밀번호가 일치하지 않습니다.")
-        elif len(new_password) < 8:
-            st.error("비밀번호는 최소 8자 이상이어야 합니다.")
-        else:
-            try:
-                add_user(new_username, new_name, new_password, new_email)
-                st.success("회원가입이 완료되었습니다. 이제 로그인할 수 있습니다.")
-            except sqlite3.IntegrityError:
-                st.error("이미 존재하는 사용자명 또는 이메일입니다.")
-            except Exception as e:
-                st.error(f"회원가입 중 오류가 발생했습니다: {str(e)}")
+authenticator = stauth.Authenticate(
+    admin_credentials,
+    "event_planner",
+    "auth",
+    cookie_expiry_days=30
+)
 
 def main():
+    if st.sidebar.button("이벤트 플래너"):
+        st.session_state.show_password_prompt = False
+        st.session_state.current_event = None
+        st.experimental_rerun()
+
+    name, authentication_status, username = authenticator.login("로그인", "main")
+
+    if authentication_status:
+        st.write(f'환영합니다 *{name}*')
+        st.session_state.is_admin = True
+        authenticator.logout("로그아웃", "main")
+    elif authentication_status == False:
+        st.error('아이디/비밀번호가 올바르지 않습니다')
+    elif authentication_status == None:
+        st.warning('아이디와 비밀번호를 입력해주세요')
+
+    if 'is_admin' not in st.session_state:
+        st.session_state.is_admin = False
+
     st.title("이벤트 플래너")
     init_db()
 
@@ -709,7 +667,7 @@ def main():
     if 'temp_action' not in st.session_state:
         st.session_state.temp_action = None
 
-    if st.session_state.show_password_prompt:
+    if st.session_state.show_password_prompt and not st.session_state.is_admin:
         password = st.text_input("프로젝트 비밀번호를 입력하세요:", type="password")
         if st.button("확인"):
             if check_project_password(st.session_state.temp_event_id, password):
@@ -721,7 +679,13 @@ def main():
                 st.experimental_rerun()
             else:
                 st.error("비밀번호가 올바르지 않습니다.")
-
+    elif st.session_state.is_admin:
+        if st.session_state.temp_action == "edit":
+            st.session_state.current_event = st.session_state.temp_event_id
+        elif st.session_state.temp_action == "delete":
+            delete_event(st.session_state.temp_event_id)
+        st.session_state.show_password_prompt = False
+        st.experimental_rerun()
     else:
         load_past_events()
         if st.session_state.current_event is None:
@@ -729,6 +693,6 @@ def main():
         else:
             edit_event(st.session_state.current_event)
 
+# 나머지 함수들 (create_new_event, edit_event, delete_event 등)은 그대로 유지
 
-if __name__ == "__main__":
-    main()
+
