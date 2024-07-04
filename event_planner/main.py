@@ -27,6 +27,7 @@ class EventOptions:
         self.STATUS_OPTIONS = item_options['STATUS_OPTIONS']
         self.MEDIA_ITEMS = item_options['MEDIA_ITEMS']
         self.CATEGORIES = item_options['CATEGORIES']
+        self.CATEGORY_ICONS = item_options['CATEGORY_ICONS']
 
 # JSON 파일에서 item_options 로드
 with open(JSON_PATH, 'r', encoding='utf-8') as file:
@@ -263,7 +264,7 @@ def service_components() -> None:
     event_data = st.session_state.event_data
     st.header("용역 구성 요소")
 
-    selected_categories = select_categories(event_data)
+    selected_categories = select_categories_with_icons(event_data)
     event_data['selected_categories'] = selected_categories
 
     event_data['components'] = event_data.get('components', {})
@@ -271,6 +272,28 @@ def service_components() -> None:
         handle_category(category, event_data)
 
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
+
+def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
+    categories = list(event_options.CATEGORIES.keys())
+    default_categories = event_data.get('selected_categories', [])
+    default_categories = [cat for cat in default_categories if cat in categories]
+
+    if event_data.get('event_type') == "영상 제작" and "미디어" not in default_categories:
+        default_categories.append("미디어")
+        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+    elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
+        default_categories.append("미디어")
+        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+
+    col1, col2, col3, col4 = st.columns(4)
+    selected_categories = []
+
+    for i, category in enumerate(categories):
+        with [col1, col2, col3, col4][i % 4]:
+            if st.checkbox(f"{event_options.CATEGORY_ICONS[category]} {category}", value=category in default_categories, key=f"category_{category}"):
+                selected_categories.append(category)
+
+    return selected_categories
 
 def handle_category(category: str, event_data: Dict[str, Any]) -> None:
     st.subheader(category)
@@ -338,21 +361,6 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
         component[unit_key] = "개"
     
     component[details_key] = st.text_area(f"{item} 세부사항", value=component.get(details_key, ''), key=details_key)
-
-def select_categories(event_data: Dict[str, Any]) -> List[str]:
-    categories = list(item_options['CATEGORIES'].keys())
-    default_categories = event_data.get('selected_categories', [])
-    default_categories = [cat for cat in default_categories if cat in categories]
-
-    if event_data.get('event_type') == "영상 제작" and "미디어" not in default_categories:
-        default_categories.append("미디어")
-        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
-    elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
-        default_categories.append("미디어")
-        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
-
-    selected_categories = st.multiselect("카테고리 선택", categories, default=default_categories, key="selected_categories")
-    return selected_categories
 
 def generate_summary_excel() -> None:
     event_data = st.session_state.event_data
