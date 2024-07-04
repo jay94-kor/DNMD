@@ -62,33 +62,16 @@ def basic_info() -> None:
         handle_offline_event(event_data)
 
 def handle_general_info(event_data: Dict[str, Any]) -> None:
-    def on_change_scale():
-        try:
-            new_value = int(st.session_state.scale_input_basic)
-            current_value = event_data.get('scale', 0)
-            if new_value > current_value:
-                event_data['scale'] = new_value + 50
-            elif new_value < current_value:
-                event_data['scale'] = max(0, new_value - 50)
-            else:
-                event_data['scale'] = new_value
-            st.session_state.scale_input_basic = event_data['scale']
-        except ValueError:
-            pass  # 숫자가 아닌 입력의 경우 무시
-
     event_data['scale'] = st.number_input(
         "예상 참여 관객 수", 
         min_value=0, 
         value=event_data.get('scale', 0),
-        step=1,  # 1씩 증가/감소 가능하도록 설정
+        step=1,
         format="%d",
-        key="scale_input_basic",
-        on_change=on_change_scale
+        key="scale_input_basic"
     )
 
     st.write(f"현재 예상 참여 관객 수: {event_data['scale']}명")
-    st.write("('+' 키를 누르면 50명 증가, '-' 키를 누르면 50명 감소)")
-
 
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
@@ -146,7 +129,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     
     default_contract_status_index = config['CONTRACT_STATUS_OPTIONS'].index(event_data.get('contract_status', '확정'))
     event_data['contract_status'] = render_option_menu(
-        "계약 금액 상태",
+        "���약 금액 상태",
         config['CONTRACT_STATUS_OPTIONS'],
         "contract_status"
     )
@@ -212,7 +195,7 @@ def handle_video_production(event_data: Dict[str, Any]) -> None:
 
     if start_date > end_date:
         end_date = start_date + timedelta(days=365)
-        st.warning("과업 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
+        st.warning("과업 종료일이 시작일 이전이어서 자동으로 조정되었습니���.")
 
     event_data['start_date'] = start_date
     event_data['end_date'] = end_date
@@ -346,7 +329,7 @@ def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
 
     if event_data.get('event_type') == "영상 제작" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되��습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
         st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
@@ -507,7 +490,7 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
                 details = component.get(f'{item}_details', '')
                 df_component = df_component.append({
                     '항목': item,
-                    '���량': quantity,
+                    '수량': quantity,
                     '단위': unit,
                     '세부사항': details
                 }, ignore_index=True)
@@ -576,7 +559,7 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
             "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
             "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
             "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},  # 연한 빨간색 호버, 토마토 색상 아이콘
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 ���경, 흰색 글자, 흰색 아이콘
         },
         key=key
     )
