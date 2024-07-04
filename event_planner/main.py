@@ -70,7 +70,7 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
                 event_data['scale'] = current_value + 50
             elif new_value < current_value:
                 event_data['scale'] = max(0, current_value - 50)
-            st.session_state.scale_input_basic = str(event_data['scale'])
+            st.session_state.scale_input_basic = event_data['scale']
         except ValueError:
             pass  # 숫자가 아닌 입력의 경우 무시
 
