@@ -203,7 +203,10 @@ def venue_info() -> None:
         event_data['desired_region'] = st.text_input("희망하는 지역", value=event_data.get('desired_region', ''), key="desired_region")
 
     venue_type_options = ["실내", "실외", "혼합", "온라인"]
-    default_venue_type_index = venue_type_options.index(event_data.get('venue_type', '실내'))
+    default_venue_type = event_data.get('venue_type', '실내')
+    if default_venue_type not in venue_type_options:
+        default_venue_type = '실내'
+    default_venue_type_index = venue_type_options.index(default_venue_type)
     event_data['venue_type'] = render_option_menu("희망하는 장소 유형", venue_type_options, ['building', 'tree', 'house', 'laptop'], default_venue_type_index, orientation='horizontal', key="venue_type")
 
     if event_data['venue_type'] in ["실내", "혼합"]:
