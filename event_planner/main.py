@@ -512,7 +512,7 @@ def render_button_menu(label: str, options: List[str], key: str) -> str:
         if cols[i].button(option, key=f"{key}_{i}", type="secondary" if option != selected else "primary"):
             st.session_state[key] = option
             return option
-    return st.session_state[key]
+    return selected
 
 def main():
     st.title("이벤트 플래너")
