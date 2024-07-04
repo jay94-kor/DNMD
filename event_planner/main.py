@@ -202,7 +202,7 @@ def main():
                 st.session_state.show_password_prompt = False
                 st.experimental_rerun()
             else:
-                st.error("비밀번호가 올바르지 않습��다.")
+                st.error("비밀번호가 올바르지 않습니다.")
     elif st.session_state.is_admin:
         if st.session_state.temp_action == "edit":
             st.session_state.current_event = st.session_state.temp_event_id
