@@ -1,0 +1,7 @@
+{
+  "CONTRACT_STATUS_OPTIONS": ["확정", "미확정", "추가 예정"],
+  "VAT_OPTIONS": ["부가세 포함", "부가세 미포함"],
+  "VENDOR_REASON_OPTIONS": ["발주처의 지정", "동일 과업 진행 경험", "퀄리티 만족한 경험"],
+  "SETUP_OPTIONS": ["전날 셋업", "당일 셋업"],
+  "TEARDOWN_OPTIONS": ["당일 철수", "다음날 철수"]
+}
