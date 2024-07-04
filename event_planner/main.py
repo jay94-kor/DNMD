@@ -550,6 +550,10 @@ def display_event_info():
         },
     )
     
+    if selected_step != step_names[current_step]:
+        st.session_state.step = step_names.index(selected_step)
+        st.experimental_rerun()
+    
     functions[current_step]()
     
     col1, col2, col3 = st.columns([1, 1, 1])
