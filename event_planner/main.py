@@ -265,11 +265,47 @@ def venue_info() -> None:
     event_data = st.session_state.event_data
     st.header("장소 정보")
 
-    default_status_index = event_options.STATUS_OPTIONS.index(event_data.get('venue_status', event_options.STATUS_OPTIONS[-1]))
-    event_data['venue_status'] = render_option_menu("장소 확정 상태", event_options.STATUS_OPTIONS, "venue_status")
+    event_data['venue_status'] = render_option_menu(
+        "장소 확정 상태",
+        event_options.STATUS_OPTIONS,
+        "venue_status"
+    )
 
-    if 'venues' not in event_data:
+    venue_type_options = ["실내", "실외", "혼합", "온라인"]
+    event_data['venue_type'] = render_option_menu(
+        "희망하는 장소 유형",
+        venue_type_options,
+        "venue_type"
+    )
+
+    if event_data['venue_type'] == "온라인":
+        st.info("온라인 이벤트는 물리적 장소 정보가 필요하지 않습니다.")
         event_data['venues'] = []
+    elif event_data['venue_status'] == "알 수 없는 상태":
+        handle_unknown_venue_status(event_data)
+    else:
+        handle_known_venue_status(event_data)
+
+def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
+    major_regions = [
+        "서울", "부산", "인천", "대구", "대전", "광주", "울산", "세종",
+        "경기도", "강원도", "충청북도", "충청남도", "전라북도", "전라남도", "경상북도", "경상남도", "제주도"
+    ]
+    event_data['desired_region'] = render_option_menu(
+        "희망하는 지역",
+        major_regions,
+        "desired_region"
+    )
+
+    event_data['specific_location'] = st.text_input("세부 지역 (선택사항)", value=event_data.get('specific_location', ''), key="specific_location")
+    event_data['desired_capacity'] = st.number_input("희망하는 수용 인원", min_value=0, value=int(event_data.get('desired_capacity', 0)), key="desired_capacity")
+
+    handle_venue_facilities(event_data)
+    handle_venue_budget(event_data)
+
+def handle_known_venue_status(event_data: Dict[str, Any]) -> None:
+    if 'venues' not in event_data or not event_data['venues']:
+        event_data['venues'] = [{'name': '', 'address': ''}]
 
     for i, venue in enumerate(event_data['venues']):
         st.subheader(f"장소 {i+1}")
@@ -279,7 +315,7 @@ def venue_info() -> None:
         with col2:
             venue['address'] = st.text_input("주소", value=venue.get('address', ''), key=f"venue_address_{i}")
         
-        if st.button(f"장소 {i+1} 삭제", key=f"delete_venue_{i}"):
+        if i > 0 and st.button(f"장소 {i+1} 삭제", key=f"delete_venue_{i}"):
             event_data['venues'].pop(i)
             st.experimental_rerun()
 
@@ -287,49 +323,22 @@ def venue_info() -> None:
         event_data['venues'].append({'name': '', 'address': ''})
         st.experimental_rerun()
 
-    if event_data['venue_status'] == "알 수 없는 상태":
-        major_regions = [
-            "서울", "부산", "인천", "대구", "대전", "광주", "울산", "세종",
-            "경기도", "강원도", "충청북도", "충청남도", "전라북도", "전라남도", "경상북도", "경상남도", "제주도"
-        ]
-        selected_region = st.selectbox(
-            "희망하는 지역",
-            options=major_regions,
-            index=major_regions.index(event_data.get('desired_region', '서울')) if event_data.get('desired_region') in major_regions else 0,
-            key="desired_region"
-        )
-        event_data['desired_region'] = selected_region
+    handle_venue_facilities(event_data)
+    handle_venue_budget(event_data)
 
-        specific_location = st.text_input("세부 지역 (선택사항)", value=event_data.get('specific_location', ''), key="specific_location")
-        if specific_location:
-            event_data['specific_location'] = specific_location
-
-        event_data['desired_capacity'] = st.number_input("희망하는 수용 인원", min_value=0, value=int(event_data.get('desired_capacity', 0)), key="desired_capacity")
-
-    venue_type_options = ["실내", "실외", "혼합", "온라인"]
-    default_venue_type = event_data.get('venue_type', '실내')
-    if default_venue_type not in venue_type_options:
-        default_venue_type = '실내'
-    default_venue_type_index = venue_type_options.index(default_venue_type)
-    event_data['venue_type'] = render_option_menu("희망하는 장소 유형", venue_type_options, "venue_type")
-
+def handle_venue_facilities(event_data: Dict[str, Any]) -> None:
     if event_data['venue_type'] in ["실내", "혼합"]:
         if event_data['venue_status'] != "알 수 없는 상태":
             event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
 
         facility_options = ["음향 시설", "조명 시설", "LED 시설", "빔프로젝트 시설", "주차", "Wifi", "기타"]
-        selected_facilities = st.multiselect("행사장 자체 보유 시설", facility_options, default=[f for f in event_data.get('facilities', []) if f in facility_options], key="facilities")
+        event_data['facilities'] = st.multiselect("행사장 자체 보유 시설", facility_options, default=event_data.get('facilities', []), key="facilities")
         
-        other_facilities = []
-        if "기타" in selected_facilities:
-            other_facility = st.text_input("기타 시설 입력", key="other_facility_input")
-            if other_facility:
-                other_facilities.append(other_facility)
-        
-        event_data['facilities'] = [f for f in selected_facilities if f != "기타"] + other_facilities
+        if "기타" in event_data['facilities']:
+            event_data['other_facilities'] = st.text_input("기타 시설 입력", key="other_facility_input")
 
-    if event_data['venue_type'] != "온라인":
-        event_data['venue_budget'] = st.number_input("장소 대관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
+def handle_venue_budget(event_data: Dict[str, Any]) -> None:
+    event_data['venue_budget'] = st.number_input("장소 대관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
 
 def service_components() -> None:
     event_data = st.session_state.event_data
