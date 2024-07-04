@@ -147,7 +147,7 @@ def display_event_info():
     
     if selected_step != step_names[current_step]:
         st.session_state.step = step_names.index(selected_step)
-        st.experimental_rerun()
+        st.rerun()
     
     functions[current_step]()
 
@@ -325,11 +325,11 @@ def handle_known_venue_status(event_data: Dict[str, Any]) -> None:
         
         if i > 0 and st.button(f"장소 {i+1} 삭제", key=f"delete_venue_{i}"):
             event_data['venues'].pop(i)
-            st.experimental_rerun()
+            st.rerun()
 
     if st.button("장소 추가"):
         event_data['venues'].append({'name': '', 'address': ''})
-        st.experimental_rerun()
+        st.rerun()
 
     handle_venue_facilities(event_data)
     handle_venue_budget(event_data)
@@ -629,7 +629,7 @@ def display_event_info():
     
     if selected_step != step_names[current_step]:
         st.session_state.step = step_names.index(selected_step)
-        st.experimental_rerun()
+        st.rerun()
     
     functions[current_step]()
     
@@ -639,13 +639,13 @@ def display_event_info():
         if current_step > 0:
             if st.button("이전 단계로"):
                 st.session_state.step -= 1
-                st.experimental_rerun()
+                st.rerun()
     
     with col3:
         if current_step < len(functions) - 1:
             if st.button("다음 단계로"):
                 st.session_state.step += 1
-                st.experimental_rerun()
+                st.rerun()
 
 def main():
     st.title("이벤트 플래너")
@@ -688,7 +688,7 @@ def display_event_info():
     
     if selected_step != step_names[current_step]:
         st.session_state.step = step_names.index(selected_step)
-        st.experimental_rerun()
+        st.rerun()
     
     functions[current_step]()
     
@@ -698,13 +698,13 @@ def display_event_info():
         if current_step > 0:
             if st.button("이전 단계로"):
                 st.session_state.step -= 1
-                st.experimental_rerun()
+                st.rerun()
     
     with col3:
         if current_step < len(functions) - 1:
             if st.button("다음 단계로"):
                 st.session_state.step += 1
-                st.experimental_rerun()
+                st.rerun()
 
 if __name__ == "__main__":
     main()
