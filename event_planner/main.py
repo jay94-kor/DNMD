@@ -5,6 +5,7 @@ import json
 from contextlib import contextmanager
 import logging
 import streamlit_authenticator as stauth
+from typing import Optional
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
@@ -80,48 +81,6 @@ def init_db() -> None:
             except sqlite3.OperationalError:
                 # 컬럼이 이미 존재하는 경우 무시
                 pass
-
-def load_past_events():
-    conn = get_db_connection()
-    if conn:
-        try:
-            events = conn.execute("SELECT id, event_name, client_name, contract_amount FROM events").fetchall()
-            
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.subheader("저장된 프로젝트 목록")
-            with col2:
-                if st.button("새로 만들기", key="create_new_event"):
-                    st.session_state.current_event = None
-                    st.experimental_rerun()
-            
-            if events:
-                for event in events:
-                    col1, col2, col3, col4, col5 = st.columns([3, 3, 2, 1, 1])
-                    with col1:
-                        st.write(event['event_name'])
-                    with col2:
-                        st.write(event['client_name'])
-                    with col3:
-                        st.write(event['contract_amount'])
-                    with col4:
-                        if st.button("수정", key=f"edit_{event['id']}"):
-                            if st.session_state.is_admin:
-                                st.session_state.current_event = event['id']
-                                st.experimental_rerun()
-                            else:
-                                show_password_prompt(event['id'], "edit")
-                    with col5:
-                        if st.button("삭제", key=f"delete_{event['id']}"):
-                            if st.session_state.is_admin:
-                                delete_event(event['id'])
-                                st.experimental_rerun()
-                            else:
-                                show_password_prompt(event['id'], "delete")
-            else:
-                st.info("저장된 프로젝트가 없습니다.")
-        finally:
-            conn.close()
 
 def load_past_events():
     conn = get_db_connection()
@@ -243,7 +202,7 @@ def main():
                 st.session_state.show_password_prompt = False
                 st.experimental_rerun()
             else:
-                st.error("비밀번호가 올바르지 않습니다.")
+                st.error("비밀번호가 올바르지 않습��다.")
     elif st.session_state.is_admin:
         if st.session_state.temp_action == "edit":
             st.session_state.current_event = st.session_state.temp_event_id
