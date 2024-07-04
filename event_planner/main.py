@@ -176,7 +176,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', date.today()), key="start_date")
     event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', event_data['start_date']), key="end_date")
 
-    setup_options = ["전날 셋업", "당일 셋업"]
+    setup_options = ["��날 셋업", "당일 셋업"]
     setup_index = 0 if event_data.get('setup_start') == "전날 셋업" else 1
     event_data['setup_start'] = render_option_menu("셋업 시작", setup_options, ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
 
@@ -363,7 +363,7 @@ def generate_summary_excel() -> None:
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "이벤트 기획 정의서"
+    ws.title = "전체 행사 요약"
     
     # A열 너비 설정
     ws.column_dimensions['A'].width = 28.17
@@ -371,11 +371,12 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     df_full = pd.DataFrame([event_data])
     if 'components' in df_full.columns:
         df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
-    df_full.to_excel(filename, sheet_name='전체 행사 요약', index=False)
     
-    workbook = wb
-    worksheet = workbook['전체 행사 요약']
-    add_basic_info(worksheet, event_data)
+    for r, row in enumerate(df_full.values, start=1):
+        for c, value in enumerate(row, start=1):
+            ws.cell(row=r, column=c, value=value)
+    
+    add_basic_info(ws, event_data)
     
     wb.save(filename)
 
@@ -413,33 +414,25 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
     try:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = f"{category} 발주요청서"
-        
-        # A열 너비 설정
-        ws.column_dimensions['A'].width = 28.17
-        
-        df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
-        for item in component.get('items', []):
-            quantity = component.get(f'{item}_quantity', 0)
-            unit = component.get(f'{item}_unit', '개')
-            details = component.get(f'{item}_details', '')
-            df_component = pd.concat([df_component, pd.DataFrame({
-                '항목': [item],
-                '수량': [quantity],
-                '단위': [unit],
-                '세부사항': [details]
-            })], ignore_index=True)
-        
-        df_component.to_excel(filename, sheet_name=f'{category} 발주요청서', index=False)
-        
-        workbook = wb
-        worksheet = workbook[f'{category} 발주요청서']
-        
-        add_category_info(worksheet, event_data, category, component)
-        
-        wb.save(filename)
+        with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+            df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
+            for item in component.get('items', []):
+                quantity = component.get(f'{item}_quantity', 0)
+                unit = component.get(f'{item}_unit', '개')
+                details = component.get(f'{item}_details', '')
+                df_component = pd.concat([df_component, pd.DataFrame({
+                    '항목': [item],
+                    '수량': [quantity],
+                    '단위': [unit],
+                    '세부사항': [details]
+                })], ignore_index=True)
+            
+            df_component.to_excel(writer, sheet_name=f'{category} 발주요청서', index=False)
+            
+            workbook = writer.book
+            worksheet = workbook[f'{category} 발주요청서']
+            
+            add_category_info(worksheet, event_data, category, component)
         
         st.success(f"엑셀 발주요청서가 성공적으로 생성되었습니다: {filename}")
         
