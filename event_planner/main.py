@@ -89,12 +89,27 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
         horizontal=True
     )
     
-    event_data['contract_amount'] = st.number_input("총 계약 금액", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
+    event_data['contract_amount'] = st.number_input("총 계약 금액 (만원)", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
     
     if event_data['contract_status'] == "추가 예정":
-        event_data['additional_amount'] = st.number_input("추가 예정 금액", min_value=0, value=event_data.get('additional_amount', 0), key="additional_amount")
+        event_data['additional_amount'] = st.number_input("추가 예정 금액 (만원)", min_value=0, value=event_data.get('additional_amount', 0), key="additional_amount")
     
-    event_data['expected_profit'] = st.number_input("총 예상 수익", min_value=0, value=event_data.get('expected_profit', 0), key="expected_profit")
+    event_data['expected_profit_percentage'] = st.number_input(
+        "예상 수익률 (%)", 
+        min_value=0.0, 
+        max_value=100.0, 
+        value=event_data.get('expected_profit_percentage', 0.0),
+        format="%.2f",
+        step=0.01,
+        key="expected_profit_percentage"
+    )
+    
+    total_amount = event_data['contract_amount'] + event_data.get('additional_amount', 0)
+    expected_profit = total_amount * (event_data['expected_profit_percentage'] / 100)
+    
+    event_data['expected_profit'] = expected_profit
+    
+    st.write(f"예상 수익 금액: {expected_profit:.2f} 만원")
 
 def handle_video_production(event_data: Dict[str, Any]) -> None:
     col1, col2 = st.columns(2)
