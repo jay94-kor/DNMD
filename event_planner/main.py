@@ -168,16 +168,12 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
 
     event_data['venue'] = st.text_input("장소", value=event_data.get('venue', ''), key="venue")
     
-    event_data['venue_status'] = st.selectbox(
-        "장소 확정 상태",
-        item_options['STATUS_OPTIONS'],
-        index=item_options['STATUS_OPTIONS'].index(event_data.get('venue_status', '알 수 없는 상태'))
-    )
+    default_status_index = event_options.STATUS_OPTIONS.index(event_data.get('venue_status', event_options.STATUS_OPTIONS[-1]))
+    event_data['venue_status'] = render_option_menu("장소 확정 상태", event_options.STATUS_OPTIONS, ['question-circle', 'check-circle', 'exclamation-circle', 'info-circle'], default_status_index, orientation='horizontal', key="venue_status")
 
     event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', datetime.date.today()), key="start_date")
     event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', datetime.date.today()), key="end_date")
 
-    # 셋업 시작 옵션
     setup_options = ["전날 셋업", "당일 셋업"]
     setup_index = 0 if event_data.get('setup_start') == "전날 셋업" else 1
     event_data['setup_start'] = render_option_menu("셋업 시작", setup_options, ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
@@ -188,7 +184,6 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     else:
         event_data['setup_date'] = event_data['start_date']
 
-    # 철수 옵션
     teardown_options = ["당일 철수", "다음날 철수"]
     teardown_index = 0 if event_data.get('teardown') == "당일 철수" else 1
     event_data['teardown'] = render_option_menu("철수", teardown_options, ['calendar-check', 'calendar-plus'], teardown_index, orientation='horizontal', key="teardown")
@@ -200,11 +195,8 @@ def venue_info() -> None:
     event_data['venue_name'] = st.text_input("장소명", value=event_data.get('venue_name', ''), key="venue_name")
     event_data['venue_type'] = st.text_input("장소 유형", value=event_data.get('venue_type', ''), key="venue_type")
     
-    event_data['venue_status'] = st.selectbox(
-        "장소 확정 상태",
-        ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"],
-        index=["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"].index(event_data.get('venue_status', '알 수 없는 상태'))
-    )
+    default_status_index = event_options.STATUS_OPTIONS.index(event_data.get('venue_status', event_options.STATUS_OPTIONS[-1]))
+    event_data['venue_status'] = render_option_menu("장소 확정 상태", event_options.STATUS_OPTIONS, ['question-circle', 'check-circle', 'exclamation-circle', 'info-circle'], default_status_index, orientation='horizontal', key="venue_status")
     
     event_data['address'] = st.text_input("주소", value=event_data.get('address', ''), key="address")
     event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
@@ -300,7 +292,7 @@ def generate_summary_excel() -> None:
     
     try:
         create_excel_summary(event_data, summary_filename)
-        st.success(f"엑셀 정의서가 성되었습니다: {summary_filename}")
+        st.success(f"엑셀 정의서가 성공적으로 생성되었습니다: {summary_filename}")
         
         with open(summary_filename, "rb") as file:
             st.download_button(label="전체 행사 요약 정의서 다운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -379,7 +371,7 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
             
             add_category_info(worksheet, event_data, category, component)
         
-        st.success(f"엑셀 발주요청서가 생성되었습니다: {filename}")
+        st.success(f"엑셀 발주요청서가 성공적으로 생성되었습니다: {filename}")
         
     except Exception as e:
         st.error(f"{category} 발주요청서 생성 중 오류가 발생했습니다: {str(e)}")
