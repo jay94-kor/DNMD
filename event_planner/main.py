@@ -511,8 +511,6 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
 
-
-
 def render_option_menu(label: str, options: List[str], key: str) -> str:
     icons = [event_options.CATEGORY_ICONS.get(option, "🔹") for option in options]
     selected = option_menu(
@@ -522,10 +520,10 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
         default_index=options.index(st.session_state.get(key, options[0])),
         orientation="horizontal",
         styles={
-            "container": {"padding": "0!important", "background-color": "#f0f2f6"},
-            "icon": {"color": "orange", "font-size": "16px"}, 
-            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#eee"},
-            "nav-link-selected": {"background-color": "#4CAF50"},
+            "container": {"padding": "0!important", "background-color": "#ffebee"},  # 연한 붉은색 배경
+            "icon": {"color": "darkred", "font-size": "16px"}, 
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccb"},
+            "nav-link-selected": {"background-color": "#d32f2f"},  # 진한 붉은색
         },
         key=key
     )
@@ -563,10 +561,10 @@ def display_event_info():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#fafafa"},
-            "icon": {"color": "orange", "font-size": "25px"}, 
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#eee"},
-            "nav-link-selected": {"background-color": "#4CAF50"},
+            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 연한 파란색 배경
+            "icon": {"color": "darkblue", "font-size": "25px"}, 
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb"},
+            "nav-link-selected": {"background-color": "#1976d2"},  # 진한 파란색
         },
     )
     
