@@ -112,7 +112,7 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
             "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
             "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
             "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc"},  # 연한 빨간색 호버
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white"},  # 토마토 색상 배경, 흰색 글자
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "icon": {"color": "white"}},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
         },
         key=key
     )
@@ -141,7 +141,7 @@ def display_event_info():
             "container": {"padding": "0!important", "background-color": "#ffe6e6"},  # 연한 빨간색 배경
             "icon": {"color": "#ff6347", "font-size": "25px"},  # 토마토 색상 아이콘
             "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc"},  # 연한 빨간색 호버
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white"},  # 토마토 색상 배경, 흰색 글자
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "icon": {"color": "white"}},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
         },
     )
     
@@ -434,7 +434,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
                 "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
                 "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
-    elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케���)"]:
+    elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
         component[unit_key] = "컷"
     else:
         component[unit_key] = "개"
@@ -668,7 +668,7 @@ def display_event_info():
             "container": {"padding": "0!important", "background-color": "#ffe6e6"},  # 연한 빨간색 배경
             "icon": {"color": "#ff6347", "font-size": "25px"},  # 토마토 색상 아이콘
             "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc"},  # 연한 빨간색 호버
-            "nav-link-selected": {"background-color": "#ff6347", "color": "white"},  # 토마토 색상 배경, 흰색 글자
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "icon": {"color": "white"}},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
         },
     )
     
