@@ -102,20 +102,17 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
 
 def render_option_menu(label: str, options: List[str], key: str) -> str:
     icons = ["🔹" for _ in options]
-    default_value = st.session_state.get(key, options[0])
-    default_index = options.index(default_value) if default_value in options else 0
-    
     selected = option_menu(
         None, options,
         icons=icons,
         menu_icon="cast",
-        default_index=default_index,
+        default_index=0,
         orientation="horizontal",
         styles={
-            "container": {"padding": "0!important", "background-color": "#ffebee"},  # 연한 붉은색 배경
-            "icon": {"color": "darkred", "font-size": "16px"}, 
-            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccb"},
-            "nav-link-selected": {"background-color": "#d32f2f"},  # 진한 붉은색
+            "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
+            "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#d3d3d3"},
+            "nav-link-selected": {"background-color": "#4682b4", "color": "white"},  # 스틸 블루 배경, 흰색 글자
         },
         key=key
     )
@@ -141,10 +138,10 @@ def display_event_info():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 연한 파란색 ���경
-            "icon": {"color": "darkblue", "font-size": "25px"}, 
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb"},
-            "nav-link-selected": {"background-color": "#1976d2"},  # 진한 파란색
+            "container": {"padding": "0!important", "background-color": "#e6f7ff"},  # 연한 파란색 배경
+            "icon": {"color": "#1e90ff", "font-size": "25px"},  # 도저 블루 아이콘
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#b0e0e6"},
+            "nav-link-selected": {"background-color": "#1e90ff", "color": "white"},  # 도저 블루 배경, 흰색 글자
         },
     )
     
@@ -209,7 +206,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
             key="additional_amount",
             format="%d"
         )
-        st.write(f"입력된 추가 예정 금액: {format_currency(event_data['additional_amount'])} 원")
+        st.write(f"입력된 추가 예정 액: {format_currency(event_data['additional_amount'])} 원")
     
     event_data['expected_profit_percentage'] = st.number_input(
         "예상 수익률 (%)", 
@@ -349,7 +346,7 @@ def handle_venue_facilities(event_data: Dict[str, Any]) -> None:
             event_data['other_facilities'] = st.text_input("기타 시설 입력", key="other_facility_input")
 
 def handle_venue_budget(event_data: Dict[str, Any]) -> None:
-    event_data['venue_budget'] = st.number_input("장소 ���관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
+    event_data['venue_budget'] = st.number_input("장소 대관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
 
 def service_components() -> None:
     event_data = st.session_state.event_data
@@ -455,7 +452,7 @@ def generate_summary_excel() -> None:
         st.success(f"엑셀 정의서가 성공적으로 생성되었습니다: {summary_filename}")
         
         with open(summary_filename, "rb") as file:
-            st.download_button(label="전체 행사 요약 정의서 ��운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            st.download_button(label="전체 행사 요약 정의서 다운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         
         for category, component in event_data.get('components', {}).items():
             category_filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
@@ -586,21 +583,18 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
         worksheet[cell].font = subtitle_font
 
 def render_option_menu(label: str, options: List[str], key: str) -> str:
-    icons = [event_options.CATEGORY_ICONS.get(option, "🔹") for option in options]
-    default_value = st.session_state.get(key, options[0])
-    default_index = options.index(default_value) if default_value in options else 0
-    
+    icons = ["🔹" for _ in options]
     selected = option_menu(
         None, options,
         icons=icons,
         menu_icon="cast",
-        default_index=default_index,
+        default_index=0,
         orientation="horizontal",
         styles={
-            "container": {"padding": "0!important", "background-color": "#ffebee"},  # 연한 붉은색 배경
-            "icon": {"color": "darkred", "font-size": "16px"}, 
-            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccb"},
-            "nav-link-selected": {"background-color": "#d32f2f"},  # 진한 붉은색
+            "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
+            "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#d3d3d3"},
+            "nav-link-selected": {"background-color": "#4682b4", "color": "white"},  # 스틸 블루 배경, 흰색 글자
         },
         key=key
     )
