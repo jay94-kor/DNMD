@@ -272,7 +272,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     component[quantity_key] = st.number_input(f"{item} 수량", min_value=0, value=component.get(quantity_key, 0), key=quantity_key)
     
     if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
-                "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
+                "숏�� (재편집)", "숏폼 (신규 제작)", "웹드라마", 
                 "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
                 "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
@@ -293,7 +293,7 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
         st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+        st.info("온라인 이벤트를 위�� '미디어' 카테고리가 자동으로 추가되었습니다.")
 
     selected_categories = st.multiselect("카테고리 선택", categories, default=default_categories, key="selected_categories")
     return selected_categories
@@ -315,7 +315,7 @@ def generate_summary_excel() -> None:
             category_filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
             generate_category_excel(category, component, category_filename)
             with open(category_filename, "rb") as file:
-                st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
+                st.download_button(label=f"{category} 발주요청서 다��로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
         
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
@@ -457,18 +457,35 @@ def display_event_info():
     
     step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
     
-    col1, col2, col3 = st.columns([2, 6, 2])
-    with col2:
-        current_step = st.session_state.get('step', 0)
-        selected_step = option_menu(
-            "단계 선택", 
-            step_names, 
-            icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
-            default_index=current_step, 
-            orientation='horizontal', 
-            key="step_selection"
-        )
-        st.session_state.step = step_names.index(selected_step)
+    st.markdown("""
+    <style>
+    .stSelectbox [data-baseweb="select"] {
+        margin-top: -50px;
+    }
+    div[data-testid="stHorizontalBlock"] {
+        background-color: #f0f2f6;
+        padding: 10px;
+        border-radius: 10px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    current_step = st.session_state.get('step', 0)
+    selected_step = option_menu(
+        None, 
+        step_names, 
+        icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
+        default_index=current_step, 
+        orientation='horizontal',
+        styles={
+            "container": {"padding": "0!important", "background-color": "#fafafa"},
+            "icon": {"color": "orange", "font-size": "25px"}, 
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#eee"},
+            "nav-link-selected": {"background-color": "#4CAF50"},
+        },
+        key="step_selection"
+    )
+    st.session_state.step = step_names.index(selected_step)
     
     if 0 <= st.session_state.step < len(functions):
         functions[st.session_state.step]()
