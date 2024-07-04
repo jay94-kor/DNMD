@@ -350,10 +350,17 @@ def display_event_info():
     
     step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
     
-    col1, col2, col3 = st.columns([2,6,2])
+    col1, col2, col3 = st.columns([2, 6, 2])
     with col2:
         current_step = st.session_state.get('step', 0)
-        selected_step = render_option_menu("단계 선택", step_names, ['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], current_step, orientation='horizontal')
+        selected_step = option_menu(
+            "단계 선택", 
+            step_names, 
+            icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
+            default_index=current_step, 
+            orientation='horizontal', 
+            key="step_selection"
+        )
         st.session_state.step = step_names.index(selected_step)
     
     if 0 <= st.session_state.step < len(functions):
@@ -361,13 +368,14 @@ def display_event_info():
     else:
         st.error(f"잘못된 단계입니다: {st.session_state.step}")
     
-    col1, col2, col3 = st.columns([3,4,3])
+    col1, col2, col3 = st.columns([3, 4, 3])
     with col1:
         if st.session_state.step > 0 and st.button("이전 단계로"):
             st.session_state.step = max(st.session_state.step - 1, 0)
     with col3:
         if st.session_state.step < 3 and st.button("다음 단계로"):
             st.session_state.step = min(st.session_state.step + 1, 3)
+
 
 if __name__ == "__main__":
     main()
