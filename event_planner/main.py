@@ -199,6 +199,13 @@ def venue_info() -> None:
 
     event_data['venue_name'] = st.text_input("장소명", value=event_data.get('venue_name', ''), key="venue_name")
     event_data['venue_type'] = st.text_input("장소 유형", value=event_data.get('venue_type', ''), key="venue_type")
+    
+    event_data['venue_status'] = st.selectbox(
+        "장소 확정 상태",
+        ["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"],
+        index=["발주처와 협상 진행 중", "확정", "거의 확정", "알 수 없는 상태"].index(event_data.get('venue_status', '알 수 없는 상태'))
+    )
+    
     event_data['address'] = st.text_input("주소", value=event_data.get('address', ''), key="address")
     event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
     event_data['facilities'] = st.text_area("시설", value=event_data.get('facilities', ''), key="facilities")
@@ -296,7 +303,7 @@ def generate_summary_excel() -> None:
         st.success(f"엑셀 정의서가 성되었습니다: {summary_filename}")
         
         with open(summary_filename, "rb") as file:
-            st.download_button(label="전체 행사 요약 ���의서 다운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            st.download_button(label="전체 행사 요약 정의서 다운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         
         for category, component in event_data.get('components', {}).items():
             category_filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
