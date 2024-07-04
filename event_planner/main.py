@@ -34,6 +34,9 @@ with open(JSON_PATH, 'r', encoding='utf-8') as file:
 
 event_options = EventOptions(item_options)
 
+def format_currency(amount: float) -> str:
+    return f"{amount:,.0f}"
+
 def basic_info() -> None:
     event_data = st.session_state.event_data
     st.header("기본 정보")
@@ -89,10 +92,24 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
         horizontal=True
     )
     
-    event_data['contract_amount'] = st.number_input("총 계약 금액 (만원)", min_value=0, value=event_data.get('contract_amount', 0), key="contract_amount")
+    event_data['contract_amount'] = st.number_input(
+        "총 계약 금액 (원)", 
+        min_value=0, 
+        value=event_data.get('contract_amount', 0), 
+        key="contract_amount",
+        format="%d"
+    )
+    st.write(f"입력된 계약 금액: {format_currency(event_data['contract_amount'])} 원")
     
     if event_data['contract_status'] == "추가 예정":
-        event_data['additional_amount'] = st.number_input("추가 예정 금액 (만원)", min_value=0, value=event_data.get('additional_amount', 0), key="additional_amount")
+        event_data['additional_amount'] = st.number_input(
+            "추가 예정 금액 (원)", 
+            min_value=0, 
+            value=event_data.get('additional_amount', 0), 
+            key="additional_amount",
+            format="%d"
+        )
+        st.write(f"입력된 추가 예정 금액: {format_currency(event_data['additional_amount'])} 원")
     
     event_data['expected_profit_percentage'] = st.number_input(
         "예상 수익률 (%)", 
@@ -109,7 +126,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     
     event_data['expected_profit'] = expected_profit
     
-    st.write(f"예상 수익 금액: {expected_profit:.2f} 만원")
+    st.write(f"예상 수익 금액: {format_currency(expected_profit)} 원")
 
 def handle_video_production(event_data: Dict[str, Any]) -> None:
     col1, col2 = st.columns(2)
@@ -259,7 +276,7 @@ def generate_summary_excel() -> None:
     
     try:
         create_excel_summary(event_data, summary_filename)
-        st.success(f"엑셀 정의서가 생성되었습니다: {summary_filename}")
+        st.success(f"엑셀 정의서가 ��성되었습니다: {summary_filename}")
         
         with open(summary_filename, "rb") as file:
             st.download_button(label="전체 행사 요약 정의서 다운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -298,8 +315,8 @@ def add_basic_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data
     worksheet['A10'] = f"철수: {event_data.get('teardown', '')}"
     
     worksheet['A11'] = "예산 정보"
-    worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}만원"
-    worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}만원"
+    worksheet['A12'] = f"총 계약 금액: {format_currency(event_data.get('contract_amount', 0))} 원"
+    worksheet['A13'] = f"총 예상 수익: {format_currency(event_data.get('expected_profit', 0))} 원"
 
     title_font = Font(bold=True, size=14)
     subtitle_font = Font(bold=True, size=12)
@@ -352,18 +369,18 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
     worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
     worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
-    worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
+    worksheet['A8'] = f"셋��� 시작: {event_data.get('setup_start', '')}"
     worksheet['A9'] = f"셋업 날짜: {event_data.get('setup_date', '')}"
     worksheet['A10'] = f"철수: {event_data.get('teardown', '')}"
     
     worksheet['A11'] = "예산 정보"
-    worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}만원"
-    worksheet['A13'] = f"총 예상 수익: {event_data.get('expected_profit', 0)}만원"
+    worksheet['A12'] = f"총 계약 금액: {format_currency(event_data.get('contract_amount', 0))} 원"
+    worksheet['A13'] = f"총 예상 수익: {format_currency(event_data.get('expected_profit', 0))} 원"
     
     worksheet['A15'] = "발주요청서"
     worksheet['A16'] = f"카테고리: {category}"
     worksheet['A17'] = f"진행 상황: {component.get('status', '')}"
-    worksheet['A18'] = f"예산: {component.get('budget', 0)}만원"
+    worksheet['A18'] = f"예산: {format_currency(component.get('budget', 0))} 원"
 
     worksheet['A19'] = f"선호 업체 여부: {'예' if component.get('preferred_vendor', False) else '아니오'}"
     if component.get('preferred_vendor', False):
@@ -387,7 +404,7 @@ def render_option_menu(label: str, options: List[str], icons: List[str], default
     return option_menu(label, options, icons=icons, default_index=default_index, orientation=orientation, key=key)
 
 def main():
-    st.title("이벤트 플래너")
+    st.title("이벤트 플래��")
     
     if 'current_event' not in st.session_state:
         st.session_state.current_event = None
