@@ -71,7 +71,7 @@ def get_db_connection() -> Optional[sqlite3.Connection]:
         st.error("데이터베이스 파일을 찾을 수 없습니다.")
     except sqlite3.DatabaseError as e:
         logging.error(f"Database error: {str(e)}")
-        st.error("데이터베이스 파일이 손상되었습니다.")
+        st.error("���이터베이스 파일이 손상되었습니다.")
     except Exception as e:
         logging.error(f"Unexpected error: {str(e)}")
         st.error(f"예상치 못한 오류가 발생했습니다: {str(e)}")
@@ -121,7 +121,7 @@ def load_past_events():
                 if st.button("새로 만들기", key="create_new_event"):
                     st.session_state.current_event = None
                     st.session_state.step = 0  # 기본 정보 입력 페이지로 이동
-                    st.experimental_rerun()
+                    st.experimental_set_query_params(step=0)
             
             if events:
                 for event in events:
@@ -136,14 +136,14 @@ def load_past_events():
                         if st.button("수정", key=f"edit_{event['id']}"):
                             if st.session_state.is_admin:
                                 st.session_state.current_event = event['id']
-                                st.experimental_rerun()
+                                st.experimental_set_query_params(step=0)
                             else:
                                 show_password_prompt(event['id'], "edit")
                     with col5:
                         if st.button("삭제", key=f"delete_{event['id']}"):
                             if st.session_state.is_admin:
                                 delete_event(event['id'])
-                                st.experimental_rerun()
+                                st.experimental_set_query_params(step=0)
                             else:
                                 show_password_prompt(event['id'], "delete")
             else:
@@ -485,6 +485,29 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
 
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
+
+def show_password_prompt(event_id: int, action: str) -> None:
+    st.session_state.password_prompt_event_id = event_id
+    st.session_state.password_prompt_action = action
+    st.session_state.show_password_prompt = True
+
+def render_option_menu(label: str, options: List[str], icons: List[str], default_index: int, orientation: str, key: str) -> str:
+    return option_menu(label, options, icons=icons, default_index=default_index, orientation=orientation, key=key)
+
+def add_user(username: str, name: str, password: str, email: str) -> None:
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+    with db_pool.get_connection() as conn:
+        conn.execute("INSERT INTO users (username, name, password, email) VALUES (?, ?, ?, ?)", (username, name, password_hash, email))
+
+def get_users() -> List[Dict[str, Any]]:
+    with db_pool.get_connection() as conn:
+        users = conn.execute("SELECT username, name, password, email FROM users").fetchall()
+        return [dict(user) for user in users]
+
+def create_new_event() -> None:
+    st.session_state.current_event = None
+    st.session_state.step = 0
+    st.experimental_set_query_params(step=0)
 
 def admin_page():
     st.title("관리자 페이지")
