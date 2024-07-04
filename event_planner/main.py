@@ -59,7 +59,7 @@ def basic_info() -> None:
     handle_event_type(event_data)
     handle_budget_info(event_data)
     
-    if event_data['event_type'] == "영상 제작":
+    if event_data['event_type'] == "온라인 콘텐츠":
         handle_video_production(event_data)
     elif event_data['event_type'] == "오프라인 이벤트":
         handle_offline_event(event_data)
@@ -346,7 +346,7 @@ def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
 
     if event_data.get('event_type') == "영상 제작" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+        st.info("온라인 콘텐츠 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
         st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
@@ -650,7 +650,7 @@ def check_required_fields(step):
 
     if step == 0:  # 기본 정보
         required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'scale', 'contract_amount', 'expected_profit_percentage']
-        if event_data.get('event_type') == "영상 제작":
+        if event_data.get('event_type') == "온라인 콘텐츠":
             required_fields.extend(['start_date', 'end_date'])
         elif event_data.get('event_type') == "오프라인 이벤트":
             required_fields.extend(['start_date', 'end_date', 'setup_start', 'teardown'])
