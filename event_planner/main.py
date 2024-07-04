@@ -361,15 +361,23 @@ def generate_summary_excel() -> None:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
 
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
-    with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-        df_full = pd.DataFrame([event_data])
-        if 'components' in df_full.columns:
-            df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
-        df_full.to_excel(writer, sheet_name='전체 행사 요약', index=False)
-        
-        workbook = writer.book
-        worksheet = workbook['전체 행사 요약']
-        add_basic_info(worksheet, event_data)
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "이벤트 기획 정의서"
+    
+    # A열 너비 설정
+    ws.column_dimensions['A'].width = 28.17
+    
+    df_full = pd.DataFrame([event_data])
+    if 'components' in df_full.columns:
+        df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
+    df_full.to_excel(filename, sheet_name='전체 행사 요약', index=False)
+    
+    workbook = wb
+    worksheet = workbook['전체 행사 요약']
+    add_basic_info(worksheet, event_data)
+    
+    wb.save(filename)
 
 def add_basic_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data: Dict[str, Any]) -> None:
     worksheet.insert_rows(0, amount=10)
@@ -405,25 +413,33 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
     try:
-        with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-            df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
-            for item in component.get('items', []):
-                quantity = component.get(f'{item}_quantity', 0)
-                unit = component.get(f'{item}_unit', '개')
-                details = component.get(f'{item}_details', '')
-                df_component = pd.concat([df_component, pd.DataFrame({
-                    '항목': [item],
-                    '수량': [quantity],
-                    '단위': [unit],
-                    '세부사항': [details]
-                })], ignore_index=True)
-            
-            df_component.to_excel(writer, sheet_name=f'{category} 발주요청서', index=False)
-            
-            workbook = writer.book
-            worksheet = workbook[f'{category} 발주요청서']
-            
-            add_category_info(worksheet, event_data, category, component)
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f"{category} 발주요청서"
+        
+        # A열 너비 설정
+        ws.column_dimensions['A'].width = 28.17
+        
+        df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
+        for item in component.get('items', []):
+            quantity = component.get(f'{item}_quantity', 0)
+            unit = component.get(f'{item}_unit', '개')
+            details = component.get(f'{item}_details', '')
+            df_component = pd.concat([df_component, pd.DataFrame({
+                '항목': [item],
+                '수량': [quantity],
+                '단위': [unit],
+                '세부사항': [details]
+            })], ignore_index=True)
+        
+        df_component.to_excel(filename, sheet_name=f'{category} 발주요청서', index=False)
+        
+        workbook = wb
+        worksheet = workbook[f'{category} 발주요청서']
+        
+        add_category_info(worksheet, event_data, category, component)
+        
+        wb.save(filename)
         
         st.success(f"엑셀 발주요청서가 성공적으로 생성되었습니다: {filename}")
         
@@ -456,7 +472,7 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     if component.get('preferred_vendor', False):
         worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
         worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
-        worksheet['A22'] = f"선호 업체 연��처: {component.get('vendor_contact', '')}"
+        worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
         worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
     
     title_font = Font(bold=True, size=14)
