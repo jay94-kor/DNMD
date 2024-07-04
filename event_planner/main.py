@@ -384,7 +384,23 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
 
     component['budget'] = st.number_input(f"{category} 예산 (원)", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
 
-    handle_preferred_vendor(component, category)
+    # 협력사 선택 옵션
+    cooperation_options = ["협력사 매칭 필요", "선호하는 업체 있음"]
+    component['cooperation_status'] = render_option_menu(
+        "협력사 상태",
+        cooperation_options,
+        f"{category}_cooperation_status"
+    )
+
+    if component['cooperation_status'] == "선호하는 업체 있음":
+        handle_preferred_vendor(component, category)
+    else:
+        # 협력사 매칭 필요 시 관련 정보 초기화
+        component['preferred_vendor'] = False
+        component['vendor_reason'] = ''
+        component['vendor_name'] = ''
+        component['vendor_contact'] = ''
+        component['vendor_manager'] = ''
 
     for item in component['items']:
         handle_item_details(item, component)
@@ -392,17 +408,14 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
     event_data['components'][category] = component
 
 def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
-    component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
-    
-    if component['preferred_vendor']:
-        component['vendor_reason'] = render_option_menu(
-            "선호하는 이유를 선택해주세요:",
-            config['VENDOR_REASON_OPTIONS'],
-            f"{category}_vendor_reason"
-        )
-        component['vendor_name'] = st.text_input("선호 업체 상호명", value=component.get('vendor_name', ''), key=f"{category}_vendor_name")
-        component['vendor_contact'] = st.text_input("선호 업체 연락처", value=component.get('vendor_contact', ''), key=f"{category}_vendor_contact")
-        component['vendor_manager'] = st.text_input("선호 업체 담당자명", value=component.get('vendor_manager', ''), key=f"{category}_vendor_manager")
+    component['vendor_reason'] = render_option_menu(
+        "선호하는 이유를 선택해주세요:",
+        config['VENDOR_REASON_OPTIONS'],
+        f"{category}_vendor_reason"
+    )
+    component['vendor_name'] = st.text_input("선호 업체 상호명", value=component.get('vendor_name', ''), key=f"{category}_vendor_name")
+    component['vendor_contact'] = st.text_input("선호 업체 연락처", value=component.get('vendor_contact', ''), key=f"{category}_vendor_contact")
+    component['vendor_manager'] = st.text_input("선호 업체 담당자명", value=component.get('vendor_manager', ''), key=f"{category}_vendor_manager")
 
 def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     quantity_key = f'{item}_quantity'
