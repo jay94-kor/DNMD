@@ -214,7 +214,7 @@ def venue_info() -> None:
 
     if event_data['venue_type'] == "실내":
         facility_options = ["음향 시설", "조명 시설", "LED 시설", "빔프로젝트 시설", "주차", "Wifi", "기타"]
-        event_data['facilities'] = st.multiselect("시설", facility_options, default=event_data.get('facilities', []), key="facilities")
+        event_data['facilities'] = st.multiselect("시설", facility_options, default=[f for f in event_data.get('facilities', []) if f in facility_options], key="facilities")
         
         if "기타" in event_data['facilities']:
             event_data['other_facilities'] = st.text_input("기타 시설 상세", value=event_data.get('other_facilities', ''), key="other_facilities")
