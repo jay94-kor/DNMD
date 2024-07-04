@@ -667,22 +667,21 @@ def apply_styles(ws):
     header_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
     border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
     
-    for row in ws['A1:D20']:
+    # 모든 셀에 테두리 적용
+    for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
         for cell in row:
             cell.border = border
     
-    for row in ws['A22:E100']:
-        for cell in row:
-            cell.border = border
+    # 헤더 스타일 적용
+    headers = ['A1', 'A9', 'A13', 'A18', 'A24']
+    for header in headers:
+        ws[header].fill = header_fill
+        ws[header].font = Font(bold=True)
     
-    for cell in ws['A1:A22:2']:
-        cell.fill = header_fill
-    
-    ws.column_dimensions['A'].width = 20
-    ws.column_dimensions['B'].width = 30
-    ws.column_dimensions['C'].width = 20
-    ws.column_dimensions['D'].width = 30
-    ws.column_dimensions['E'].width = 40
+    # 열 너비 설정
+    column_widths = {'A': 20, 'B': 30, 'C': 20, 'D': 30, 'E': 40}
+    for col, width in column_widths.items():
+        ws.column_dimensions[col].width = width
 
 def format_currency(amount):
     return "{:,}".format(amount)
