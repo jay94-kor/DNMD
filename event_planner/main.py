@@ -134,6 +134,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
         "contract_status"
     )
 
+    # 부가세 포함 여부 버튼을 노란색으로 변경
     vat_options = config['VAT_OPTIONS']
     vat_included = option_menu(
         "부가세 포함 여부",
@@ -439,6 +440,8 @@ def generate_summary_excel() -> None:
         
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
+        st.error("오류 상세 정보:")
+        st.exception(e)
 
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
@@ -510,6 +513,10 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
                     '세부사항': details
                 }, ignore_index=True)
             
+            # 데이터프레임이 비어있는 경우 빈 행 추가
+            if df_component.empty:
+                df_component = df_component.append({}, ignore_index=True)
+            
             df_component.to_excel(writer, sheet_name=f'{category} 발주요청서', index=False)
             
             workbook = writer.book
@@ -521,6 +528,7 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
         
     except Exception as e:
         st.error(f"{category} 발주요청서 생성 중 오류가 발생했습니다: {str(e)}")
+        st.exception(e)
 
 def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data: Dict[str, Any], category: str, component: Dict[str, Any]) -> None:
     worksheet.insert_rows(0, amount=10)
@@ -672,7 +680,7 @@ def main():
                     st.session_state.step += 1
                     st.rerun()  # 여기를 변경했습니다
                 else:
-                    st.error("모든 필수 항목을 입력해주���요.")
+                    st.error("모든 필수 항목을 입력해주요.")
 
 if __name__ == "__main__":
     main()
