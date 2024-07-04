@@ -84,10 +84,10 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
     event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic")
     
-    event_data['manager_position'] = st.selectbox(
+    event_data['manager_position'] = render_button_menu(
         "담당자 직급",
         options=["선임", "책임", "수석"],
-        index=["선임", "책임", "수석"].index(event_data.get('manager_position', '선임'))
+        key="manager_position"
     )
     
     manager_contact = st.text_input(
@@ -102,32 +102,26 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
 
 def handle_event_type(event_data: Dict[str, Any]) -> None:
     default_index = event_options.EVENT_TYPES.index(event_data.get('event_type', event_options.EVENT_TYPES[0]))
-    event_data['event_type'] = render_option_menu("용역 유형", event_options.EVENT_TYPES, ['calendar-event', 'camera-video'], default_index, orientation='horizontal', key="event_type")
+    event_data['event_type'] = render_button_menu("용역 유형", event_options.EVENT_TYPES, "event_type")
 
     default_contract_index = event_options.CONTRACT_TYPES.index(event_data.get('contract_type', event_options.CONTRACT_TYPES[0]))
-    event_data['contract_type'] = render_option_menu("용역 종류", event_options.CONTRACT_TYPES, ['file-earmark-text', 'person-lines-fill', 'building'], default_contract_index, orientation='horizontal', key="contract_type")
+    event_data['contract_type'] = render_button_menu("용역 종류", event_options.CONTRACT_TYPES, "contract_type")
 
 def handle_budget_info(event_data: Dict[str, Any]) -> None:
     st.header("예산 정보")
     
     default_contract_status_index = config['CONTRACT_STATUS_OPTIONS'].index(event_data.get('contract_status', '확정'))
-    event_data['contract_status'] = render_option_menu(
+    event_data['contract_status'] = render_button_menu(
         "계약 금액 상태",
         config['CONTRACT_STATUS_OPTIONS'],
-        ['check-circle', 'question-circle', 'plus-circle'],
-        default_contract_status_index,
-        orientation='horizontal',
-        key="contract_status"
+        "contract_status"
     )
     
     default_vat_index = 0 if event_data.get('vat_included', True) else 1
-    event_data['vat_included'] = render_option_menu(
+    event_data['vat_included'] = render_button_menu(
         "부가세 포함 여부",
         config['VAT_OPTIONS'],
-        ['check-square', 'square'],
-        default_vat_index,
-        orientation='horizontal',
-        key="vat_included"
+        "vat_included"
     ) == config['VAT_OPTIONS'][0]
     
     event_data['contract_amount'] = st.number_input(
@@ -200,23 +194,21 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', date.today()), key="start_date")
     event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', event_data['start_date']), key="end_date")
 
-    setup_index = 0 if event_data.get('setup_start') == config['SETUP_OPTIONS'][0] else 1
-    event_data['setup_start'] = render_option_menu("셋업 시작", config['SETUP_OPTIONS'], ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
+    event_data['setup_start'] = render_button_menu("셋업 시작", config['SETUP_OPTIONS'], "setup_start")
 
     if event_data['setup_start'] == config['SETUP_OPTIONS'][0]:
         event_data['setup_date'] = event_data['start_date'] - timedelta(days=1)
     else:
         event_data['setup_date'] = event_data['start_date']
 
-    teardown_index = 0 if event_data.get('teardown') == config['TEARDOWN_OPTIONS'][0] else 1
-    event_data['teardown'] = render_option_menu("철수", config['TEARDOWN_OPTIONS'], ['calendar-check', 'calendar-plus'], teardown_index, orientation='horizontal', key="teardown")
+    event_data['teardown'] = render_button_menu("철수", config['TEARDOWN_OPTIONS'], "teardown")
 
 def venue_info() -> None:
     event_data = st.session_state.event_data
     st.header("장소 정보")
 
     default_status_index = event_options.STATUS_OPTIONS.index(event_data.get('venue_status', event_options.STATUS_OPTIONS[-1]))
-    event_data['venue_status'] = render_option_menu("장소 확정 상태", event_options.STATUS_OPTIONS, ['question-circle', 'check-circle', 'exclamation-circle', 'info-circle'], default_status_index, orientation='horizontal', key="venue_status")
+    event_data['venue_status'] = render_button_menu("장소 확정 상태", event_options.STATUS_OPTIONS, "venue_status")
 
     if 'venues' not in event_data:
         event_data['venues'] = []
@@ -261,7 +253,7 @@ def venue_info() -> None:
     if default_venue_type not in venue_type_options:
         default_venue_type = '실내'
     default_venue_type_index = venue_type_options.index(default_venue_type)
-    event_data['venue_type'] = render_option_menu("희망하는 장소 유형", venue_type_options, ['building', 'tree', 'house', 'laptop'], default_venue_type_index, orientation='horizontal', key="venue_type")
+    event_data['venue_type'] = render_button_menu("희망하는 장소 유형", venue_type_options, "venue_type")
 
     if event_data['venue_type'] in ["실내", "혼합"]:
         if event_data['venue_status'] != "알 수 없는 상태":
@@ -320,14 +312,10 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
     st.subheader(category)
     component = event_data['components'].get(category, {})
     
-    default_status_index = event_options.STATUS_OPTIONS.index(component.get('status', event_options.STATUS_OPTIONS[0]))
-    component['status'] = render_option_menu(
+    component['status'] = render_button_menu(
         f"{category} 진행 상황",
         event_options.STATUS_OPTIONS,
-        ['question-circle', 'check-circle', 'exclamation-circle', 'info-circle'],
-        default_status_index,
-        orientation='horizontal',
-        key=f"{category}_status"
+        f"{category}_status"
     )
     
     component['items'] = st.multiselect(
@@ -350,14 +338,10 @@ def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
     
     if component['preferred_vendor']:
-        default_reason_index = config['VENDOR_REASON_OPTIONS'].index(component.get('vendor_reason', config['VENDOR_REASON_OPTIONS'][0]))
-        component['vendor_reason'] = render_option_menu(
+        component['vendor_reason'] = render_button_menu(
             "선호하는 이유를 선택해주세요:",
             config['VENDOR_REASON_OPTIONS'],
-            ['building', 'check-circle', 'star'],
-            default_reason_index,
-            orientation='horizontal',
-            key=f"{category}_vendor_reason"
+            f"{category}_vendor_reason"
         )
         component['vendor_name'] = st.text_input("선호 업체 상호명", value=component.get('vendor_name', ''), key=f"{category}_vendor_name")
         component['vendor_contact'] = st.text_input("선호 업체 연락처", value=component.get('vendor_contact', ''), key=f"{category}_vendor_contact")
@@ -523,8 +507,13 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
 
-def render_option_menu(label: str, options: List[str], icons: List[str], default_index: int, orientation: str, key: str) -> str:
-    return option_menu(label, options, icons=icons, default_index=default_index, orientation=orientation, key=key)
+def render_button_menu(label: str, options: List[str], key: str) -> str:
+    st.write(label)
+    cols = st.columns(len(options))
+    for i, option in enumerate(options):
+        if cols[i].button(option, key=f"{key}_{i}"):
+            return option
+    return options[0]  # 기본값 반환
 
 def main():
     st.title("이벤트 플래너")
