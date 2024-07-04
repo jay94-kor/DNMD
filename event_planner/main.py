@@ -523,12 +523,12 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
                 quantity = component.get(f'{item}_quantity', 0)
                 unit = component.get(f'{item}_unit', '개')
                 details = component.get(f'{item}_details', '')
-                df_component = pd.concat([df_component, pd.DataFrame({
-                    '항목': [item],
-                    '수량': [quantity],
-                    '단위': [unit],
-                    '세부사항': [details]
-                })], ignore_index=True)
+                df_component = df_component.append({
+                    '항목': item,
+                    '수량': quantity,
+                    '단위': unit,
+                    '세부사항': details
+                }, ignore_index=True)
             
             df_component.to_excel(writer, sheet_name=f'{category} 발주요청서', index=False)
             
