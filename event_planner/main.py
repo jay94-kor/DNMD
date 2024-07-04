@@ -200,7 +200,22 @@ def venue_info() -> None:
         event_data['venue_name'] = st.text_input("장소명", value=event_data.get('venue_name', ''), key="venue_name")
         event_data['address'] = st.text_input("주소", value=event_data.get('address', ''), key="address")
     else:
-        event_data['desired_region'] = st.text_input("희망하는 지역", value=event_data.get('desired_region', ''), key="desired_region")
+        major_regions = [
+            "서울", "부산", "인천", "대구", "대전", "광주", "울산", "세종",
+            "경기도", "강원도", "충청북도", "충청남도", "전라북도", "전라남도", "경상북도", "경상남도", "제주도"
+        ]
+        selected_region = st.selectbox(
+            "희망하는 지역",
+            options=major_regions,
+            index=major_regions.index(event_data.get('desired_region', '서울')) if event_data.get('desired_region') in major_regions else 0,
+            key="desired_region"
+        )
+        event_data['desired_region'] = selected_region
+
+        specific_location = st.text_input("세부 지역 (선택사항)", value=event_data.get('specific_location', ''), key="specific_location")
+        if specific_location:
+            event_data['specific_location'] = specific_location
+
         event_data['desired_capacity'] = st.number_input("희망하는 수용 인원", min_value=0, value=int(event_data.get('desired_capacity', 0)), key="desired_capacity")
 
     venue_type_options = ["실내", "실외", "혼합", "온라인"]
