@@ -9,6 +9,7 @@ import os
 from typing import Dict, Any, List
 import logging
 import re
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
@@ -500,38 +501,42 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     
     try:
-        with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-            df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
-            for item in component.get('items', []):
-                quantity = component.get(f'{item}_quantity', 0)
-                unit = component.get(f'{item}_unit', '개')
-                details = component.get(f'{item}_details', '')
-                df_component = df_component.append({
-                    '항목': item,
-                    '수량': quantity,
-                    '단위': unit,
-                    '세부사항': details
-                }, ignore_index=True)
-            
-            # 데이터프레임이 비어있는 경우 빈 행 추가
-            if df_component.empty:
-                df_component = df_component.append({}, ignore_index=True)
-            
-            df_component.to_excel(writer, sheet_name=f'{category} 발주요청서', index=False)
-            
-            workbook = writer.book
-            worksheet = workbook[f'{category} 발주요청서']
-            
-            add_category_info(worksheet, event_data, category, component)
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = f'{category} 발주요청서'
+        
+        df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
+        for item in component.get('items', []):
+            quantity = component.get(f'{item}_quantity', 0)
+            unit = component.get(f'{item}_unit', '개')
+            details = component.get(f'{item}_details', '')
+            df_component = df_component.append({
+                '항목': item,
+                '수량': quantity,
+                '단위': unit,
+                '세부사항': details
+            }, ignore_index=True)
+        
+        # 데이터프레임이 비어있는 경우 빈 행 추가
+        if df_component.empty:
+            df_component = df_component.append({'항목': '항목 없음', '수량': 0, '단위': '-', '세부사항': '-'}, ignore_index=True)
+        
+        for r, row in enumerate(dataframe_to_rows(df_component, index=False, header=True), 1):
+            for c, value in enumerate(row, 1):
+                ws.cell(row=r+23, column=c, value=value)
+        
+        add_category_info(ws, event_data, category, component)
+        
+        wb.save(filename)
         
         st.success(f"엑셀 발주요청서가 성공적으로 생성되었습니다: {filename}")
         
     except Exception as e:
         st.error(f"{category} 발주요청서 생성 중 오류가 발생했습니다: {str(e)}")
         st.exception(e)
-
+        
 def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data: Dict[str, Any], category: str, component: Dict[str, Any]) -> None:
-    worksheet.insert_rows(0, amount=10)
+    worksheet.insert_rows(0, amount=23)
     worksheet['A1'] = "기본 정보"
     worksheet['A2'] = f"용역명: {event_data.get('event_name', '')}"
     worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
@@ -558,7 +563,7 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
         worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
         worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
         worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
-    
+
     title_font = Font(bold=True, size=14)
     subtitle_font = Font(bold=True, size=12)
     fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
