@@ -63,22 +63,29 @@ def basic_info() -> None:
 
 def handle_general_info(event_data: Dict[str, Any]) -> None:
     def on_change_scale():
-        current_value = event_data.get('scale', 0)
-        new_value = st.session_state.scale_input_basic
-        if new_value > current_value:
-            event_data['scale'] = current_value + 50
-        elif new_value < current_value:
-            event_data['scale'] = max(0, current_value - 50)
-        st.session_state.scale_input_basic = event_data['scale']
+        try:
+            new_value = int(st.session_state.scale_input_basic)
+            current_value = event_data.get('scale', 0)
+            if new_value > current_value:
+                event_data['scale'] = current_value + 50
+            elif new_value < current_value:
+                event_data['scale'] = max(0, current_value - 50)
+            st.session_state.scale_input_basic = str(event_data['scale'])
+        except ValueError:
+            pass  # 숫자가 아닌 입력의 경우 무시
 
     event_data['scale'] = st.number_input(
         "예상 참여 관객 수", 
         min_value=0, 
         value=event_data.get('scale', 0),
-        step=1,  # 여기서는 1로 설정하지만, 실제로는 on_change에서 50씩 변경됩니다.
+        step=50,  # 50씩 증가/감소
+        format="%d",
         key="scale_input_basic",
         on_change=on_change_scale
     )
+
+    st.write(f"현재 예상 참여 관객 수: {event_data['scale']}명")
+    st.write("('+' 키를 누르면 50명 증가, '-' 키를 누르면 50명 감소)")
 
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
@@ -404,7 +411,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
                 "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
                 "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
-                "행사 사전 영상", "��케치 영상 제작", "애니메이션 제작"]:
+                "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
     elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
         component[unit_key] = "컷"
@@ -433,7 +440,7 @@ def generate_summary_excel() -> None:
                 st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
         
     except Exception as e:
-        st.error(f"엑셀 파일 생성 ��� 오류가 발생했습니다: {str(e)}")
+        st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
 
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
@@ -497,7 +504,7 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
                 details = component.get(f'{item}_details', '')
                 df_component = df_component.append({
                     '항목': item,
-                    '수량': quantity,
+                    '���량': quantity,
                     '단위': unit,
                     '세부사항': details
                 }, ignore_index=True)
@@ -553,6 +560,25 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
 
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
+
+def render_option_menu(label: str, options: List[str], key: str) -> str:
+    icons = ["🔹" for _ in options]
+    selected = option_menu(
+        None, options,
+        icons=icons,
+        menu_icon="cast",
+        default_index=0,
+        orientation="horizontal",
+        styles={
+            "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
+            "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},  # 연한 빨간색 호버, 토마토 색상 아이콘
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},  # 토마토 색상 배경, 흰색 글자, 흰색 아이콘
+        },
+        key=key
+    )
+    return selected
+
 
 def check_required_fields(step):
     event_data = st.session_state.event_data
