@@ -51,8 +51,8 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
     event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=int(event_data.get('scale', 0)), key="scale_input_basic")
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
-    event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic", required=True)
-    event_data['manager_contact'] = st.text_input("담당자 연락처", value=event_data.get('manager_contact', ''), key="manager_contact_basic", required=True)
+    event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic")
+    event_data['manager_contact'] = st.text_input("담당자 연락처", value=event_data.get('manager_contact', ''), key="manager_contact_basic")
 
 def handle_event_type(event_data: Dict[str, Any]) -> None:
     default_index = event_options.EVENT_TYPES.index(event_data.get('event_type', event_options.EVENT_TYPES[0]))
@@ -336,8 +336,6 @@ def main():
     if 'event_data' not in st.session_state:
         st.session_state.event_data = {}
 
-    display_event_info()
-
 def display_event_info():
     st.title("이벤트 기획 정의서")
     
@@ -376,6 +374,17 @@ def display_event_info():
         if st.session_state.step < 3 and st.button("다음 단계로"):
             st.session_state.step = min(st.session_state.step + 1, 3)
 
+def main():
+    st.title("이벤트 플래너")
+    
+    if 'current_event' not in st.session_state:
+        st.session_state.current_event = None
+    if 'step' not in st.session_state:
+        st.session_state.step = 0
+    if 'event_data' not in st.session_state:
+        st.session_state.event_data = {}
+
+    display_event_info()
 
 if __name__ == "__main__":
     main()
