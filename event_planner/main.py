@@ -300,7 +300,7 @@ def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
         st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 ��동으로 추가되었습니다.")
+        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
 
     col1, col2, col3, col4 = st.columns(4)
     selected_categories = []
@@ -511,15 +511,24 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
 
+
+
 def render_option_menu(label: str, options: List[str], key: str) -> str:
     icons = [event_options.CATEGORY_ICONS.get(option, "🔹") for option in options]
-    selected = st.session_state.get(key, options[0])
-    st.write(label)
-    cols = st.columns(len(options))
-    for i, option in enumerate(options):
-        if cols[i].button(f"{icons[i]} {option}", key=f"{key}_{i}", type="primary" if option == selected else "secondary"):
-            st.session_state[key] = option
-            selected = option
+    selected = option_menu(
+        None, options,
+        icons=icons,
+        menu_icon="cast",
+        default_index=options.index(st.session_state.get(key, options[0])),
+        orientation="horizontal",
+        styles={
+            "container": {"padding": "0!important", "background-color": "#f0f2f6"},
+            "icon": {"color": "orange", "font-size": "16px"}, 
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#eee"},
+            "nav-link-selected": {"background-color": "#4CAF50"},
+        },
+        key=key
+    )
     return selected
 
 def main():
@@ -535,7 +544,7 @@ def main():
     display_event_info()
 
 def display_event_info():
-    st.title("이벤트 기획 정��서")
+    st.title("이벤트 기획 정의서")
     
     functions = {
         0: basic_info,
@@ -545,19 +554,6 @@ def display_event_info():
     }
     
     step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
-    
-    st.markdown("""
-    <style>
-    .stSelectbox [data-baseweb="select"] {
-        margin-top: -50px;
-    }
-    div[data-testid="stHorizontalBlock"] {
-        background-color: #f0f2f6;
-        padding: 10px;
-        border-radius: 10px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
     
     current_step = st.session_state.step
     selected_step = option_menu(
