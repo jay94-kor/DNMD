@@ -176,7 +176,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', date.today()), key="start_date")
     event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', event_data['start_date']), key="end_date")
 
-    setup_options = ["��날 셋업", "당일 셋업"]
+    setup_options = ["전날 셋업", "당일 셋업"]
     setup_index = 0 if event_data.get('setup_start') == "전날 셋업" else 1
     event_data['setup_start'] = render_option_menu("셋업 시작", setup_options, ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
 
@@ -196,10 +196,26 @@ def venue_info() -> None:
     default_status_index = event_options.STATUS_OPTIONS.index(event_data.get('venue_status', event_options.STATUS_OPTIONS[-1]))
     event_data['venue_status'] = render_option_menu("장소 확정 상태", event_options.STATUS_OPTIONS, ['question-circle', 'check-circle', 'exclamation-circle', 'info-circle'], default_status_index, orientation='horizontal', key="venue_status")
 
-    if event_data['venue_status'] != "알 수 없는 상태":
-        event_data['venue_name'] = st.text_input("장소명", value=event_data.get('venue_name', ''), key="venue_name")
-        event_data['address'] = st.text_input("주소", value=event_data.get('address', ''), key="address")
-    else:
+    if 'venues' not in event_data:
+        event_data['venues'] = []
+
+    for i, venue in enumerate(event_data['venues']):
+        st.subheader(f"장소 {i+1}")
+        col1, col2 = st.columns(2)
+        with col1:
+            venue['name'] = st.text_input("장소명", value=venue.get('name', ''), key=f"venue_name_{i}")
+        with col2:
+            venue['address'] = st.text_input("주소", value=venue.get('address', ''), key=f"venue_address_{i}")
+        
+        if st.button(f"장소 {i+1} 삭제", key=f"delete_venue_{i}"):
+            event_data['venues'].pop(i)
+            st.experimental_rerun()
+
+    if st.button("장소 추가"):
+        event_data['venues'].append({'name': '', 'address': ''})
+        st.experimental_rerun()
+
+    if event_data['venue_status'] == "알 수 없는 상태":
         major_regions = [
             "서울", "부산", "인천", "대구", "대전", "광주", "울산", "세종",
             "경기도", "강원도", "충청북도", "충청남도", "전라북도", "전라남도", "경상북도", "경상남도", "제주도"
@@ -519,7 +535,7 @@ def display_event_info():
     </style>
     """, unsafe_allow_html=True)
     
-    current_step = st.session_state.get('step', 0)
+    current_step = st.session_state.step
     selected_step = option_menu(
         None, 
         step_names, 
@@ -532,22 +548,23 @@ def display_event_info():
             "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#eee"},
             "nav-link-selected": {"background-color": "#4CAF50"},
         },
-        key="step_selection"
     )
-    st.session_state.step = step_names.index(selected_step)
     
-    if 0 <= st.session_state.step < len(functions):
-        functions[st.session_state.step]()
-    else:
-        st.error(f"잘못된 단계입니다: {st.session_state.step}")
+    functions[current_step]()
     
-    col1, col2, col3 = st.columns([3, 4, 3])
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
     with col1:
-        if st.session_state.step > 0 and st.button("이전 단계로"):
-            st.session_state.step = max(st.session_state.step - 1, 0)
+        if current_step > 0:
+            if st.button("이전 단계로"):
+                st.session_state.step -= 1
+                st.experimental_rerun()
+    
     with col3:
-        if st.session_state.step < 3 and st.button("다음 단계로"):
-            st.session_state.step = min(st.session_state.step + 1, 3)
+        if current_step < len(functions) - 1:
+            if st.button("다음 단계로"):
+                st.session_state.step += 1
+                st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
