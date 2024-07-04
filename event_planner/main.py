@@ -111,8 +111,8 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
         styles={
             "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
             "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
-            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#d3d3d3"},
-            "nav-link-selected": {"background-color": "#4682b4", "color": "white"},  # 스틸 블루 배경, 흰색 글자
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc"},  # 연한 빨간색 호버
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white"},  # 토마토 색상 배경, 흰색 글자
         },
         key=key
     )
@@ -138,10 +138,10 @@ def display_event_info():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#e6f7ff"},  # 연한 파란색 배경
-            "icon": {"color": "#1e90ff", "font-size": "25px"},  # 도저 블루 아이콘
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#b0e0e6"},
-            "nav-link-selected": {"background-color": "#1e90ff", "color": "white"},  # 도저 블루 배경, 흰색 글자
+            "container": {"padding": "0!important", "background-color": "#ffe6e6"},  # 연한 빨간색 배경
+            "icon": {"color": "#ff6347", "font-size": "25px"},  # 토마토 색상 아이콘
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc"},  # 연한 빨간색 호버
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white"},  # 토마토 색상 배경, 흰색 글자
         },
     )
     
@@ -434,7 +434,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
                 "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
                 "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
-    elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
+    elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케���)"]:
         component[unit_key] = "컷"
     else:
         component[unit_key] = "개"
@@ -593,8 +593,8 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
         styles={
             "container": {"padding": "0!important", "background-color": "#f0f0f0"},  # 연한 회색 배경
             "icon": {"color": "#ff6347", "font-size": "16px"},  # 토마토 색상 아이콘
-            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#d3d3d3"},
-            "nav-link-selected": {"background-color": "#4682b4", "color": "white"},  # 스틸 블루 배경, 흰색 글자
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc"},  # 연한 빨간색 호버
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white"},  # 토마토 색상 배경, 흰색 글자
         },
         key=key
     )
@@ -620,10 +620,10 @@ def display_event_info():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 연한 파란색 배경
-            "icon": {"color": "darkblue", "font-size": "25px"}, 
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb"},
-            "nav-link-selected": {"background-color": "#1976d2"},  # 진한 파란색
+            "container": {"padding": "0!important", "background-color": "#ffe6e6"},  # 연한 빨간색 배경
+            "icon": {"color": "#ff6347", "font-size": "25px"},  # 토마토 색상 아이콘
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc"},  # 연한 빨간색 호버
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white"},  # 토마토 색상 배경, 흰색 글자
         },
     )
     
@@ -665,10 +665,10 @@ def display_event_info():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 연한 파란색 배경
-            "icon": {"color": "darkblue", "font-size": "25px"}, 
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb"},
-            "nav-link-selected": {"background-color": "#1976d2"},  # 진한 파란색
+            "container": {"padding": "0!important", "background-color": "#ffe6e6"},  # 연한 빨간색 배경
+            "icon": {"color": "#ff6347", "font-size": "25px"},  # 토마토 색상 아이콘
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc"},  # 연한 빨간색 호버
+            "nav-link-selected": {"background-color": "#ff6347", "color": "white"},  # 토마토 색상 배경, 흰색 글자
         },
     )
     
