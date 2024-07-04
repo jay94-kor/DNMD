@@ -138,10 +138,10 @@ def display_event_info():
         default_index=current_step, 
         orientation='horizontal',
         styles={
-            "container": {"padding": "0!important", "background-color": "#e0f7fa"},  # 연한 푸른색 배경
-            "icon": {"color": "#ff6347", "font-size": "25px"},  # 토마토 색상 아이콘
-            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#b2ebf2", "--icon-color": "#ff6347"},  # 연한 푸른색 호버, 토마토 색상 아이콘
-            "nav-link-selected": {"background-color": "#00796b", "color": "white", "--icon-color": "white"},  # 진한 푸른색 배경, 흰색 글자, 흰색 아이콘
+            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 매우 연한 푸른색 배경
+            "icon": {"color": "#1976d2", "font-size": "25px"},  # 진한 푸른색 아이콘
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb", "--icon-color": "#1976d2"},  # 연한 푸른색 호버, 진한 푸른색 아이콘
+            "nav-link-selected": {"background-color": "#2196f3", "color": "white", "--icon-color": "white"},  # 중간 푸른색 배경, 흰색 글자, 흰색 아이콘
         },
     )
     
