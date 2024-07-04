@@ -311,7 +311,7 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
         st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+        st.info("온라인 이벤트를 위해 '미디어' 카테고리��� 자동으로 추가되었습니다.")
 
     selected_categories = st.multiselect("카테고리 선택", categories, default=default_categories, key="selected_categories")
     return selected_categories
