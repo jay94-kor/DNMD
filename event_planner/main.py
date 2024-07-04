@@ -632,6 +632,20 @@ def display_event_info():
         st.experimental_rerun()
     
     functions[current_step]()
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        if current_step > 0:
+            if st.button("이전 단계로"):
+                st.session_state.step -= 1
+                st.experimental_rerun()
+    
+    with col3:
+        if current_step < len(functions) - 1:
+            if st.button("다음 단계로"):
+                st.session_state.step += 1
+                st.experimental_rerun()
 
 def main():
     st.title("이벤트 플래너")
