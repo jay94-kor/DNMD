@@ -100,6 +100,60 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
     
     st.write(f"입력된 연락처: {event_data.get('manager_contact', '')}")
 
+def render_option_menu(label: str, options: List[str], key: str) -> str:
+    icons = ["🔹" for _ in options]
+    default_value = st.session_state.get(key, options[0])
+    default_index = options.index(default_value) if default_value in options else 0
+    
+    selected = option_menu(
+        None, options,
+        icons=icons,
+        menu_icon="cast",
+        default_index=default_index,
+        orientation="horizontal",
+        styles={
+            "container": {"padding": "0!important", "background-color": "#ffebee"},  # 연한 붉은색 배경
+            "icon": {"color": "darkred", "font-size": "16px"}, 
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccb"},
+            "nav-link-selected": {"background-color": "#d32f2f"},  # 진한 붉은색
+        },
+        key=key
+    )
+    return selected
+
+def display_event_info():
+    st.title("이벤트 기획 정의서")
+    
+    functions = {
+        0: basic_info,
+        1: venue_info,
+        2: service_components,
+        3: generate_summary_excel
+    }
+    
+    step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
+    
+    current_step = st.session_state.step
+    selected_step = option_menu(
+        None, 
+        step_names, 
+        icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
+        default_index=current_step, 
+        orientation='horizontal',
+        styles={
+            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 연한 파란색 배경
+            "icon": {"color": "darkblue", "font-size": "25px"}, 
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb"},
+            "nav-link-selected": {"background-color": "#1976d2"},  # 진한 파란색
+        },
+    )
+    
+    if selected_step != step_names[current_step]:
+        st.session_state.step = step_names.index(selected_step)
+        st.experimental_rerun()
+    
+    functions[current_step]()
+
 def handle_event_type(event_data: Dict[str, Any]) -> None:
     event_data['event_type'] = render_option_menu(
         "용역 유형",
@@ -513,11 +567,14 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
 
 def render_option_menu(label: str, options: List[str], key: str) -> str:
     icons = [event_options.CATEGORY_ICONS.get(option, "🔹") for option in options]
+    default_value = st.session_state.get(key, options[0])
+    default_index = options.index(default_value) if default_value in options else 0
+    
     selected = option_menu(
         None, options,
         icons=icons,
         menu_icon="cast",
-        default_index=options.index(st.session_state.get(key, options[0])),
+        default_index=default_index,
         orientation="horizontal",
         styles={
             "container": {"padding": "0!important", "background-color": "#ffebee"},  # 연한 붉은색 배경
@@ -528,6 +585,39 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
         key=key
     )
     return selected
+
+def display_event_info():
+    st.title("이벤트 기획 정의서")
+    
+    functions = {
+        0: basic_info,
+        1: venue_info,
+        2: service_components,
+        3: generate_summary_excel
+    }
+    
+    step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
+    
+    current_step = st.session_state.step
+    selected_step = option_menu(
+        None, 
+        step_names, 
+        icons=['info-circle', 'geo-alt', 'list-task', 'file-earmark-spreadsheet'], 
+        default_index=current_step, 
+        orientation='horizontal',
+        styles={
+            "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 연한 파란색 배경
+            "icon": {"color": "darkblue", "font-size": "25px"}, 
+            "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb"},
+            "nav-link-selected": {"background-color": "#1976d2"},  # 진한 파란색
+        },
+    )
+    
+    if selected_step != step_names[current_step]:
+        st.session_state.step = step_names.index(selected_step)
+        st.experimental_rerun()
+    
+    functions[current_step]()
 
 def main():
     st.title("이벤트 플래너")
