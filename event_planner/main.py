@@ -103,8 +103,6 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
 def handle_event_type(event_data: Dict[str, Any]) -> None:
     default_index = event_options.EVENT_TYPES.index(event_data.get('event_type', event_options.EVENT_TYPES[0]))
     event_data['event_type'] = render_button_menu("용역 유형", event_options.EVENT_TYPES, "event_type")
-
-    default_contract_index = event_options.CONTRACT_TYPES.index(event_data.get('contract_type', event_options.CONTRACT_TYPES[0]))
     event_data['contract_type'] = render_button_menu("용역 종류", event_options.CONTRACT_TYPES, "contract_type")
 
 def handle_budget_info(event_data: Dict[str, Any]) -> None:
@@ -116,8 +114,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
         config['CONTRACT_STATUS_OPTIONS'],
         "contract_status"
     )
-    
-    default_vat_index = 0 if event_data.get('vat_included', True) else 1
+
     event_data['vat_included'] = render_button_menu(
         "부가세 포함 여부",
         config['VAT_OPTIONS'],
@@ -509,11 +506,13 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
 
 def render_button_menu(label: str, options: List[str], key: str) -> str:
     st.write(label)
+    selected = st.session_state.get(key, options[0])
     cols = st.columns(len(options))
     for i, option in enumerate(options):
-        if cols[i].button(option, key=f"{key}_{i}"):
+        if cols[i].button(option, key=f"{key}_{i}", type="secondary" if option != selected else "primary"):
+            st.session_state[key] = option
             return option
-    return options[0]  # 기본값 반환
+    return st.session_state[key]
 
 def main():
     st.title("이벤트 플래너")
