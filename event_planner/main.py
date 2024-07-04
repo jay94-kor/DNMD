@@ -164,18 +164,18 @@ def handle_video_production(event_data: Dict[str, Any]) -> None:
     st.write(f"과업 기간: {months}개월 {days}일")
 
 def handle_offline_event(event_data: Dict[str, Any]) -> None:
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("행사 시작일", value=event_data.get('start_date', date.today()), key="start_date")
-    with col2:
-        end_date = st.date_input("행사 종료일", value=event_data.get('end_date', start_date + timedelta(days=1)), key="end_date")
+    st.subheader("오프라인 이벤트 정보")
 
-    if start_date > end_date:
-        end_date = start_date + timedelta(days=1)
-        st.warning("행사 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
+    event_data['venue'] = st.text_input("장소", value=event_data.get('venue', ''), key="venue")
+    
+    event_data['venue_status'] = st.selectbox(
+        "장소 확정 상태",
+        item_options['STATUS_OPTIONS'],
+        index=item_options['STATUS_OPTIONS'].index(event_data.get('venue_status', '알 수 없는 상태'))
+    )
 
-    event_data['start_date'] = start_date
-    event_data['end_date'] = end_date
+    event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', datetime.date.today()), key="start_date")
+    event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', datetime.date.today()), key="end_date")
 
     # 셋업 시작 옵션
     setup_options = ["전날 셋업", "당일 셋업"]
@@ -293,10 +293,10 @@ def generate_summary_excel() -> None:
     
     try:
         create_excel_summary(event_data, summary_filename)
-        st.success(f"엑셀 정의서가 ��성되었습니다: {summary_filename}")
+        st.success(f"엑셀 정의서가 성되었습니다: {summary_filename}")
         
         with open(summary_filename, "rb") as file:
-            st.download_button(label="전체 행사 요약 정의서 다운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            st.download_button(label="전체 행사 요약 ���의서 다운로드", data=file, file_name=summary_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         
         for category, component in event_data.get('components', {}).items():
             category_filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
@@ -386,7 +386,7 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
     worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
     worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
-    worksheet['A8'] = f"셋��� 시작: {event_data.get('setup_start', '')}"
+    worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
     worksheet['A9'] = f"셋업 날짜: {event_data.get('setup_date', '')}"
     worksheet['A10'] = f"철수: {event_data.get('teardown', '')}"
     
@@ -421,7 +421,7 @@ def render_option_menu(label: str, options: List[str], icons: List[str], default
     return option_menu(label, options, icons=icons, default_index=default_index, orientation=orientation, key=key)
 
 def main():
-    st.title("이벤트 플래��")
+    st.title("이벤트 플래너")
     
     if 'current_event' not in st.session_state:
         st.session_state.current_event = None
@@ -429,6 +429,8 @@ def main():
         st.session_state.step = 0
     if 'event_data' not in st.session_state:
         st.session_state.event_data = {}
+
+    display_event_info()
 
 def display_event_info():
     st.title("이벤트 기획 정의서")
@@ -468,17 +470,6 @@ def display_event_info():
         if st.session_state.step < 3 and st.button("다음 단계로"):
             st.session_state.step = min(st.session_state.step + 1, 3)
 
-def main():
-    st.title("이벤트 플래너")
-    
-    if 'current_event' not in st.session_state:
-        st.session_state.current_event = None
-    if 'step' not in st.session_state:
-        st.session_state.step = 0
-    if 'event_data' not in st.session_state:
-        st.session_state.event_data = {}
-
-    display_event_info()
-
 if __name__ == "__main__":
     main()
+
