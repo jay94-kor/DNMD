@@ -103,6 +103,12 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     setup_index = 0 if event_data.get('setup_start') == "전날 셋업" else 1
     event_data['setup_start'] = render_option_menu("셋업 시작", setup_options, ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
 
+    # 셋업 날짜 계산
+    if event_data['setup_start'] == "전날 셋업":
+        event_data['setup_date'] = event_data['start_date'] - timedelta(days=1)
+    else:
+        event_data['setup_date'] = event_data['start_date']
+
     # 철수 옵션
     teardown_options = ["당일 철수", "다음날 철수"]
     teardown_index = 0 if event_data.get('teardown') == "당일 철수" else 1
@@ -243,7 +249,8 @@ def add_basic_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data
     worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
     worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
     worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
-    worksheet['A9'] = f"철수: {event_data.get('teardown', '')}"
+    worksheet['A9'] = f"셋업 날짜: {event_data.get('setup_date', '')}"
+    worksheet['A10'] = f"철수: {event_data.get('teardown', '')}"
     
     worksheet['A11'] = "예산 정보"
     worksheet['A12'] = f"총 계약 금액: {event_data.get('contract_amount', 0)}만원"
@@ -257,7 +264,7 @@ def add_basic_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data
         worksheet[cell].font = title_font
         worksheet[cell].fill = fill
 
-    for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A12', 'A13']:
+    for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13']:
         worksheet[cell].font = subtitle_font
 
 def generate_category_excel(category: str, component: Dict[str, Any], filename: str) -> None:
@@ -327,7 +334,7 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
         worksheet[cell].font = title_font
         worksheet[cell].fill = fill
 
-    for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A12', 'A13', 'A16', 'A17', 'A18']:
+    for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13', 'A16', 'A17', 'A18']:
         worksheet[cell].font = subtitle_font
 
 def render_option_menu(label: str, options: List[str], icons: List[str], default_index: int, orientation: str, key: str) -> str:
