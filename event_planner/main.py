@@ -449,12 +449,15 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     ws.column_dimensions['A'].width = 28.17
     
     df_full = pd.DataFrame([event_data])
-    if 'components' in df_full.columns:
-        df_full['components'] = df_full['components'].apply(lambda x: json.dumps(x) if x else None)
+    
+    # 복잡한 데이터 구조를 JSON 문자열로 변환
+    for column in df_full.columns:
+        if isinstance(df_full[column].iloc[0], (dict, list)):
+            df_full[column] = df_full[column].apply(lambda x: json.dumps(x, ensure_ascii=False) if x else None)
     
     for r, row in enumerate(df_full.values, start=1):
         for c, value in enumerate(row, start=1):
-            ws.cell(row=r, column=c, value=value)
+            ws.cell(row=r, column=c, value=str(value) if value is not None else '')
     
     add_basic_info(ws, event_data)
     
@@ -669,7 +672,7 @@ def main():
                     st.session_state.step += 1
                     st.rerun()  # 여기를 변경했습니다
                 else:
-                    st.error("모든 필수 항목을 입력해주세요.")
+                    st.error("모든 필수 항목을 입력해주���요.")
 
 if __name__ == "__main__":
     main()
