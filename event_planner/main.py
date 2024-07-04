@@ -430,23 +430,7 @@ def generate_summary_excel() -> None:
     summary_filename = f"이벤트_기획_정의서_{event_name}_{timestamp}.xlsx"
     
     try:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "전체 행사 요약"
-        
-        # 기본 정보 추가
-        add_basic_info(ws, event_data)
-        
-        # 장소 정보 추가
-        add_venue_info(ws, event_data)
-        
-        # 용역 구성 요소 추가
-        add_service_components(ws, event_data)
-        
-        # 스타일 적용
-        apply_styles(ws)
-        
-        wb.save(summary_filename)
+        create_excel_summary(event_data, summary_filename)
         st.success(f"엑셀 정의서가 성공적으로 생성되었습니다: {summary_filename}")
         
         with open(summary_filename, "rb") as file:
@@ -455,7 +439,7 @@ def generate_summary_excel() -> None:
         # 카테고리별 발주요청서 생성
         for category, component in event_data.get('components', {}).items():
             category_filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
-            generate_category_excel(category, component, category_filename)
+            create_category_excel(event_data, category, component, category_filename)
             try:
                 with open(category_filename, "rb") as file:
                     st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
@@ -466,107 +450,6 @@ def generate_summary_excel() -> None:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
         st.error("오류 상세 정보:")
         st.exception(e)
-
-def add_basic_info(ws, event_data):
-    ws['A1'] = "용역명"
-    ws['B1'] = event_data.get('event_name', '')
-    ws['C1'] = "고객사"
-    ws['D1'] = event_data.get('client_name', '')
-    
-    ws['A2'] = "담당자명"
-    ws['B2'] = event_data.get('manager_name', '')
-    ws['C2'] = "담당자 직급"
-    ws['D2'] = event_data.get('manager_position', '')
-    
-    ws['A3'] = "담당자 연락처"
-    ws['B3'] = event_data.get('manager_contact', '')
-    ws['C3'] = "행사 유형"
-    ws['D3'] = event_data.get('event_type', '')
-    
-    ws['A4'] = "용역 종류"
-    ws['B4'] = event_data.get('contract_type', '')
-    ws['C4'] = "규모"
-    ws['D4'] = f"{event_data.get('scale', '')}명"
-    
-    ws['A5'] = "시작일"
-    ws['B5'] = str(event_data.get('start_date', ''))
-    ws['C5'] = "종료일"
-    ws['D5'] = str(event_data.get('end_date', ''))
-    
-    ws['A6'] = "셋업 시작"
-    ws['B6'] = event_data.get('setup_start', '')
-    ws['C6'] = "철수"
-    ws['D6'] = event_data.get('teardown', '')
-    
-    ws['A7'] = "총 계약 금액"
-    ws['B7'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
-    ws['C7'] = "예상 수익률"
-    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}%"
-    
-    ws['A8'] = "예상 수익 금액"
-    ws['B8'] = f"{format_currency(event_data.get('expected_profit', 0))} 원"
-    ws['C8'] = "장소 확정 상태"
-    ws['D8'] = event_data.get('venue_status', '')
-    
-    # 열 너비 설정
-    for col in ['A', 'B', 'C', 'D']:
-        ws.column_dimensions[col].width = 30
-    
-    # 스타일 적용
-    apply_styles(ws)
-
-def add_venue_info(ws, event_data):
-    ws['A10'] = "장소 유형"
-    ws['B10'] = event_data.get('venue_type', '')
-    
-    if event_data.get('venue_type') != "온라인":
-        ws['A11'] = "장소명"
-        ws['B11'] = event_data.get('venue_name', '')
-        ws['C11'] = "주소"
-        ws['D11'] = event_data.get('venue_address', '')
-    else:
-        ws['A11'] = "온라인 플랫폼"
-        ws['B11'] = event_data.get('online_platform', '')
-
-def add_service_components(ws, event_data):
-    ws['A13'] = "용역 구성 요소"
-    row = 14
-    for category, component in event_data.get('components', {}).items():
-        ws.cell(row=row, column=1, value=category)
-        ws.cell(row=row, column=2, value="상태")
-        ws.cell(row=row, column=3, value=component.get('status', ''))
-        ws.cell(row=row, column=4, value="예산")
-        ws.cell(row=row, column=5, value=f"{format_currency(component.get('budget', 0))} 원")
-        row += 1
-        
-        ws.cell(row=row, column=2, value="세부 항목")
-        ws.cell(row=row, column=3, value="수량")
-        ws.cell(row=row, column=4, value="단위")
-        ws.cell(row=row, column=5, value="세부 사항")
-        row += 1
-        
-        for item in component.get('items', []):
-            ws.cell(row=row, column=2, value=item)
-            ws.cell(row=row, column=3, value=component.get(f'{item}_quantity', 0))
-            ws.cell(row=row, column=4, value=component.get(f'{item}_unit', '개'))
-            ws.cell(row=row, column=5, value=component.get(f'{item}_details', ''))
-            row += 1
-        
-        row += 1  # 카테고리 간 빈 행 추가
-
-def apply_styles(ws):
-    header_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
-    border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-    
-    for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
-        for cell in row:
-            cell.border = border
-            if cell.column_letter in ['A', 'C']:
-                cell.fill = header_fill
-                cell.font = Font(bold=True)
-
-def format_currency(amount):
-    return "{:,}".format(amount)
 
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
@@ -619,138 +502,119 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     ws['D8'] = event_data.get('venue_status', '')
     
     # 스타일 적용
-    apply_styles(ws)
+    apply_styles(ws, max_row=8, max_col=4)
     
     wb.save(filename)
 
+def create_category_excel(event_data: Dict[str, Any], category: str, component: Dict[str, Any], filename: str) -> None:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f'{category} 발주요청서'
+    
+    # 열 너비 설정
+    for col in ['A', 'B', 'C', 'D']:
+        ws.column_dimensions[col].width = 30
+    
+    # 기본 정보 추가
+    ws['A1'] = "용역명"
+    ws['B1'] = event_data.get('event_name', '')
+    ws['C1'] = "고객사"
+    ws['D1'] = event_data.get('client_name', '')
+    
+    ws['A2'] = "담당자명"
+    ws['B2'] = event_data.get('manager_name', '')
+    ws['C2'] = "담당자 직급"
+    ws['D2'] = event_data.get('manager_position', '')
+    
+    ws['A3'] = "담당자 연락처"
+    ws['B3'] = event_data.get('manager_contact', '')
+    ws['C3'] = "행사 유형"
+    ws['D3'] = event_data.get('event_type', '')
+    
+    ws['A4'] = "용역 종류"
+    ws['B4'] = event_data.get('contract_type', '')
+    ws['C4'] = "규모"
+    ws['D4'] = f"{event_data.get('scale', '')}명"
+    
+    ws['A5'] = "시작일"
+    ws['B5'] = str(event_data.get('start_date', ''))
+    ws['C5'] = "종료일"
+    ws['D5'] = str(event_data.get('end_date', ''))
+    
+    ws['A6'] = "셋업 시작"
+    ws['B6'] = event_data.get('setup_start', '')
+    ws['C6'] = "철수"
+    ws['D6'] = event_data.get('teardown', '')
+    
+    ws['A7'] = "총 계약 금액"
+    ws['B7'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
+    ws['C7'] = "예상 수익률"
+    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}%"
+    
+    ws['A8'] = "예상 수익 금액"
+    ws['B8'] = f"{format_currency(event_data.get('expected_profit', 0))} 원"
+    ws['C8'] = "장소 확정 상태"
+    ws['D8'] = event_data.get('venue_status', '')
+    
+    # 카테고리 정보 추가
+    ws['A10'] = "카테고리 정보"
+    ws['A11'] = f"카테고리: {category}"
+    ws['A12'] = f"진행 상황: {component.get('status', '')}"
+    ws['A13'] = f"예산: {format_currency(component.get('budget', 0))} 원"
+    ws['A14'] = f"선호 업체 여부: {'예' if component.get('preferred_vendor', False) else '아니오'}"
+    
+    if component.get('preferred_vendor', False):
+        ws['A15'] = f"선호 이유: {component.get('vendor_reason', '')}"
+        ws['A16'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
+        ws['A17'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
+        ws['A18'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
+    
+    # 발주 요청 항목
+    ws['A20'] = "발주 요청 항목"
+    df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
+    for item in component.get('items', []):
+        quantity = component.get(f'{item}_quantity', 0)
+        unit = component.get(f'{item}_unit', '개')
+        details = component.get(f'{item}_details', '')
+        new_row = pd.DataFrame({
+            '항목': [item],
+            '수량': [quantity],
+            '단위': [unit],
+            '세부사항': [details]
+        })
+        df_component = pd.concat([df_component, new_row], ignore_index=True)
+    
+    # 데이터프레임이 비어있는 경우 빈 행 추가
+    if df_component.empty:
+        df_component = pd.DataFrame({
+            '항목': ['항목 없음'],
+            '수량': [0],
+            '단위': ['-'],
+            '세부사항': ['-']
+        })
+    
+    for r, row in enumerate(dataframe_to_rows(df_component, index=False, header=True), 1):
+        for c, value in enumerate(row, 1):
+            ws.cell(row=r+23, column=c, value=value)
+    
+    # 스타일 적용
+    apply_styles(ws, max_row=ws.max_row, max_col=4)
+    
+    wb.save(filename)
 
-def apply_styles(ws):
+def apply_styles(ws, max_row, max_col):
     header_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
     border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
     
-    for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+    for row in ws.iter_rows(min_row=1, max_row=max_row, min_col=1, max_col=max_col):
         for cell in row:
             cell.border = border
-            if cell.column_letter in ['A', 'C']:
+            if cell.row == 1 or cell.column in [1, 3]:
                 cell.fill = header_fill
                 cell.font = Font(bold=True)
 
 def format_currency(amount):
     return "{:,}".format(amount)
-
-def add_basic_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data: Dict[str, Any]) -> None:
-    worksheet.insert_rows(0, amount=10)
-    worksheet['A1'] = "기본 정보"
-    worksheet['A2'] = f"용역명: {event_data.get('event_name', '')}"
-    worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
-    worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
-    worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
-    worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
-    worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
-    worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
-    worksheet['A9'] = f"셋업 날짜: {event_data.get('setup_date', '')}"
-    worksheet['A10'] = f"철수: {event_data.get('teardown', '')}"
-    
-    worksheet['A11'] = "예산 정보"
-    worksheet['A12'] = f"총 계약 금액: {format_currency(event_data.get('contract_amount', 0))} 원"
-    worksheet['A13'] = f"총 예상 수익: {format_currency(event_data.get('expected_profit', 0))} 원"
-
-    title_font = Font(bold=True, size=14)
-    subtitle_font = Font(bold=True, size=12)
-    fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
-
-    for cell in ['A1', 'A11']:
-        worksheet[cell].font = title_font
-        worksheet[cell].fill = fill
-
-    for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13']:
-        worksheet[cell].font = subtitle_font
-
-def generate_category_excel(category: str, component: Dict[str, Any], filename: str) -> None:
-    event_data = st.session_state.event_data
-    event_name = event_data.get('event_name', '무제')
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
-    try:
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = f'{category} 발주요청서'
-        
-        df_component = pd.DataFrame(columns=['항목', '수량', '단위', '세부사항'])
-        for item in component.get('items', []):
-            quantity = component.get(f'{item}_quantity', 0)
-            unit = component.get(f'{item}_unit', '개')
-            details = component.get(f'{item}_details', '')
-            new_row = pd.DataFrame({
-                '항목': [item],
-                '수량': [quantity],
-                '단위': [unit],
-                '세부사항': [details]
-            })
-            df_component = pd.concat([df_component, new_row], ignore_index=True)
-        
-        # 데이터프레임이 비어있는 경우 빈 행 추가
-        if df_component.empty:
-            df_component = pd.DataFrame({
-                '항목': ['항목 없음'],
-                '수량': [0],
-                '단위': ['-'],
-                '세부사항': ['-']
-            })
-        
-        for r, row in enumerate(dataframe_to_rows(df_component, index=False, header=True), 1):
-            for c, value in enumerate(row, 1):
-                ws.cell(row=r+23, column=c, value=value)
-        
-        add_category_info(ws, event_data, category, component)
-        
-        wb.save(filename)
-        
-        st.success(f"엑셀 발주요청서가 성공적으로 생성되었습니다: {filename}")
-        
-    except Exception as e:
-        st.error(f"{category} 발주요청서 생성 중 오류가 발생했습니다: {str(e)}")
-        st.exception(e)
-        
-def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_data: Dict[str, Any], category: str, component: Dict[str, Any]) -> None:
-    worksheet.insert_rows(0, amount=23)
-    worksheet['A1'] = "기본 정보"
-    worksheet['A2'] = f"용역명: {event_data.get('event_name', '')}"
-    worksheet['A3'] = f"고객사: {event_data.get('client_name', '')}"
-    worksheet['A4'] = f"행사 유형: {event_data.get('event_type', '')}"
-    worksheet['A5'] = f"규모: {event_data.get('scale', '')}명"
-    worksheet['A6'] = f"시작일: {event_data.get('start_date', '')}"
-    worksheet['A7'] = f"종료일: {event_data.get('end_date', '')}"
-    worksheet['A8'] = f"셋업 시작: {event_data.get('setup_start', '')}"
-    worksheet['A9'] = f"셋업 날짜: {event_data.get('setup_date', '')}"
-    worksheet['A10'] = f"철수: {event_data.get('teardown', '')}"
-    
-    worksheet['A11'] = "예산 정보"
-    worksheet['A12'] = f"총 계약 금액: {format_currency(event_data.get('contract_amount', 0))} 원"
-    worksheet['A13'] = f"총 예상 수익: {format_currency(event_data.get('expected_profit', 0))} 원"
-    
-    worksheet['A15'] = "발주요청서"
-    worksheet['A16'] = f"카테고리: {category}"
-    worksheet['A17'] = f"진행 상황: {component.get('status', '')}"
-    worksheet['A18'] = f"예산: {format_currency(component.get('budget', 0))} 원"
-
-    worksheet['A19'] = f"선호 업체 여부: {'예' if component.get('preferred_vendor', False) else '아니오'}"
-    if component.get('preferred_vendor', False):
-        worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
-        worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
-        worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
-        worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
-
-    title_font = Font(bold=True, size=14)
-    subtitle_font = Font(bold=True, size=12)
-    fill = PatternFill(start_color="FFFFE0", end_color="FFFFE0", fill_type="solid")
-
-    for cell in ['A1', 'A11', 'A15']:
-        worksheet[cell].font = title_font
-        worksheet[cell].fill = fill
-
-    for cell in ['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'A12', 'A13', 'A16', 'A17', 'A18']:
-        worksheet[cell].font = subtitle_font
 
 def render_option_menu(label: str, options: List[str], key: str) -> str:
     icons = ["🔹" for _ in options]
@@ -884,7 +748,7 @@ def main():
         orientation='horizontal',
         styles={
             "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 매우 연한 푸른색 배경
-            "icon": {"color": "#1976d2", "font-size": "25px"},  # 진한 푸른색 아이콘
+            "icon": {"color": "#1976d2", "font-size": "25px"},  # 진한 푸��색 아이콘
             "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb", "--icon-color": "#1976d2"},  # 연한 푸른색 호버, 진한 푸른색 아이콘
             "nav-link-selected": {"background-color": "#2196f3", "color": "white", "--icon-color": "white"},  # 중간 푸른색 배경, 흰색 글자, 흰색 아이콘
         },
