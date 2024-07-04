@@ -201,6 +201,7 @@ def venue_info() -> None:
         event_data['address'] = st.text_input("주소", value=event_data.get('address', ''), key="address")
     else:
         event_data['desired_region'] = st.text_input("희망하는 지역", value=event_data.get('desired_region', ''), key="desired_region")
+        event_data['desired_capacity'] = st.number_input("희망하는 수용 인원", min_value=0, value=int(event_data.get('desired_capacity', 0)), key="desired_capacity")
 
     venue_type_options = ["실내", "실외", "혼합", "온라인"]
     default_venue_type = event_data.get('venue_type', '실내')
@@ -210,7 +211,8 @@ def venue_info() -> None:
     event_data['venue_type'] = render_option_menu("희망하는 장소 유형", venue_type_options, ['building', 'tree', 'house', 'laptop'], default_venue_type_index, orientation='horizontal', key="venue_type")
 
     if event_data['venue_type'] in ["실내", "혼합"]:
-        event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
+        if event_data['venue_status'] != "알 수 없는 상태":
+            event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
 
         facility_options = ["음향 시설", "조명 시설", "LED 시설", "빔프로젝트 시설", "주차", "Wifi", "기타"]
         event_data['facilities'] = st.multiselect("시설", facility_options, default=[f for f in event_data.get('facilities', []) if f in facility_options], key="facilities")
