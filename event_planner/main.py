@@ -92,6 +92,13 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
         horizontal=True
     )
     
+    event_data['vat_included'] = st.radio(
+        "부가세 포함 여부",
+        ["부가세 포함", "부가세 미포함"],
+        index=0 if event_data.get('vat_included', True) else 1,
+        horizontal=True
+    )
+    
     event_data['contract_amount'] = st.number_input(
         "총 계약 금액 (원)", 
         min_value=0, 
@@ -99,7 +106,17 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
         key="contract_amount",
         format="%d"
     )
+    
+    if event_data['vat_included'] == "부가세 포함":
+        original_amount = event_data['contract_amount'] / 1.1
+        vat_amount = event_data['contract_amount'] - original_amount
+    else:
+        original_amount = event_data['contract_amount']
+        vat_amount = original_amount * 0.1
+    
     st.write(f"입력된 계약 금액: {format_currency(event_data['contract_amount'])} 원")
+    st.write(f"원금: {format_currency(original_amount)} 원")
+    st.write(f"부가세: {format_currency(vat_amount)} 원")
     
     if event_data['contract_status'] == "추가 예정":
         event_data['additional_amount'] = st.number_input(
@@ -122,7 +139,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     )
     
     total_amount = event_data['contract_amount'] + event_data.get('additional_amount', 0)
-    expected_profit = total_amount * (event_data['expected_profit_percentage'] / 100)
+    expected_profit = original_amount * (event_data['expected_profit_percentage'] / 100)
     
     event_data['expected_profit'] = expected_profit
     
