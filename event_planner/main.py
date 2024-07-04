@@ -129,16 +129,28 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     
     default_contract_status_index = config['CONTRACT_STATUS_OPTIONS'].index(event_data.get('contract_status', '확정'))
     event_data['contract_status'] = render_option_menu(
-        "���약 금액 상태",
+        "계약 금액 상태",
         config['CONTRACT_STATUS_OPTIONS'],
         "contract_status"
     )
 
-    event_data['vat_included'] = render_option_menu(
-        "부가세 포함 부",
-        config['VAT_OPTIONS'],
-        "vat_included"
-    ) == config['VAT_OPTIONS'][0]
+    vat_options = config['VAT_OPTIONS']
+    vat_included = option_menu(
+        "부가세 포함 여부",
+        options=vat_options,
+        icons=['check-circle', 'x-circle'],
+        menu_icon="coin",
+        default_index=0,
+        orientation="horizontal",
+        styles={
+            "container": {"padding": "0!important", "background-color": "#FFF9C4"},  # 연한 노란색 배경
+            "icon": {"color": "#FBC02D", "font-size": "16px"},  # 진한 노란색 아이콘
+            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#FFF59D", "--icon-color": "#FBC02D"},  # 연한 노란색 호버, 진한 노란색 아이콘
+            "nav-link-selected": {"background-color": "#FBC02D", "color": "white", "--icon-color": "white"},  # 진한 노란색 배경, 흰색 글자, 흰색 아이콘
+        },
+        key="vat_included"
+    )
+    event_data['vat_included'] = (vat_included == vat_options[0])
     
     event_data['contract_amount'] = st.number_input(
         "총 계약 금액 (원)", 
@@ -195,7 +207,7 @@ def handle_video_production(event_data: Dict[str, Any]) -> None:
 
     if start_date > end_date:
         end_date = start_date + timedelta(days=365)
-        st.warning("과업 종료일이 시작일 이전이어서 자동으로 조정되었습니���.")
+        st.warning("과업 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
 
     event_data['start_date'] = start_date
     event_data['end_date'] = end_date
@@ -329,7 +341,7 @@ def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
 
     if event_data.get('event_type') == "영상 제작" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되��습니다.")
+        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
         st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
