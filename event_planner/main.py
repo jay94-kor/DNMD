@@ -8,10 +8,12 @@ from openpyxl.styles import Font, PatternFill
 import os
 from typing import Dict, Any, List
 import logging
+import re
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
 JSON_PATH = os.path.join(os.path.dirname(__file__), 'item_options.json')
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 
 EVENT_TABLE_COLUMNS = [
     'event_name', 'client_name', 'manager_name', 'manager_contact', 'event_type', 
@@ -33,10 +35,18 @@ class EventOptions:
 with open(JSON_PATH, 'r', encoding='utf-8') as file:
     item_options = json.load(file)
 
+# config.json 파일에서 설정 로드
+with open(CONFIG_PATH, 'r', encoding='utf-8') as file:
+    config = json.load(file)
+
 event_options = EventOptions(item_options)
 
 def format_currency(amount: float) -> str:
     return f"{amount:,.0f}"
+
+def format_phone_number(number):
+    pattern = r'(\d{3})(\d{3,4})(\d{4})'
+    return re.sub(pattern, r'\1-\2-\3', number)
 
 def basic_info() -> None:
     event_data = st.session_state.event_data
@@ -73,7 +83,22 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
     event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic")
-    event_data['manager_contact'] = st.text_input("담당자 연락처", value=event_data.get('manager_contact', ''), key="manager_contact_basic")
+    
+    event_data['manager_position'] = st.selectbox(
+        "담당자 직급",
+        options=["선임", "책임", "수석"],
+        index=["선임", "책임", "수석"].index(event_data.get('manager_position', '선임'))
+    )
+    
+    manager_contact = st.text_input(
+        "담당자 연락처",
+        value=event_data.get('manager_contact', ''),
+        help="형식: 010-1234-5678"
+    )
+    if manager_contact:
+        event_data['manager_contact'] = format_phone_number(re.sub(r'\D', '', manager_contact))
+    
+    st.write(f"입력된 연락처: {event_data.get('manager_contact', '')}")
 
 def handle_event_type(event_data: Dict[str, Any]) -> None:
     default_index = event_options.EVENT_TYPES.index(event_data.get('event_type', event_options.EVENT_TYPES[0]))
@@ -85,27 +110,25 @@ def handle_event_type(event_data: Dict[str, Any]) -> None:
 def handle_budget_info(event_data: Dict[str, Any]) -> None:
     st.header("예산 정보")
     
-    contract_status_options = ["확정", "미확정", "추가 예정"]
-    default_contract_status_index = contract_status_options.index(event_data.get('contract_status', '확정'))
+    default_contract_status_index = config['CONTRACT_STATUS_OPTIONS'].index(event_data.get('contract_status', '확정'))
     event_data['contract_status'] = render_option_menu(
         "계약 금액 상태",
-        contract_status_options,
+        config['CONTRACT_STATUS_OPTIONS'],
         ['check-circle', 'question-circle', 'plus-circle'],
         default_contract_status_index,
         orientation='horizontal',
         key="contract_status"
     )
     
-    vat_options = ["부가세 포함", "부가세 미포함"]
     default_vat_index = 0 if event_data.get('vat_included', True) else 1
     event_data['vat_included'] = render_option_menu(
         "부가세 포함 여부",
-        vat_options,
+        config['VAT_OPTIONS'],
         ['check-square', 'square'],
         default_vat_index,
         orientation='horizontal',
         key="vat_included"
-    ) == "부가세 포함"
+    ) == config['VAT_OPTIONS'][0]
     
     event_data['contract_amount'] = st.number_input(
         "총 계약 금액 (원)", 
@@ -177,18 +200,16 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', date.today()), key="start_date")
     event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', event_data['start_date']), key="end_date")
 
-    setup_options = ["전날 셋업", "당일 셋업"]
-    setup_index = 0 if event_data.get('setup_start') == "전날 셋업" else 1
-    event_data['setup_start'] = render_option_menu("셋업 시작", setup_options, ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
+    setup_index = 0 if event_data.get('setup_start') == config['SETUP_OPTIONS'][0] else 1
+    event_data['setup_start'] = render_option_menu("셋업 시작", config['SETUP_OPTIONS'], ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
 
-    if event_data['setup_start'] == "전날 셋업":
+    if event_data['setup_start'] == config['SETUP_OPTIONS'][0]:
         event_data['setup_date'] = event_data['start_date'] - timedelta(days=1)
     else:
         event_data['setup_date'] = event_data['start_date']
 
-    teardown_options = ["당일 철수", "다음날 철수"]
-    teardown_index = 0 if event_data.get('teardown') == "당일 철수" else 1
-    event_data['teardown'] = render_option_menu("철수", teardown_options, ['calendar-check', 'calendar-plus'], teardown_index, orientation='horizontal', key="teardown")
+    teardown_index = 0 if event_data.get('teardown') == config['TEARDOWN_OPTIONS'][0] else 1
+    event_data['teardown'] = render_option_menu("철수", config['TEARDOWN_OPTIONS'], ['calendar-check', 'calendar-plus'], teardown_index, orientation='horizontal', key="teardown")
 
 def venue_info() -> None:
     event_data = st.session_state.event_data
@@ -329,11 +350,10 @@ def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
     
     if component['preferred_vendor']:
-        vendor_reason_options = ["발주처의 지정", "동일 과업 진행 경험", "퀄리티 만족한 경험"]
-        default_reason_index = vendor_reason_options.index(component.get('vendor_reason', vendor_reason_options[0]))
+        default_reason_index = config['VENDOR_REASON_OPTIONS'].index(component.get('vendor_reason', config['VENDOR_REASON_OPTIONS'][0]))
         component['vendor_reason'] = render_option_menu(
             "선호하는 이유를 선택해주세요:",
-            vendor_reason_options,
+            config['VENDOR_REASON_OPTIONS'],
             ['building', 'check-circle', 'star'],
             default_reason_index,
             orientation='horizontal',
