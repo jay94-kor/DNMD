@@ -509,7 +509,7 @@ def render_button_menu(label: str, options: List[str], key: str) -> str:
     selected = st.session_state.get(key, options[0])
     cols = st.columns(len(options))
     for i, option in enumerate(options):
-        if cols[i].button(option, key=f"{key}_{i}", type="secondary" if option != selected else "primary"):
+        if cols[i].button(option, key=f"{key}_{i}", type="primary" if option == selected else "secondary"):
             st.session_state[key] = option
             return option
     return selected
