@@ -230,10 +230,15 @@ def venue_info() -> None:
             event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
 
         facility_options = ["음향 시설", "조명 시설", "LED 시설", "빔프로젝트 시설", "주차", "Wifi", "기타"]
-        event_data['facilities'] = st.multiselect("시설", facility_options, default=[f for f in event_data.get('facilities', []) if f in facility_options], key="facilities")
+        selected_facilities = st.multiselect("시설", facility_options, default=[f for f in event_data.get('facilities', []) if f in facility_options], key="facilities")
         
-        if "기타" in event_data['facilities']:
-            event_data['other_facilities'] = st.text_input("기타 시설 상세", value=event_data.get('other_facilities', ''), key="other_facilities")
+        other_facilities = []
+        if "기타" in selected_facilities:
+            other_facility = st.text_input("기타 시설 입력", key="other_facility_input")
+            if other_facility:
+                other_facilities.append(other_facility)
+        
+        event_data['facilities'] = [f for f in selected_facilities if f != "기타"] + other_facilities
 
     if event_data['venue_type'] != "온라인":
         event_data['venue_budget'] = st.number_input("장소 대관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
@@ -451,7 +456,7 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     if component.get('preferred_vendor', False):
         worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
         worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
-        worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
+        worksheet['A22'] = f"선호 업체 연��처: {component.get('vendor_contact', '')}"
         worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
     
     title_font = Font(bold=True, size=14)
