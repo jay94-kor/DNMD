@@ -98,8 +98,15 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = start_date
     event_data['end_date'] = end_date
 
-    event_data['setup_start'] = st.text_input("셋업 시작", value=event_data.get('setup_start', ''), key="setup_start")
-    event_data['teardown'] = st.text_input("철수", value=event_data.get('teardown', ''), key="teardown")
+    # 셋업 시작 옵션
+    setup_options = ["전날 셋업", "당일 셋업"]
+    setup_index = 0 if event_data.get('setup_start') == "전날 셋업" else 1
+    event_data['setup_start'] = render_option_menu("셋업 시작", setup_options, ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
+
+    # 철수 옵션
+    teardown_options = ["당일 철수", "다음날 철수"]
+    teardown_index = 0 if event_data.get('teardown') == "당일 철수" else 1
+    event_data['teardown'] = render_option_menu("철수", teardown_options, ['calendar-check', 'calendar-plus'], teardown_index, orientation='horizontal', key="teardown")
 
 def venue_info() -> None:
     event_data = st.session_state.event_data
