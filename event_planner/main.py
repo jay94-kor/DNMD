@@ -165,11 +165,11 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     )
     
     if event_data['vat_included']:
-        original_amount = event_data['contract_amount'] / 1.1
-        vat_amount = event_data['contract_amount'] - original_amount
+        original_amount = round(event_data['contract_amount'] / 1.1)
+        vat_amount = round(event_data['contract_amount'] - original_amount)
     else:
         original_amount = event_data['contract_amount']
-        vat_amount = original_amount * 0.1
+        vat_amount = round(original_amount * 0.1)
     
     st.write(f"입력된 계약 금액: {format_currency(event_data['contract_amount'])} 원")
     st.write(f"원금: {format_currency(original_amount)} 원")
