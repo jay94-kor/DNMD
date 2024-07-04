@@ -173,13 +173,8 @@ def handle_video_production(event_data: Dict[str, Any]) -> None:
 def handle_offline_event(event_data: Dict[str, Any]) -> None:
     st.subheader("오프라인 이벤트 정보")
 
-    event_data['venue'] = st.text_input("장소", value=event_data.get('venue', ''), key="venue")
-    
-    default_status_index = event_options.STATUS_OPTIONS.index(event_data.get('venue_status', event_options.STATUS_OPTIONS[-1]))
-    event_data['venue_status'] = render_option_menu("장소 확정 상태", event_options.STATUS_OPTIONS, ['question-circle', 'check-circle', 'exclamation-circle', 'info-circle'], default_status_index, orientation='horizontal', key="venue_status")
-
-    event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', datetime.date.today()), key="start_date")
-    event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', datetime.date.today()), key="end_date")
+    event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', date.today()), key="start_date")
+    event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', event_data['start_date']), key="end_date")
 
     setup_options = ["전날 셋업", "당일 셋업"]
     setup_index = 0 if event_data.get('setup_start') == "전날 셋업" else 1
@@ -421,7 +416,7 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     if component.get('preferred_vendor', False):
         worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
         worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
-        worksheet['A22'] = f"선호 업체 ��락처: {component.get('vendor_contact', '')}"
+        worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
         worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
     
     title_font = Font(bold=True, size=14)
