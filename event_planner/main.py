@@ -517,17 +517,30 @@ def add_venue_info(ws, event_data):
         ws['B21'] = event_data.get('venue_contact', '')
 
 def add_service_components(ws, event_data):
-    ws['A23'] = "용역 구성 요소"
-    row = 24
+    ws['A22'] = "용역 구성 요소"
+    row = 23
     for category, component in event_data.get('components', {}).items():
-        ws[f'A{row}'] = category
+        ws.cell(row=row, column=1, value=category)
+        ws.cell(row=row, column=2, value="상태")
+        ws.cell(row=row, column=3, value=component.get('status', ''))
+        ws.cell(row=row, column=4, value="예산")
+        ws.cell(row=row, column=5, value=f"{format_currency(component.get('budget', 0))} 원")
         row += 1
-        for item, details in component.items():
-            ws[f'A{row}'] = item
-            ws[f'B{row}'] = details.get('quantity', 0)
-            ws[f'C{row}'] = details.get('unit', '개')
-            ws[f'D{row}'] = details.get('details', '')
+        
+        ws.cell(row=row, column=2, value="세부 항목")
+        ws.cell(row=row, column=3, value="수량")
+        ws.cell(row=row, column=4, value="단위")
+        ws.cell(row=row, column=5, value="세부 사항")
+        row += 1
+        
+        for item in component.get('items', []):
+            ws.cell(row=row, column=2, value=item)
+            ws.cell(row=row, column=3, value=component.get(f'{item}_quantity', 0))
+            ws.cell(row=row, column=4, value=component.get(f'{item}_unit', '개'))
+            ws.cell(row=row, column=5, value=component.get(f'{item}_details', ''))
             row += 1
+        
+        row += 1  # 카테고리 간 빈 행 추가
 
 def apply_styles(ws):
     for col in ws.columns:
