@@ -85,19 +85,26 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     st.header("예산 정보")
     
     contract_status_options = ["확정", "미확정", "추가 예정"]
-    event_data['contract_status'] = st.radio(
+    default_contract_status_index = contract_status_options.index(event_data.get('contract_status', '확정'))
+    event_data['contract_status'] = render_option_menu(
         "계약 금액 상태",
         contract_status_options,
-        index=contract_status_options.index(event_data.get('contract_status', '확정')),
-        horizontal=True
+        ['check-circle', 'question-circle', 'plus-circle'],
+        default_contract_status_index,
+        orientation='horizontal',
+        key="contract_status"
     )
     
-    event_data['vat_included'] = st.radio(
+    vat_options = ["부가세 포함", "부가세 미포함"]
+    default_vat_index = 0 if event_data.get('vat_included', True) else 1
+    event_data['vat_included'] = render_option_menu(
         "부가세 포함 여부",
-        ["부가세 포함", "부가세 미포함"],
-        index=0 if event_data.get('vat_included', True) else 1,
-        horizontal=True
-    )
+        vat_options,
+        ['check-square', 'square'],
+        default_vat_index,
+        orientation='horizontal',
+        key="vat_included"
+    ) == "부가세 포함"
     
     event_data['contract_amount'] = st.number_input(
         "총 계약 금액 (원)", 
@@ -107,7 +114,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
         format="%d"
     )
     
-    if event_data['vat_included'] == "부가세 포함":
+    if event_data['vat_included']:
         original_amount = event_data['contract_amount'] / 1.1
         vat_amount = event_data['contract_amount'] - original_amount
     else:
@@ -178,7 +185,6 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     setup_index = 0 if event_data.get('setup_start') == "전날 셋업" else 1
     event_data['setup_start'] = render_option_menu("셋업 시작", setup_options, ['calendar-minus', 'calendar-check'], setup_index, orientation='horizontal', key="setup_start")
 
-    # 셋업 날짜 계산
     if event_data['setup_start'] == "전날 셋업":
         event_data['setup_date'] = event_data['start_date'] - timedelta(days=1)
     else:
@@ -219,7 +225,15 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
     st.subheader(category)
     component = event_data['components'].get(category, {})
     
-    component['status'] = st.radio(f"{category} 진행 상황", event_options.STATUS_OPTIONS, index=event_options.STATUS_OPTIONS.index(component.get('status', event_options.STATUS_OPTIONS[0])))
+    default_status_index = event_options.STATUS_OPTIONS.index(component.get('status', event_options.STATUS_OPTIONS[0]))
+    component['status'] = render_option_menu(
+        f"{category} 진행 상황",
+        event_options.STATUS_OPTIONS,
+        ['question-circle', 'check-circle', 'exclamation-circle', 'info-circle'],
+        default_status_index,
+        orientation='horizontal',
+        key=f"{category}_status"
+    )
     
     component['items'] = st.multiselect(
         f"{category} 항목 선택",
@@ -241,9 +255,14 @@ def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['preferred_vendor'] = st.checkbox("이 카테고리에 대해 선호하는 업체가 있습니까?", key=f"{category}_preferred_vendor")
     
     if component['preferred_vendor']:
-        component['vendor_reason'] = st.radio(
+        vendor_reason_options = ["발주처의 지정", "동일 과업 진행 경험", "퀄리티 만족한 경험"]
+        default_reason_index = vendor_reason_options.index(component.get('vendor_reason', vendor_reason_options[0]))
+        component['vendor_reason'] = render_option_menu(
             "선호하는 이유를 선택해주세요:",
-            ["발주처의 지정", "동일 과업 진행 경험", "퀄리티 만족한 경험"],
+            vendor_reason_options,
+            ['building', 'check-circle', 'star'],
+            default_reason_index,
+            orientation='horizontal',
             key=f"{category}_vendor_reason"
         )
         component['vendor_name'] = st.text_input("선호 업체 상호명", value=component.get('vendor_name', ''), key=f"{category}_vendor_name")
@@ -402,7 +421,7 @@ def add_category_info(worksheet: openpyxl.worksheet.worksheet.Worksheet, event_d
     if component.get('preferred_vendor', False):
         worksheet['A20'] = f"선호 이유: {component.get('vendor_reason', '')}"
         worksheet['A21'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
-        worksheet['A22'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
+        worksheet['A22'] = f"선호 업체 ��락처: {component.get('vendor_contact', '')}"
         worksheet['A23'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
     
     title_font = Font(bold=True, size=14)
