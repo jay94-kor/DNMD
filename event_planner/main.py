@@ -249,7 +249,7 @@ def check_password(event_id: int) -> bool:
             conn.close()
     return False
 
-# 새로운 이벤트 생성 함
+# 새로운 이벤트 ���성 함
 def create_new_event():
     st.session_state.event_data = {}
     st.session_state.current_event = None
@@ -381,7 +381,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     with col1:
         start_date = st.date_input("행사 시작일", value=event_data.get('start_date', date.today()), key="start_date")
     with col2:
-        end_date = st.date_input("행사 종료���", value=event_data.get('end_date', start_date + timedelta(days=1)), key="end_date")
+        end_date = st.date_input("행사 종료", value=event_data.get('end_date', start_date + timedelta(days=1)), key="end_date")
 
     if start_date > end_date:
         end_date = start_date + timedelta(days=1)
@@ -404,7 +404,7 @@ def venue_info() -> None:
     event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
     event_data['facilities'] = st.text_area("시", value=event_data.get('facilities', ''), key="facilities")
 
-# 용역 ��� 요소 입력 함수
+# 용역  요소 입력 함수
 def service_components() -> None:
     event_data = st.session_state.event_data
     st.header("용역 구성 요소")
@@ -463,7 +463,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
                 "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
                 "2D / 모션그래픽 제작", "3D 영상 제작", "사 배경 영상", 
-                "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
+                "행사 사��� 영상", "스케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
     elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
         component[unit_key] = "컷"
@@ -479,7 +479,7 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
 
     if event_data.get('event_type') == "영상 제작" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 ���가되었습니다.")
+        st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
         st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
