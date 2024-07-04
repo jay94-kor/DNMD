@@ -48,7 +48,20 @@ def basic_info() -> None:
         handle_offline_event(event_data)
 
 def handle_general_info(event_data: Dict[str, Any]) -> None:
-    event_data['scale'] = st.number_input("예상 참여 관객 수", min_value=0, value=int(event_data.get('scale', 0)), key="scale_input_basic")
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col1:
+        if st.button("-50", key="decrease_scale"):
+            event_data['scale'] = max(0, event_data.get('scale', 0) - 50)
+    with col2:
+        event_data['scale'] = st.number_input("예상 참여 관객 수", 
+                                              min_value=0, 
+                                              value=event_data.get('scale', 0), 
+                                              step=50,
+                                              key="scale_input_basic")
+    with col3:
+        if st.button("+50", key="increase_scale"):
+            event_data['scale'] = event_data.get('scale', 0) + 50
+
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
     event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic")
