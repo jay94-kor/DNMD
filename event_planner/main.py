@@ -212,14 +212,14 @@ def venue_info() -> None:
     if event_data['venue_type'] in ["실내", "혼합"]:
         event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
 
-    if event_data['venue_type'] == "실내":
         facility_options = ["음향 시설", "조명 시설", "LED 시설", "빔프로젝트 시설", "주차", "Wifi", "기타"]
         event_data['facilities'] = st.multiselect("시설", facility_options, default=[f for f in event_data.get('facilities', []) if f in facility_options], key="facilities")
         
         if "기타" in event_data['facilities']:
             event_data['other_facilities'] = st.text_input("기타 시설 상세", value=event_data.get('other_facilities', ''), key="other_facilities")
 
-    event_data['venue_budget'] = st.number_input("장소 대관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
+    if event_data['venue_type'] != "온라인":
+        event_data['venue_budget'] = st.number_input("장소 대관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
 
 def service_components() -> None:
     event_data = st.session_state.event_data
@@ -311,7 +311,7 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
         st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("온라인 이벤트를 위해 '미디어' 카테고리��� 자동으로 추가되었습니다.")
+        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
 
     selected_categories = st.multiselect("카테고리 선택", categories, default=default_categories, key="selected_categories")
     return selected_categories
