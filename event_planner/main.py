@@ -193,15 +193,30 @@ def venue_info() -> None:
     event_data = st.session_state.event_data
     st.header("장소 정보")
 
-    event_data['venue_name'] = st.text_input("장소명", value=event_data.get('venue_name', ''), key="venue_name")
-    event_data['venue_type'] = st.text_input("장소 유형", value=event_data.get('venue_type', ''), key="venue_type")
-    
     default_status_index = event_options.STATUS_OPTIONS.index(event_data.get('venue_status', event_options.STATUS_OPTIONS[-1]))
     event_data['venue_status'] = render_option_menu("장소 확정 상태", event_options.STATUS_OPTIONS, ['question-circle', 'check-circle', 'exclamation-circle', 'info-circle'], default_status_index, orientation='horizontal', key="venue_status")
-    
-    event_data['address'] = st.text_input("주소", value=event_data.get('address', ''), key="address")
-    event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
-    event_data['facilities'] = st.text_area("시설", value=event_data.get('facilities', ''), key="facilities")
+
+    if event_data['venue_status'] != "알 수 없는 상태":
+        event_data['venue_name'] = st.text_input("장소명", value=event_data.get('venue_name', ''), key="venue_name")
+        event_data['address'] = st.text_input("주소", value=event_data.get('address', ''), key="address")
+    else:
+        event_data['desired_region'] = st.text_input("희망하는 지역", value=event_data.get('desired_region', ''), key="desired_region")
+
+    venue_type_options = ["실내", "실외", "혼합", "온라인"]
+    default_venue_type_index = venue_type_options.index(event_data.get('venue_type', '실내'))
+    event_data['venue_type'] = render_option_menu("희망하는 장소 유형", venue_type_options, ['building', 'tree', 'house', 'laptop'], default_venue_type_index, orientation='horizontal', key="venue_type")
+
+    if event_data['venue_type'] in ["실내", "혼합"]:
+        event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
+
+    if event_data['venue_type'] == "실내":
+        facility_options = ["음향 시설", "조명 시설", "LED 시설", "빔프로젝트 시설", "주차", "Wifi", "기타"]
+        event_data['facilities'] = st.multiselect("시설", facility_options, default=event_data.get('facilities', []), key="facilities")
+        
+        if "기타" in event_data['facilities']:
+            event_data['other_facilities'] = st.text_input("기타 시설 상세", value=event_data.get('other_facilities', ''), key="other_facilities")
+
+    event_data['venue_budget'] = st.number_input("장소 대관 비용 예산 (원)", min_value=0, value=int(event_data.get('venue_budget', 0)), key="venue_budget", format="%d")
 
 def service_components() -> None:
     event_data = st.session_state.event_data
@@ -272,7 +287,7 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     component[quantity_key] = st.number_input(f"{item} 수량", min_value=0, value=component.get(quantity_key, 0), key=quantity_key)
     
     if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
-                "숏�� (재편집)", "숏폼 (신규 제작)", "웹드라마", 
+                "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
                 "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
                 "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
         component[unit_key] = "편"
@@ -293,7 +308,7 @@ def select_categories(event_data: Dict[str, Any]) -> List[str]:
         st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("온라인 이벤트를 위�� '미디어' 카테고리가 자동으로 추가되었습니다.")
+        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
 
     selected_categories = st.multiselect("카테고리 선택", categories, default=default_categories, key="selected_categories")
     return selected_categories
@@ -315,7 +330,7 @@ def generate_summary_excel() -> None:
             category_filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
             generate_category_excel(category, component, category_filename)
             with open(category_filename, "rb") as file:
-                st.download_button(label=f"{category} 발주요청서 다��로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
+                st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
         
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
