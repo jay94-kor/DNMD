@@ -120,6 +120,7 @@ def load_past_events():
             with col2:
                 if st.button("새로 만들기", key="create_new_event"):
                     st.session_state.current_event = None
+                    st.session_state.step = 0  # 기본 정보 입력 페이지로 이동
                     st.experimental_rerun()
             
             if events:
