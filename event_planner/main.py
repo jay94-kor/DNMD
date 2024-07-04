@@ -104,17 +104,11 @@ def handle_event_type(event_data: Dict[str, Any]) -> None:
     event_data['event_type'] = render_option_menu(
         "용역 유형",
         event_options.EVENT_TYPES,
-        [event_options.CATEGORY_ICONS.get(event_type, "🔹") for event_type in event_options.EVENT_TYPES],
-        0,
-        "horizontal",
         "event_type"
     )
     event_data['contract_type'] = render_option_menu(
         "용역 종류",
         event_options.CONTRACT_TYPES,
-        [event_options.CATEGORY_ICONS.get(contract_type, "🔹") for contract_type in event_options.CONTRACT_TYPES],
-        0,
-        "horizontal",
         "contract_type"
     )
 
@@ -306,7 +300,7 @@ def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
         st.info("영상 제작 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
         default_categories.append("미디어")
-        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
+        st.info("온라인 이벤트를 위해 '미디어' 카테고리가 ��동으로 추가되었습니다.")
 
     col1, col2, col3, col4 = st.columns(4)
     selected_categories = []
@@ -541,7 +535,7 @@ def main():
     display_event_info()
 
 def display_event_info():
-    st.title("이벤트 기획 정의서")
+    st.title("이벤트 기획 정��서")
     
     functions = {
         0: basic_info,
