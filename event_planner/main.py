@@ -67,9 +67,11 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
             new_value = int(st.session_state.scale_input_basic)
             current_value = event_data.get('scale', 0)
             if new_value > current_value:
-                event_data['scale'] = current_value + 50
+                event_data['scale'] = new_value + 50
             elif new_value < current_value:
-                event_data['scale'] = max(0, current_value - 50)
+                event_data['scale'] = max(0, new_value - 50)
+            else:
+                event_data['scale'] = new_value
             st.session_state.scale_input_basic = event_data['scale']
         except ValueError:
             pass  # 숫자가 아닌 입력의 경우 무시
@@ -78,7 +80,7 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
         "예상 참여 관객 수", 
         min_value=0, 
         value=event_data.get('scale', 0),
-        step=50,  # 50씩 증가/감소
+        step=1,  # 1씩 증가/감소 가능하도록 설정
         format="%d",
         key="scale_input_basic",
         on_change=on_change_scale
@@ -86,6 +88,7 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
 
     st.write(f"현재 예상 참여 관객 수: {event_data['scale']}명")
     st.write("('+' 키를 누르면 50명 증가, '-' 키를 누르면 50명 감소)")
+
 
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
