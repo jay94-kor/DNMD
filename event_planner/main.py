@@ -436,8 +436,11 @@ def generate_summary_excel() -> None:
         for category, component in event_data.get('components', {}).items():
             category_filename = f"발주요청서_{category}_{event_name}_{timestamp}.xlsx"
             generate_category_excel(category, component, category_filename)
-            with open(category_filename, "rb") as file:
-                st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
+            try:
+                with open(category_filename, "rb") as file:
+                    st.download_button(label=f"{category} 발주요청서 다운로드", data=file, file_name=category_filename, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key=f"download_{category}")
+            except FileNotFoundError:
+                st.error(f"{category_filename} 파일을 찾을 수 없습니다.")
         
     except Exception as e:
         st.error(f"엑셀 파일 생성 중 오류가 발생했습니다: {str(e)}")
@@ -510,16 +513,22 @@ def generate_category_excel(category: str, component: Dict[str, Any], filename: 
             quantity = component.get(f'{item}_quantity', 0)
             unit = component.get(f'{item}_unit', '개')
             details = component.get(f'{item}_details', '')
-            df_component = df_component.append({
-                '항목': item,
-                '수량': quantity,
-                '단위': unit,
-                '세부사항': details
-            }, ignore_index=True)
+            new_row = pd.DataFrame({
+                '항목': [item],
+                '수량': [quantity],
+                '단위': [unit],
+                '세부사항': [details]
+            })
+            df_component = pd.concat([df_component, new_row], ignore_index=True)
         
         # 데이터프레임이 비어있는 경우 빈 행 추가
         if df_component.empty:
-            df_component = df_component.append({'항목': '항목 없음', '수량': 0, '단위': '-', '세부사항': '-'}, ignore_index=True)
+            df_component = pd.DataFrame({
+                '항목': ['항목 없음'],
+                '수량': [0],
+                '단위': ['-'],
+                '세부사항': ['-']
+            })
         
         for r, row in enumerate(dataframe_to_rows(df_component, index=False, header=True), 1):
             for c, value in enumerate(row, 1):
