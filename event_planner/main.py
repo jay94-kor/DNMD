@@ -287,8 +287,12 @@ def handle_online_content_location(event_data: Dict[str, Any]) -> None:
             
             if location_preference == "실내":
                 event_data['indoor_location_description'] = st.text_area("어떤 느낌의 장소인지 작성해주세요.", key="indoor_location_description")
+                if len(event_data['indoor_location_description']) < 50:
+                    st.error("장소 설명은 최소 50자 이상 작성해야 합니다.")
             elif location_preference == "실외":
                 event_data['outdoor_location_description'] = st.text_area("어떤 느낌의 장소인지 작성해주세요.", key="outdoor_location_description")
+                if len(event_data['outdoor_location_description']) < 50:
+                    st.error("장소 설명은 최소 50자 이상 작성해야 합니다.")
         
         elif location_type == "직접 지정":
             event_data['location_type'] = render_option_menu(
@@ -757,7 +761,9 @@ def highlight_missing_fields(missing_fields):
         'selected_categories': '선택된 카테고리',
         'components': '용역 구성 요소',
         'status': '상태',
-        'items': '항목'
+        'items': '항목',
+        'name': '장소명',
+        'address': '주소'
     }
 
     for field in missing_fields:
