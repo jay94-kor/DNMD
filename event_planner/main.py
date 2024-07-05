@@ -444,11 +444,14 @@ def service_components() -> None:
     event_data['selected_categories'] = selected_categories
 
     event_data['components'] = event_data.get('components', {})
-    for category in selected_categories:
-        handle_category(category, event_data)
+    # for category in selected_categories:
+    #     handle_category(category, event_data)
 
+    # 선택되지 않은 카테고리 제거
     event_data['components'] = {k: v for k, v in event_data['components'].items() if k in selected_categories}
-
+    
+    # session_state 업데이트
+    st.session_state.event_data = event_data
 def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
     categories = list(event_options.CATEGORIES.keys())
     default_categories = event_data.get('selected_categories', [])
