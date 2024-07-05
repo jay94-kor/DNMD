@@ -65,6 +65,7 @@ def basic_info() -> None:
         handle_offline_event(event_data)
 
 def handle_general_info(event_data: Dict[str, Any]) -> None:
+    st.write(f"현재 예상 참여 관객 수: {event_data.get('scale', 0)}명")  # 기존 예상 참여 관객 수 표시
 
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
@@ -344,7 +345,7 @@ def select_categories_with_icons(event_data: Dict[str, Any]) -> List[str]:
     default_categories = event_data.get('selected_categories', [])
     default_categories = [cat for cat in default_categories if cat in categories]
 
-    if event_data.get('event_type') == "영상 제작" and "미디어" not in default_categories:
+    if event_data.get('event_type') == "온라인 콘텐츠" and "미디어" not in default_categories:
         default_categories.append("미디어")
         st.info("온라인 콘텐츠 프로젝트를 위해 '미디어' 카테고리가 자동으로 추가되었습니다.")
     elif event_data.get('venue_type') == "온라인" and "미디어" not in default_categories:
