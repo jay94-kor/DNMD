@@ -238,12 +238,12 @@ def handle_video_production(event_data: Dict[str, Any]) -> None:
 def handle_offline_event(event_data: Dict[str, Any]) -> None:
     st.subheader("오프라인 이벤트 정보")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
 
     with col1:
         start_date = st.date_input("시작 날짜",
                                    value=event_data.get('start_date', date.today()),
-                                                                     key="start_date")
+                                   key="start_date")
 
     with col2:
         end_date = st.date_input("종료 날짜",
@@ -251,15 +251,22 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
                                  min_value=start_date,
                                  key="end_date")
 
+    event_data['start_date'] = start_date
+    event_data['end_date'] = end_date
+
+    # 셋업 시작일과 철수 마감일을 다음 행에 배치
+    col3, col4 = st.columns(2)
+
     with col3:
         event_data['setup_start'] = render_option_menu("셋업 시작일", config['SETUP_OPTIONS'], "setup_start")
+
+    with col4:
+        event_data['teardown'] = render_option_menu("철수 마감일", config['TEARDOWN_OPTIONS'], "teardown")
 
     if event_data['setup_start'] == config['SETUP_OPTIONS'][0]:
         event_data['setup_date'] = start_date - timedelta(days=1)
     else:
         event_data['setup_date'] = start_date
-
-    event_data['teardown'] = render_option_menu("철수 마감일", config['TEARDOWN_OPTIONS'], "teardown")
 
     if event_data['teardown'] == config['TEARDOWN_OPTIONS'][0]:
         event_data['teardown_date'] = end_date
