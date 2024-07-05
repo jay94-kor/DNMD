@@ -254,7 +254,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = start_date
     event_data['end_date'] = end_date
 
-    # 셋업 시작일과 철수 마감일을 다음 행에 배치
+    # 셋업 시작일과 철수 마감일 입력
     col3, col4 = st.columns(2)
 
     with col3:
@@ -263,6 +263,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     with col4:
         event_data['teardown'] = render_option_menu("철수 마감일", config['TEARDOWN_OPTIONS'], "teardown")
 
+    # 셋업 시작일과 철수 마감일 계산
     if event_data['setup_start'] == config['SETUP_OPTIONS'][0]:
         event_data['setup_date'] = start_date - timedelta(days=1)
     else:
@@ -273,9 +274,11 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     else:
         event_data['teardown_date'] = end_date + timedelta(days=1)
 
+    # 셋업 시작일과 철수 마감일 표시
     st.write(f"셋업 시작일: {event_data['setup_date']}")
     st.write(f"철수 마감일: {event_data['teardown_date']}")
 
+    # 유효성 검사
     if event_data['setup_date'] > start_date:
         st.error("셋업 시작일은 이벤트 시작일보다 늦을 수 없습니다.")
     if end_date < start_date:
