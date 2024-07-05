@@ -500,33 +500,25 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
         f"{category}_shooting_date_status"
     )
 
-    if shooting_date_status == "정해짐":
-        component['shooting_date'] = st.date_input(
-            "촬영일을 선택해주세요",
+    st.info("연간 제작건의 경우에도 촬영 시작일과 마감일을 입력해주세요.")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        component['shooting_start_date'] = st.date_input(
+            "촬영 시작일",
             min_value=date.today(),
-            key=f"{category}_shooting_date"
+            key=f"{category}_shooting_start_date"
         )
-    else:
-        col1, col2 = st.columns(2)
-        with col1:
-            component['shooting_start_date'] = st.date_input(
-                "촬영 시작 가능일",
-                min_value=date.today(),
-                key=f"{category}_shooting_start_date"
-            )
-        with col2:
-            component['shooting_end_date'] = st.date_input(
-                "촬영 마감일",
-                min_value=component['shooting_start_date'],
-                key=f"{category}_shooting_end_date"
-            )
+    with col2:
+        component['shooting_end_date'] = st.date_input(
+            "촬영 마감일",
+            min_value=component['shooting_start_date'],
+            key=f"{category}_shooting_end_date"
+        )
 
     # 납품일 정보 수집
-    component['delivery_dates'] = component.get('delivery_dates', [])
+    component['delivery_dates'] = component.get('delivery_dates', [{}])  # 최소 1개의 납품일 자동 생성
     
-    if st.button("납품일 추가", key=f"{category}_add_delivery_date"):
-        component['delivery_dates'].append({})
-
     for idx, delivery in enumerate(component['delivery_dates']):
         st.subheader(f"납품일 {idx + 1}")
         
@@ -537,11 +529,32 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
         )
 
         if delivery['status'] == "정해짐":
-            delivery['date'] = st.date_input(
-                "납품일을 선택해주세요",
-                min_value=date.today(),
-                key=f"{category}_delivery_date_{idx}"
+            delivery_type = render_option_menu(
+                "납품 방식을 선택해주세요",
+                ["기간", "지정일"],
+                f"{category}_delivery_type_{idx}"
             )
+            
+            if delivery_type == "기간":
+                col1, col2 = st.columns(2)
+                with col1:
+                    delivery['start_date'] = st.date_input(
+                        "납품 시작일",
+                        min_value=component['shooting_start_date'],
+                        key=f"{category}_delivery_start_date_{idx}"
+                    )
+                with col2:
+                    delivery['end_date'] = st.date_input(
+                        "납품 마감일",
+                        min_value=delivery['start_date'],
+                        key=f"{category}_delivery_end_date_{idx}"
+                    )
+            else:
+                delivery['date'] = st.date_input(
+                    "납품일을 선택해주세요",
+                    min_value=component['shooting_start_date'],
+                    key=f"{category}_delivery_date_{idx}"
+                )
         else:
             delivery['date'] = None
 
@@ -556,9 +569,16 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
             if quantity > 0:
                 delivery['items'][item] = quantity
 
-    if st.button("납품일 삭제", key=f"{category}_remove_delivery_date"):
-        if component['delivery_dates']:
-            component['delivery_dates'].pop()
+    if len(component['delivery_dates']) > 1 and st.button("납품일 삭제", key=f"{category}_remove_delivery_date"):
+        component['delivery_dates'].pop()
+
+    if st.button("납품일 추가", key=f"{category}_add_delivery_date"):
+        component['delivery_dates'].append({})
+
+    if category == "미디어":
+        component['reference_link'] = st.text_input("레퍼런스 링크 (필수)", value=component.get('reference_link', ''), key=f"{category}_reference_link")
+        if not component['reference_link']:
+            st.warning("미디어 카테고리에서는 레퍼런스 링크를 반드시 입력해야 합니다.")
 
     cooperation_options = ["협력사 매칭 필요", "선호하는 업체 있음"]
     component['cooperation_status'] = render_option_menu(
@@ -581,9 +601,6 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
             component['other_details'] = st.text_area(f"{category} 기타 세부사항", value=component.get('other_details', ''), key=f"{category}_other_details")
         else:
             handle_item_details(item, component)
-
-    if category == "Media":
-        handle_media_component(component, category)
 
     event_data['components'][category] = component
 
