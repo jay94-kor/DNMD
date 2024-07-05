@@ -703,8 +703,8 @@ def check_required_fields(step):
         elif event_data.get('event_type') == "오프라인 이벤트":
             required_fields.extend(['start_date', 'end_date', 'setup_start', 'teardown'])
     elif step == 1:  # 장소 정보
-        if event_data.get('venue_type') != "온라인":
-            required_fields = ['venue_status', 'venue_type', 'scale']
+        if event_data.get('event_type') != "온라인":
+            required_fields = ['venue_status', 'venue_type', 'scale', 'expected_participants']
             if event_data.get('venue_status') == "알 수 없는 상태":
                 required_fields.extend(['desired_region', 'desired_capacity'])
             else:
