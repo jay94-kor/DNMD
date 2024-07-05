@@ -1289,7 +1289,7 @@ def main():
 
     functions[current_step]()
 
-    col1, col2, col3 = st.columns([1, 1, 1])
+    col1, col2 = st.columns([1, 1])
 
     with col1:
         if current_step > 0:
@@ -1300,7 +1300,7 @@ def main():
                     st.session_state.step -= 1
                 st.experimental_rerun()
 
-    with col3:
+    with col2:
         if current_step < 3:
             if st.button("다음", key="next_button"):
                 is_valid, missing_fields = check_required_fields(current_step)
@@ -1312,15 +1312,6 @@ def main():
                     st.experimental_rerun()
                 else:
                     display_missing_fields(missing_fields)
-        elif current_step == 3:
-            if st.button("저장", key="save_button_final"):
-                save_event_data(st.session_state.event_data)
-                st.success("이벤트 데이터가 성공적으로 저장되었습니다.")
-
-    with col2:
-        if st.button("저장", key="save_button_middle"):
-            save_event_data(st.session_state.event_data)
-            st.success("이벤트 데이터가 성공적으로 저장되었습니다.")
 
 if __name__ == "__main__":
     main()
