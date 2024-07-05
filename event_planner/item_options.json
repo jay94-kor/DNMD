@@ -1,5 +1,5 @@
 {
-  "EVENT_TYPES": ["오프라인 이벤트", "영상 제작"],
+  "EVENT_TYPES": ["오프라인 이벤트", "온라인 콘텐츠"],
   "CONTRACT_TYPES": ["입찰", "수의계약", "B2B"],
   "STATUS_OPTIONS": ["발주처와 협상 중", "확정", "거의 확정", "알 수 없는 상태"],
   "MEDIA_ITEMS": [
