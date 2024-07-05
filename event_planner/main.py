@@ -537,7 +537,7 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     
     ws['A3'] = "담당자 연락처"
     ws['B3'] = event_data.get('manager_contact', '')
-    ws['C3'] = "행사 유형"
+    ws['C3'] = "용역 유형"
     ws['D3'] = event_data.get('event_type', '')
     
     ws['A4'] = "용역 종류"
@@ -598,7 +598,7 @@ def create_category_excel(event_data: Dict[str, Any], category: str, component: 
     
     ws['A3'] = "담당자 연락처"
     ws['B3'] = event_data.get('manager_contact', '')
-    ws['C3'] = "행사 유형"
+    ws['C3'] = "용역 유형"
     ws['D3'] = event_data.get('event_type', '')
     
     ws['A4'] = "용역 종류"
