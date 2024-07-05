@@ -69,7 +69,7 @@ def basic_info() -> None:
     guide_text = """
     - **용역명**: 프로젝트의 공식 이름을 입력하세요.
     - **클라이언트명**: 고객사의 정확한 법인명을 입력하세요.
-    - **담당 PM**: 프���젝트 매니저의 이름을 입력하세요.
+    - **담당 PM**: 프젝트 매니저의 이름��� 입력하세요.
     - **담당자 연락처**: 숫자만 입력해주세요 (예: 01012345678).
     """
     display_guide(guide_text)
@@ -630,15 +630,15 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     ]
 
     # 이벤트 유형에 따른 추가 정보
-    if event_data.get('event_type') == "온라인 콘텐츠":
-        project_info.extend([
-            ('플랫폼', event_data.get('online_platform', ''), '콘텐츠 유형', event_data.get('content_type', '')),
-            ('촬영 로케이션', event_data.get('location_name', ''), '로케이션 주소', event_data.get('location_address', '')),
-        ])
-    else:
+    if event_data.get('event_type') == "오프라인 이벤트":
         project_info.extend([
             ('장소', ', '.join([v.get('name', '') for v in event_data.get('venues', [])]), '장소 상태', event_data.get('venue_status', '')),
-            ('주소', ', '.join([v.get('address', '') for v in event_data.get('venues', [])]), '장소 유형', event_data.get('venue_type', '')),
+            ('주소', ', '.join([v.get('address', '') for v in event_data.get('venues', [])]), '', '')
+        ])
+    elif event_data.get('event_type') == "온라인 콘텐츠":
+        project_info.extend([
+            ('플랫폼', event_data.get('online_platform', ''), '스트리밍 방식', event_data.get('streaming_method', '')),
+            ('촬영 로케이션', event_data.get('location_name', ''), '로케이션 상태', event_data.get('location_status', ''))
         ])
 
     row = 7
@@ -662,7 +662,7 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
         row += 1
 
     # 구성 요소 헤더
-    headers = ['번호', '카테고리', '아이템명', '상세 설명', '수량', '단위', '기간', '기간 단위', '예산', '비고']
+    headers = ['번호', '카테고리', '아이템명', '상세 설명', '수량', '단위', '기간', '기간 단위', '예산', '협력사', '협력사 연락처', '비고']
     for col_num, header in enumerate(headers, 1):
         cell = ws.cell(row=row, column=col_num)
         cell.value = header
@@ -684,22 +684,14 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
                 component.get(f'{item}_duration', 0),
                 component.get(f'{item}_duration_unit', '개월'),
                 component.get('budget', 0),
+                component.get('vendor_name', ''),
+                component.get('vendor_contact', ''),
                 ''
             ])
             item_number += 1
-        
-        # 협력사 정보 추가
-        if component.get('cooperation_status') == "선호하는 업체 있음":
-            ws.append([
-                '',
-                f"{category} 협력사",
-                component.get('vendor_name', ''),
-                f"연락처: {component.get('vendor_contact', '')}\n담당자: {component.get('vendor_manager', '')}\n선호 이유: {component.get('vendor_reason', '')}",
-                '', '', '', '', '', ''
-            ])
 
     # 열 너비 설정
-    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']:
+    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']:
         ws.column_dimensions[col].width = 30
 
     wb.save(filename)
@@ -960,7 +952,7 @@ def highlight_missing_fields(missing_fields):
             subfield = field.split('.')[-1]
             st.error(f"{field_names.get(base, base)} 목록의 {int(index)+1}번째 항목의 {field_names.get(subfield, subfield)}을(를) 입력해주세요.")
         else:
-            st.error(f"{field_names.get(field, field)} 항목을 입력해주세요.")
+            st.error(f"{field_names.get(field, field)} ��목을 입력해주세요.")
 
 def main():
     st.title("이벤트 플래너")
