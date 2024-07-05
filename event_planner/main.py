@@ -65,16 +65,7 @@ def basic_info() -> None:
         handle_offline_event(event_data)
 
 def handle_general_info(event_data: Dict[str, Any]) -> None:
-    event_data['scale'] = st.number_input(
-        "예상 참여 관객 수", 
-        min_value=0, 
-        value=event_data.get('scale', 0),
-        step=1,
-        format="%d",
-        key="scale_input_basic"
-    )
-
-    st.write(f"현재 예상 참여 관객 수: {event_data['scale']}명")
+    st.write(f"현재 예상 참여 관객 수: {event_data.get('scale', 0)}명")  # 기존 예상 참여 관객 수 표시
 
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
@@ -253,6 +244,15 @@ def venue_info() -> None:
         "venue_type"
     )
 
+    event_data['scale'] = st.number_input(
+        "예상 참여 관객 수", 
+        min_value=0, 
+        value=event_data.get('scale', 0),
+        step=1,
+        format="%d",
+        key="scale_input_venue"
+    )
+
     if event_data['venue_type'] == "온라인":
         st.info("온라인 이벤트는 물리적 장소 정보가 필요하지 않습니다.")
         event_data['venues'] = []
@@ -315,7 +315,8 @@ def handle_known_venue_status(event_data: Dict[str, Any]) -> None:
 def handle_venue_facilities(event_data: Dict[str, Any]) -> None:
     if event_data['venue_type'] in ["실내", "혼합"]:
         if event_data['venue_status'] != "알 수 없는 상태":
-            event_data['capacity'] = st.number_input("수용 인원", min_value=0, value=int(event_data.get('capacity', 0)), key="capacity")
+            # 수용 인원 입력 부분 제거
+            pass
 
         facility_options = ["음향 시설", "조명 시설", "LED 시설", "빔프로젝트 시설", "주차", "Wifi", "기타"]
         event_data['facilities'] = st.multiselect("행사장 자체 보유 시설", facility_options, default=event_data.get('facilities', []), key="facilities")
@@ -649,14 +650,14 @@ def check_required_fields(step):
     missing_fields = []
 
     if step == 0:  # 기본 정보
-        required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'scale', 'contract_amount', 'expected_profit_percentage']
+        required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'contract_amount', 'expected_profit_percentage']
         if event_data.get('event_type') == "온라인 콘텐츠":
             required_fields.extend(['start_date', 'end_date'])
         elif event_data.get('event_type') == "오프라인 이벤트":
             required_fields.extend(['start_date', 'end_date', 'setup_start', 'teardown'])
     elif step == 1:  # 장소 정보
         if event_data.get('venue_type') != "온라인":
-            required_fields = ['venue_status', 'venue_type']
+            required_fields = ['venue_status', 'venue_type', 'scale']
             if event_data.get('venue_status') == "알 수 없는 상태":
                 required_fields.extend(['desired_region', 'desired_capacity'])
             else:
@@ -756,7 +757,7 @@ def main():
         orientation='horizontal',
         styles={
             "container": {"padding": "0!important", "background-color": "#e3f2fd"},  # 매우 연한 푸른색 배경
-            "icon": {"color": "#1976d2", "font-size": "25px"},  # 진한 푸��색 아이콘
+            "icon": {"color": "#1976d2", "font-size": "25px"},  # 진한 푸른색 아이콘
             "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#bbdefb", "--icon-color": "#1976d2"},  # 연한 푸른색 호버, 진한 푸른색 아이콘
             "nav-link-selected": {"background-color": "#2196f3", "color": "white", "--icon-color": "white"},  # 중간 푸른색 배경, 흰색 글자, 흰색 아이콘
         },
