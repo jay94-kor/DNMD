@@ -1292,17 +1292,5 @@ def main():
                     st.error("모든 필수 항목을 입력해주세요.")
                     highlight_missing_fields(missing_fields)
 
-    # 마지막 단계에서만 정의서 생성 버튼 표시
-    if current_step == len(functions) - 1:
-        if st.button("정의서 생성", key="generate_definition_button"):
-            event_data = st.session_state.event_data
-            create_excel_summary(event_data, "event_summary.xlsx")
-            
-            if 'Media' in event_data.get('components', {}):
-                create_media_summary(event_data, "media_order_summary.xlsx")
-                st.success("이벤트 정의서와 미디어 발주 요약서가 생성되었습니다.")
-            else:
-                st.success("이벤트 정의서가 생성되었습니다.")
-
 if __name__ == "__main__":
     main()
