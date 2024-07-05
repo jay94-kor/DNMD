@@ -206,7 +206,7 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     # Check if total category budget exceeds contract amount
     total_category_budget = sum(component.get('budget', 0) for component in event_data.get('components', {}).values())
     if total_category_budget > event_data['contract_amount']:
-        st.warning(f"주의: 카테고리별 예산 총액({format_currency(total_category_budget)} 원)이 총 계�� 금액({format_currency(event_data['contract_amount'])} 원)을 초과합니다.")
+        st.warning(f"주의: 카테고리별 예산 총액({format_currency(total_category_budget)} 원)이 총 계약 금액({format_currency(event_data['contract_amount'])} 원)을 초과합니다.")
 
 def handle_video_production(event_data: Dict[str, Any]) -> None:
     col1, col2 = st.columns(2)
@@ -236,7 +236,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
                                                  key="start_date")
     
     with col2:
-        event_data['end_date'] = st.date_input("종료 ��짜", 
+        event_data['end_date'] = st.date_input("종료 날짜", 
                                                value=event_data.get('end_date', event_data['start_date']),
                                                min_value=event_data['start_date'],
                                                key="end_date")
@@ -262,7 +262,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     if event_data['setup_date'] > event_data['start_date']:
         st.error("셋업 시작일은 이벤트 시작일보다 늦을 수 없습니다.")
     if event_data['end_date'] < event_data['start_date']:
-        st.error("이벤트 종료일은 시��일보다 빠를 수 없습니다.")
+        st.error("이벤트 종료일은 시작일보다 빠를 수 없습니다.")
     if event_data['teardown_date'] < event_data['end_date']:
         st.error("철수 마감일은 이벤트 종료일보다 빠를 수 없습니다.")
 
@@ -342,7 +342,7 @@ def handle_online_content_location(event_data: Dict[str, Any]) -> None:
             event_data['location_name'] = st.text_input("장소명", key="location_name")
             event_data['location_address'] = st.text_input("주소", key="location_address")
             event_data['location_status'] = render_option_menu(
-                "확��의 정도를 선택해주세요.",
+                "확정의 정도를 선택해주세요.",
                 event_options.STATUS_OPTIONS,
                 "location_status"
             )
@@ -812,22 +812,33 @@ def init_db():
         ''')
         conn.commit()
 
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        return super().default(obj)
+
 def save_event_data(event_data: Dict[str, Any]) -> None:
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        event_id = event_data.get('id')
-        event_data_json = json.dumps(event_data, ensure_ascii=False)
-        if event_id:
-            cursor.execute('''
-            UPDATE events SET event_data = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            ''', (event_data_json, event_id))
-        else:
-            cursor.execute('''
-            INSERT INTO events (event_data) VALUES (?)
-            ''', (event_data_json,))
-            event_data['id'] = cursor.lastrowid
-        conn.commit()
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            event_id = event_data.get('id')
+            event_data_json = json.dumps(event_data, ensure_ascii=False, cls=CustomJSONEncoder)
+            if event_id:
+                cursor.execute('''
+                UPDATE events SET event_data = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                ''', (event_data_json, event_id))
+            else:
+                cursor.execute('''
+                INSERT INTO events (event_data) VALUES (?)
+                ''', (event_data_json,))
+                event_data['id'] = cursor.lastrowid
+            conn.commit()
+    except Exception as e:
+        logging.error(f"Error saving event data: {str(e)}")
+        logging.error(f"Event data: {event_data}")
+        raise
 
 def load_event_data(event_id: int) -> Dict[str, Any]:
     with get_db_connection() as conn:
@@ -835,7 +846,15 @@ def load_event_data(event_id: int) -> Dict[str, Any]:
         cursor.execute('SELECT event_data FROM events WHERE id = ?', (event_id,))
         result = cursor.fetchone()
         if result:
-            return json.loads(result[0])
+            event_data = json.loads(result[0])
+            # ISO 형식의 날짜 문자열을 date 객체로 변환
+            for key, value in event_data.items():
+                if isinstance(value, str):
+                    try:
+                        event_data[key] = datetime.fromisoformat(value).date()
+                    except ValueError:
+                        pass  # 날짜 형식이 아니면 그대로 둠
+            return event_data
         return {}
 
 def get_all_events() -> List[Tuple[int, str, str]]:
@@ -847,7 +866,7 @@ def get_all_events() -> List[Tuple[int, str, str]]:
 # 앱 시작 시 데이터베이스 초기화
 init_db()
 
-# 메인 앱 로직에서
+# 메인 앱 로직
 if 'event_data' not in st.session_state:
     st.session_state.event_data = load_event_data()
 
@@ -872,6 +891,67 @@ def init_db():
         )
         ''')
         conn.commit()
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        return super().default(obj)
+
+def save_event_data(event_data: Dict[str, Any]) -> None:
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            event_id = event_data.get('id')
+            event_data_json = json.dumps(event_data, ensure_ascii=False, cls=CustomJSONEncoder)
+            if event_id:
+                cursor.execute('''
+                UPDATE events SET event_data = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                ''', (event_data_json, event_id))
+            else:
+                cursor.execute('''
+                INSERT INTO events (event_data) VALUES (?)
+                ''', (event_data_json,))
+                event_data['id'] = cursor.lastrowid
+            conn.commit()
+    except Exception as e:
+        logging.error(f"Error saving event data: {str(e)}")
+        logging.error(f"Event data: {event_data}")
+        raise
+
+def load_event_data(event_id: int) -> Dict[str, Any]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT event_data FROM events WHERE id = ?', (event_id,))
+        result = cursor.fetchone()
+        if result:
+            event_data = json.loads(result[0])
+            # ISO 형식의 날짜 문자열을 date 객체로 변환
+            for key, value in event_data.items():
+                if isinstance(value, str):
+                    try:
+                        event_data[key] = datetime.fromisoformat(value).date()
+                    except ValueError:
+                        pass  # 날짜 형식이 아니면 그대로 둠
+            return event_data
+        return {}
+
+def get_all_events() -> List[Tuple[int, str, str]]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, event_data, created_at FROM events ORDER BY created_at DESC')
+        return [(row[0], json.loads(row[1]).get('event_name', 'Unnamed Event'), row[2]) for row in cursor.fetchall()]
+
+# 앱 시작 시 데이터베이스 초기화
+init_db()
+
+# 메인 앱 로직
+if 'event_data' not in st.session_state:
+    st.session_state.event_data = load_event_data()
+
+# 데이터 변경 후
+save_event_data(st.session_state.event_data)
 
 def check_required_fields(step):
     event_data = st.session_state.event_data
