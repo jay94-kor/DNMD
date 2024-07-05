@@ -691,8 +691,8 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
             item_number += 1
 
     # 열 너비 설정
-    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']:
-        ws.column_dimensions[col].width = 30
+    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']:
+        ws.column_dimensions[col].width = 20
 
     wb.save(filename)
 
