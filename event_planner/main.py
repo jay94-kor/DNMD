@@ -565,8 +565,42 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     ws['C8'] = "장소 확정 상태"
     ws['D8'] = event_data.get('venue_status', '')
     
+    # 카테고리별 예산 추가
+    ws['A10'] = "카테고리별 예산"
+    row = 11
+    total_budget = 0
+    for category, component in event_data.get('components', {}).items():
+        ws[f'A{row}'] = category
+        ws[f'B{row}'] = f"{format_currency(component.get('budget', 0))} 원"
+        total_budget += component.get('budget', 0)
+        row += 1
+    
+    ws[f'A{row}'] = "전체 예산"
+    ws[f'B{row}'] = f"{format_currency(total_budget)} 원"
+    
     # 스타일 적용
-    apply_styles(ws, max_row=8, max_col=4)
+    apply_styles(ws, max_row=row, max_col=4)
+    
+    # 카테고리별 시트 추가
+    for category, component in event_data.get('components', {}).items():
+        ws = wb.create_sheet(title=sanitize_sheet_title(category))
+        ws['A1'] = "카테고리"
+        ws['B1'] = category
+        ws['A2'] = "진행 상황"
+        ws['B2'] = component.get('status', '')
+        ws['A3'] = "예산"
+        ws['B3'] = f"{format_currency(component.get('budget', 0))} 원"
+        
+        row = 5
+        for item in component.get('items', []):
+            ws[f'A{row}'] = item
+            ws[f'B{row}'] = component.get(f'{item}_quantity', 0)
+            ws[f'C{row}'] = component.get(f'{item}_unit', '개')
+            ws[f'D{row}'] = component.get(f'{item}_details', '')
+            row += 1
+        
+        # 스타일 적용
+        apply_styles(ws, max_row=row-1, max_col=4)
     
     wb.save(filename)
 
