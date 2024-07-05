@@ -220,13 +220,15 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
 def handle_video_production(event_data: Dict[str, Any]) -> None:
     col1, col2 = st.columns(2)
     with col1:
-        start_date = st.date_input("과업 시작일", value=event_data.get('start_date', date.today()), key="start_date")
+        start_date = st.date_input("과업 시작일", 
+                                   value=event_data.get('start_date', date.today()), 
+                                   key="video_start_date")
     with col2:
-        # start_date가 정의된 후에 end_date의 기본값을 설정합니다.
+        # start_date가 정의된 후에 end_date의 기본값과 최소값을 설정합니다.
         end_date = st.date_input("과업 종료일",
-                                 value=event_data.get('end_date', start_date + timedelta(days=1)),
+                                 value=max(event_data.get('end_date', start_date), start_date),
                                  min_value=start_date,
-                                 key="end_date")
+                                 key="video_end_date")
 
     event_data['start_date'] = start_date
     event_data['end_date'] = end_date
