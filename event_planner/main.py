@@ -6,12 +6,12 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 import logging
 import re
 from openpyxl.utils.dataframe import dataframe_to_rows
-
-
+import sqlite3
+from contextlib import contextmanager
 
 logging.basicConfig(filename='app.log', level=logging.ERROR)
 
@@ -55,6 +55,14 @@ def basic_info() -> None:
     event_data = st.session_state.event_data
     st.header("기본 정보")
     
+    with st.expander("기본 정보 입력 가이드", expanded=False):
+        st.markdown("""
+        - **용역명**: 프로젝트의 공식 이름을 입력하세요.
+        - **클라이언트명**: 고객사의 정확한 법인명을 입력하세요.
+        - **담당 PM**: 프로젝트 매니저의 이름을 입력하세요.
+        - **담당자 연락처**: 숫자만 입력해주세요 (예: 01012345678).
+        """)
+    
     handle_general_info(event_data)
     handle_event_type(event_data)
     handle_budget_info(event_data)
@@ -81,7 +89,7 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
     manager_contact = st.text_input(
         "담당자 연락처",
         value=event_data.get('manager_contact', ''),
-        help="숫자만 입력해주세요 (예: 01012345678)",
+        help="숫자만 입력해주��요 (예: 01012345678)",
         key="manager_contact_basic"
     )
     if manager_contact:
@@ -194,17 +202,21 @@ def handle_budget_info(event_data: Dict[str, Any]) -> None:
     event_data['expected_profit'] = expected_profit
     
     st.write(f"예상 수익 금액: {format_currency(expected_profit)} 원")
+    
+    # Check if total category budget exceeds contract amount
+    total_category_budget = sum(component.get('budget', 0) for component in event_data.get('components', {}).values())
+    if total_category_budget > event_data['contract_amount']:
+        st.warning(f"주의: 카테고리별 예산 총액({format_currency(total_category_budget)} 원)이 총 계�� 금액({format_currency(event_data['contract_amount'])} 원)을 초과합니다.")
 
 def handle_video_production(event_data: Dict[str, Any]) -> None:
     col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input("과업 시작일", value=event_data.get('start_date', date.today()), key="start_date")
     with col2:
-        end_date = st.date_input("과업 종료일", value=event_data.get('end_date', start_date + timedelta(days=365)), key="end_date")
-
-    if start_date > end_date:
-        end_date = start_date + timedelta(days=365)
-        st.warning("과업 종료일이 시작일 이전이어서 자동으로 조정되었습니다.")
+        end_date = st.date_input("과업 종료일", 
+                                 value=event_data.get('end_date', start_date + timedelta(days=1)),
+                                 min_value=start_date + timedelta(days=1),
+                                 key="end_date")
 
     event_data['start_date'] = start_date
     event_data['end_date'] = end_date
@@ -216,10 +228,21 @@ def handle_video_production(event_data: Dict[str, Any]) -> None:
 def handle_offline_event(event_data: Dict[str, Any]) -> None:
     st.subheader("오프라인 이벤트 정보")
 
-    event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', date.today()), key="start_date")
-    event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', event_data['start_date']), key="end_date")
-
-    event_data['setup_start'] = render_option_menu("셋업 시작일", config['SETUP_OPTIONS'], "setup_start")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        event_data['start_date'] = st.date_input("시작 날짜", 
+                                                 value=event_data.get('start_date', date.today()), 
+                                                 key="start_date")
+    
+    with col2:
+        event_data['end_date'] = st.date_input("종료 ��짜", 
+                                               value=event_data.get('end_date', event_data['start_date']),
+                                               min_value=event_data['start_date'],
+                                               key="end_date")
+    
+    with col3:
+        event_data['setup_start'] = render_option_menu("셋업 시작일", config['SETUP_OPTIONS'], "setup_start")
 
     if event_data['setup_start'] == config['SETUP_OPTIONS'][0]:
         event_data['setup_date'] = event_data['start_date'] - timedelta(days=1)
@@ -232,6 +255,16 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
         event_data['teardown_date'] = event_data['end_date']
     else:
         event_data['teardown_date'] = event_data['end_date'] + timedelta(days=1)
+
+    st.write(f"셋업 시작일: {event_data['setup_date']}")
+    st.write(f"철수 마감일: {event_data['teardown_date']}")
+    
+    if event_data['setup_date'] > event_data['start_date']:
+        st.error("셋업 시작일은 이벤트 시작일보다 늦을 수 없습니다.")
+    if event_data['end_date'] < event_data['start_date']:
+        st.error("이벤트 종료일은 시��일보다 빠를 수 없습니다.")
+    if event_data['teardown_date'] < event_data['end_date']:
+        st.error("철수 마감일은 이벤트 종료일보다 빠를 수 없습니다.")
 
 def venue_info() -> None:
     event_data = st.session_state.event_data
@@ -302,14 +335,14 @@ def handle_online_content_location(event_data: Dict[str, Any]) -> None:
         
         elif location_type == "직접 지정":
             event_data['location_type'] = render_option_menu(
-                "실내인지 실외인지 선택해주세요.",
+                "실내인 실외인지 선택해주세요.",
                 ["실내", "실외"],
                 "direct_location_type"
             )
             event_data['location_name'] = st.text_input("장소명", key="location_name")
             event_data['location_address'] = st.text_input("주소", key="location_address")
             event_data['location_status'] = render_option_menu(
-                "확정의 정도를 선택해주세요.",
+                "확��의 정도를 선택해주세요.",
                 event_options.STATUS_OPTIONS,
                 "location_status"
             )
@@ -438,6 +471,27 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
 
     component['budget'] = st.number_input(f"{category} 예산 (원)", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
 
+    # 납품 기일 옵션 추가
+    delivery_options = ["셋업 시작일", "행사 시작일", "특정일"]
+    component['delivery_date_option'] = render_option_menu(
+        f"{category} 납품 기일",
+        delivery_options,
+        f"{category}_delivery_date_option"
+    )
+
+    if component['delivery_date_option'] == "셋업 시작일":
+        component['delivery_date'] = event_data.get('setup_date')
+        st.write(f"납품 기일: {component['delivery_date']}")
+    elif component['delivery_date_option'] == "행사 시작일":
+        component['delivery_date'] = event_data.get('start_date')
+        st.write(f"납품 기일: {component['delivery_date']}")
+    elif component['delivery_date_option'] == "특정일":
+        component['delivery_date'] = st.date_input(
+            f"{category} 납품 기일 선택",
+            value=component.get('delivery_date', date.today()),
+            key=f"{category}_delivery_date"
+        )
+
     # 협력사 선택 옵션
     cooperation_options = ["협력사 매칭 필요", "선호하는 업체 있음"]
     component['cooperation_status'] = render_option_menu(
@@ -477,22 +531,38 @@ def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
 def handle_item_details(item: str, component: Dict[str, Any]) -> None:
     quantity_key = f'{item}_quantity'
     unit_key = f'{item}_unit'
+    duration_key = f'{item}_duration'
+    duration_unit_key = f'{item}_duration_unit'
     details_key = f'{item}_details'
 
-    component[quantity_key] = st.number_input(f"{item} 수량", min_value=0, value=component.get(quantity_key, 0), key=quantity_key)
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        component[quantity_key] = st.number_input(f"{item} 수량", min_value=0, value=component.get(quantity_key, 0), key=quantity_key)
     
-    if item in ["유튜브 (예능)", "유튜브 (교육 / 강의)", "유튜브 (인터뷰 형식)", 
-                "숏폼 (재편집)", "숏폼 (신규 제작)", "웹드라마", 
-                "2D / 모션그래픽 제작", "3D 영상 제작", "행사 배경 영상", 
-                "행사 사전 영상", "스케치 영상 제작", "애니메이션 제작"]:
-        component[unit_key] = "편"
-    elif item in ["사진 (인물, 컨셉, 포스터 등)", "사진 (행사 스케치)"]:
-        component[unit_key] = "컷"
-    else:
-        component[unit_key] = "개"
+    with col2:
+        component[unit_key] = st.text_input(f"{item} 단위", value=component.get(unit_key, '개'), key=unit_key)
+    
+    with col3:
+        component[duration_key] = st.number_input(f"{item} 기간", min_value=0, value=component.get(duration_key, 0), key=duration_key)
+    
+    with col4:
+        component[duration_unit_key] = st.text_input(f"{item} 기간 단위", value=component.get(duration_unit_key, '개월'), key=duration_unit_key)
     
     component[details_key] = st.text_area(f"{item} 세부사항", value=component.get(details_key, ''), key=details_key)
 
+def safe_operation(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            error_msg = f"{func.__name__} 실행 중 오류 발생: {str(e)}"
+            st.error(error_msg)
+            logging.error(error_msg, exc_info=True)
+            return None
+    return wrapper
+
+@safe_operation
 def generate_summary_excel() -> None:
     event_data = st.session_state.event_data
     event_name = event_data.get('event_name', '무제')
@@ -521,87 +591,176 @@ def generate_summary_excel() -> None:
         st.error("오류 상세 정보:")
         st.exception(e)
 
+@safe_operation
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "전체 행사 요약"
+    ws.title = "전체 용역 정의서"
     
+    # 제목
+    ws.merge_cells('A1:H1')
+    ws['A1'] = '전체 용역 정의서'
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+
+    # 받는 곳
+    ws.merge_cells('A3:H3')
+    ws['A3'] = '◎ 받는 곳 : ㈜디노마드 / 서울시 영등포구 여의대로 108 파크원타워 2, 21층'
+    ws['A3'].alignment = Alignment(horizontal='left')
+
+    # 발주 요청 사항
+    ws.merge_cells('A5:H5')
+    ws['A5'] = '아래 사항에 대하여 귀사의 견적을 요청하오니 견적서를 제출하여 주시기 바라며,\n견적서 제출 후 계약을 진행하여 주시기 바랍니다.'
+    ws['A5'].alignment = Alignment(horizontal='left')
+
+    # 프로젝트 정보
+    project_info = [
+        ('프로젝트명', event_data.get('event_name', ''), '용역유형', event_data.get('event_type', '')),
+        ('고객사', event_data.get('client_name', ''), '담당 PM', f"{event_data.get('manager_name', '')} ({event_data.get('manager_position', '')})"),
+        ('담당 PM 연락처', event_data.get('manager_contact', ''), '용역 종류', event_data.get('contract_type', '')),
+        ('예상 참여 관객 수', str(event_data.get('scale', '')), '셋업 시작', str(event_data.get('setup_date', ''))),
+        ('철수 마감', str(event_data.get('teardown_date', '')), '용역 시작일', str(event_data.get('start_date', ''))),
+        ('용역 마감일', str(event_data.get('end_date', '')), '총 계약 금액', f"{format_currency(event_data.get('contract_amount', 0))} 원"),
+        ('수익률 / 수익 금액', f"{event_data.get('expected_profit_percentage', 0)}% / {format_currency(event_data.get('expected_profit', 0))} 원", '', ''),
+        ('장소', ', '.join([v.get('name', '') for v in event_data.get('venues', [])]), '장소 상태', event_data.get('venue_status', '')),
+        ('주소', ', '.join([v.get('address', '') for v in event_data.get('venues', [])]), '', '')
+    ]
+
+    row = 7
+    for item in project_info:
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
+        ws['A' + str(row)] = item[0]
+        ws['A' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+        
+        ws.merge_cells(start_row=row, start_column=3, end_row=row, end_column=4)
+        ws['C' + str(row)] = item[1]
+        ws['C' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+        
+        ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)
+        ws['E' + str(row)] = item[2]
+        ws['E' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+        
+        ws.merge_cells(start_row=row, start_column=7, end_row=row, end_column=8)
+        ws['G' + str(row)] = item[3]
+        ws['G' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+        
+        row += 1
+
+    # 구성 요소 헤더
+    headers = ['번호', '카테고리', '아이템명', '상세 설명', '수량', '단위', '기간', '기간 단위', '예산', '비고']
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=row, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+
+    # 아이템 목록
+    item_number = 1
+    for category, component in event_data.get('components', {}).items():
+        for item in component.get('items', []):
+            ws.append([
+                item_number,
+                category,
+                item,
+                component.get(f'{item}_details', ''),
+                component.get(f'{item}_quantity', 0),
+                component.get(f'{item}_unit', '개'),
+                component.get(f'{item}_duration', 0),
+                component.get(f'{item}_duration_unit', '개월'),
+                component.get('budget', 0),
+                ''
+            ])
+            item_number += 1
+
     # 열 너비 설정
-    for col in ['A', 'B', 'C', 'D', 'E', 'F']:
+    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']:
         ws.column_dimensions[col].width = 30
     
-    # 기본 정보 추가
-    ws['A1'] = "프로젝트명"
-    ws['B1'] = event_data.get('event_name', '')
-    ws['C1'] = "용역유형"
-    ws['D1'] = event_data.get('event_type', '')
+    wb.save(filename)
+
+@safe_operation
+def create_category_excel(event_data: Dict[str, Any], category: str, component: Dict[str, Any], filename: str) -> None:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = sanitize_sheet_title(f'{category} 발주요청서')
     
-    ws['A2'] = "고객사"
-    ws['B2'] = event_data.get('client_name', '')
-    ws['C2'] = "담당 PM"
-    ws['D2'] = f"{event_data.get('manager_name', '')} ({event_data.get('manager_position', '')})"
-    
-    ws['A3'] = "담당 PM 연락처"
-    ws['B3'] = event_data.get('manager_contact', '')
-    ws['C3'] = "담당 PM 이메일"
-    ws['D3'] = event_data.get('manager_email', '')
-    
-    ws['A4'] = "용역 종류"
-    ws['B4'] = event_data.get('contract_type', '')
-    ws['C4'] = "예상 참여 관객 수"
-    ws['D4'] = f"{event_data.get('scale', '')}명"
-    
-    ws['A5'] = "셋업 시작일"
-    ws['B5'] = str(event_data.get('setup_date', ''))
-    ws['C5'] = "철수 마감일"
-    ws['D5'] = str(event_data.get('teardown_date', ''))
-    
-    ws['A6'] = "용역 시작일"
-    ws['B6'] = str(event_data.get('start_date', ''))
-    ws['C6'] = "용역 마감일"
-    ws['D6'] = str(event_data.get('end_date', ''))
-    
-    ws['A7'] = "총 계약 금액"
-    ws['B7'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
-    ws['C7'] = "수익률 / 수익 금액"
-    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}% / {format_currency(event_data.get('expected_profit', 0))} 원"
-    
-    # 카테고리별 예산 추가
-    ws['A10'] = "카테고리별 예산"
-    row = 11
-    total_budget = 0
-    for category, component in event_data.get('components', {}).items():
-        ws[f'A{row}'] = category
-        ws[f'B{row}'] = f"{format_currency(component.get('budget', 0))} 원"
-        total_budget += component.get('budget', 0)
+    # 제목
+    ws.merge_cells('A1:H1')
+    ws['A1'] = f'{category} 발주요청서'
+    ws['A1'].font = Font(bold=True, size=14)
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+
+    # 받는 곳
+    ws.merge_cells('A3:H3')
+    ws['A3'] = '◎ 받는 곳 : ㈜디노마드 / 서울시 영등포구 여의대로 108 파크원타워 2, 21층'
+    ws['A3'].alignment = Alignment(horizontal='left')
+
+    # 발주 요청 사항
+    ws.merge_cells('A5:H5')
+    ws['A5'] = '아래 사항에 대하여 귀사의 견적을 요청하오니 견적서를 제출하여 주시기 바라며,\n견적서 제출 후 계약을 진행하여 주시기 바랍니다.'
+    ws['A5'].alignment = Alignment(horizontal='left')
+
+    # 프로젝트 정보
+    project_info = [
+        ('프로젝트명', event_data.get('event_name', ''), '용역유형', event_data.get('event_type', '')),
+        ('고객사', event_data.get('client_name', ''), '담당 PM', f"{event_data.get('manager_name', '')} ({event_data.get('manager_position', '')})"),
+        ('담당 PM 연락처', event_data.get('manager_contact', ''), '용역 종류', event_data.get('contract_type', '')),
+        ('예상 참여 관객 수', str(event_data.get('scale', '')), '셋업 시작', str(event_data.get('setup_date', ''))),
+        ('철수 마감', str(event_data.get('teardown_date', '')), '용역 시작일', str(event_data.get('start_date', ''))),
+        ('용역 마감일', str(event_data.get('end_date', '')), '총 계약 금액', f"{format_currency(event_data.get('contract_amount', 0))} 원"),
+        ('수익률 / 수익 금액', f"{event_data.get('expected_profit_percentage', 0)}% / {format_currency(event_data.get('expected_profit', 0))} 원", '', ''),
+        ('장소', ', '.join([v.get('name', '') for v in event_data.get('venues', [])]), '장소 상태', event_data.get('venue_status', '')),
+        ('주소', ', '.join([v.get('address', '') for v in event_data.get('venues', [])]), '', '')
+    ]
+
+    row = 7
+    for item in project_info:
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
+        ws['A' + str(row)] = item[0]
+        ws['A' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+        
+        ws.merge_cells(start_row=row, start_column=3, end_row=row, end_column=4)
+        ws['C' + str(row)] = item[1]
+        ws['C' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+        
+        ws.merge_cells(start_row=row, start_column=5, end_row=row, end_column=6)
+        ws['E' + str(row)] = item[2]
+        ws['E' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+        
+        ws.merge_cells(start_row=row, start_column=7, end_row=row, end_column=8)
+        ws['G' + str(row)] = item[3]
+        ws['G' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+        
         row += 1
-    
-    ws[f'A{row}'] = "전체 예산"
-    ws[f'B{row}'] = f"{format_currency(total_budget)} 원"
-    
-    # 스타일 적용
-    apply_styles(ws, max_row=row, max_col=4)
-    
-    # 카테고리별 시트 추가
-    for category, component in event_data.get('components', {}).items():
-        ws = wb.create_sheet(title=sanitize_sheet_title(category))
-        ws['A1'] = "카테고리"
-        ws['B1'] = category
-        ws['A2'] = "진행 상황"
-        ws['B2'] = component.get('status', '')
-        ws['A3'] = "예산"
-        ws['B3'] = f"{format_currency(component.get('budget', 0))} 원"
-        
-        row = 5
-        for item in component.get('items', []):
-            ws[f'A{row}'] = item
-            ws[f'B{row}'] = component.get(f'{item}_quantity', 0)
-            ws[f'C{row}'] = component.get(f'{item}_unit', '개')
-            ws[f'D{row}'] = component.get(f'{item}_details', '')
-            row += 1
-        
-        # 스타일 적용
-        apply_styles(ws, max_row=row-1, max_col=4)
+
+    # 구성 요소 헤더
+    headers = ['번호', '아이템명', '상세 설명', '수량', '단위', '기간', '기간 단위', '비고']
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=row, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+
+    # 아이템 목록
+    item_number = 1
+    for item in component.get('items', []):
+        ws.append([
+            item_number,
+            item,
+            component.get(f'{item}_details', ''),
+            component.get(f'{item}_quantity', 0),
+            component.get(f'{item}_unit', '개'),
+            component.get(f'{item}_duration', 0),
+            component.get(f'{item}_duration_unit', '개월'),
+            ''
+        ])
+        item_number += 1
+
+    # 열 너비 설정
+    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+        ws.column_dimensions[col].width = 30
     
     wb.save(filename)
 
@@ -610,103 +769,6 @@ def sanitize_sheet_title(title: str) -> str:
     for char in invalid_chars:
         title = title.replace(char, '')
     return title
-
-def create_category_excel(event_data: Dict[str, Any], category: str, component: Dict[str, Any], filename: str) -> None:
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = sanitize_sheet_title(f'{category} 발주요청서')
-    
-    # 열 너비 설정
-    for col in ['A', 'B', 'C', 'D', 'E', 'F']:
-        ws.column_dimensions[col].width = 30
-    
-    # 기본 정보 추가
-    ws['A1'] = "프로젝트명"
-    ws['B1'] = event_data.get('event_name', '')
-    ws['C1'] = "용역유형"
-    ws['D1'] = event_data.get('event_type', '')
-    
-    ws['A2'] = "고객사"
-    ws['B2'] = event_data.get('client_name', '')
-    ws['C2'] = "담당 PM"
-    ws['D2'] = f"{event_data.get('manager_name', '')} ({event_data.get('manager_position', '')})"
-    
-    ws['A3'] = "담당 PM 연락처"
-    ws['B3'] = event_data.get('manager_contact', '')
-    ws['C3'] = "담당 PM 이메일"
-    ws['D3'] = event_data.get('manager_email', '')
-    
-    ws['A4'] = "용역 종류"
-    ws['B4'] = event_data.get('contract_type', '')
-    ws['C4'] = "예상 참여 관객 수"
-    ws['D4'] = f"{event_data.get('scale', '')}명"
-    
-    ws['A5'] = "셋업 시작일"
-    ws['B5'] = str(event_data.get('setup_date', ''))
-    ws['C5'] = "철수 마감일"
-    ws['D5'] = str(event_data.get('teardown_date', ''))
-    
-    ws['A6'] = "용역 시작일"
-    ws['B6'] = str(event_data.get('start_date', ''))
-    ws['C6'] = "용역 마감일"
-    ws['D6'] = str(event_data.get('end_date', ''))
-    
-    ws['A7'] = "총 계약 금액"
-    ws['B7'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
-    ws['C7'] = "수익률 / 수익 금액"
-    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}% / {format_currency(event_data.get('expected_profit', 0))} 원"
-    
-    # 카테고리 정보 추가
-    ws['A10'] = "카테고리 정보"
-    ws['A11'] = f"카테고리: {category}"
-    ws['A12'] = f"진행 상황: {component.get('status', '')}"
-    ws['A13'] = f"예산: {format_currency(component.get('budget', 0))} 원"
-    ws['A14'] = f"선호 업체 여부: {'예' if component.get('preferred_vendor', False) else '아니오'}"
-    
-    if component.get('preferred_vendor', False):
-        ws['A15'] = f"선호 이유: {component.get('vendor_reason', '')}"
-        ws['A16'] = f"선호 업체 상호명: {component.get('vendor_name', '')}"
-        ws['A17'] = f"선호 업체 연락처: {component.get('vendor_contact', '')}"
-        ws['A18'] = f"선호 업체 담당자명: {component.get('vendor_manager', '')}"
-    
-    # 발주 요청 항목
-    ws['A20'] = "발주 요청 항목"
-    ws['A21'] = "카테고리"
-    ws['B21'] = category
-    ws['A22'] = "진행 상황"
-    ws['B22'] = component.get('status', '')
-    ws['A23'] = "예산"
-    ws['B23'] = f"{format_currency(component.get('budget', 0))} 원"
-    
-    # 항목 리스트 추가
-    ws['A25'] = "항목"
-    ws['B25'] = "수량"
-    ws['C25'] = "단위"
-    ws['D25'] = "세부사항"
-    
-    row = 26
-    for item in component.get('items', []):
-        ws[f'A{row}'] = item
-        ws[f'B{row}'] = component.get(f'{item}_quantity', 0)
-        ws[f'C{row}'] = component.get(f'{item}_unit', '개')
-        ws[f'D{row}'] = component.get(f'{item}_details', '')
-        row += 1
-    
-    # 스타일 적용
-    apply_styles(ws, max_row=row-1, max_col=4)
-    
-    wb.save(filename)
-
-def apply_styles(ws, max_row, max_col):
-    header_fill = PatternFill(start_color="DDEBF7", end_color="DDEBF7", fill_type="solid")
-    border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-    
-    for row in ws.iter_rows(min_row=1, max_row=max_row, min_col=1, max_col=max_col):
-        for cell in row:
-            cell.border = border
-            if cell.row == 1 or cell.column in [1, 3]:
-                cell.fill = header_fill
-                cell.font = Font(bold=True)
 
 def format_currency(amount):
     return "{:,}".format(amount)
@@ -729,6 +791,87 @@ def render_option_menu(label: str, options: List[str], key: str) -> str:
     )
     return selected
 
+@contextmanager
+def get_db_connection():
+    conn = sqlite3.connect('event_planner.db')
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+def init_db():
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_data TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        conn.commit()
+
+def save_event_data(event_data: Dict[str, Any]) -> None:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        event_id = event_data.get('id')
+        event_data_json = json.dumps(event_data, ensure_ascii=False)
+        if event_id:
+            cursor.execute('''
+            UPDATE events SET event_data = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            ''', (event_data_json, event_id))
+        else:
+            cursor.execute('''
+            INSERT INTO events (event_data) VALUES (?)
+            ''', (event_data_json,))
+            event_data['id'] = cursor.lastrowid
+        conn.commit()
+
+def load_event_data(event_id: int) -> Dict[str, Any]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT event_data FROM events WHERE id = ?', (event_id,))
+        result = cursor.fetchone()
+        if result:
+            return json.loads(result[0])
+        return {}
+
+def get_all_events() -> List[Tuple[int, str, str]]:
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, event_data, created_at FROM events ORDER BY created_at DESC')
+        return [(row[0], json.loads(row[1]).get('event_name', 'Unnamed Event'), row[2]) for row in cursor.fetchall()]
+
+# 앱 시작 시 데이터베이스 초기화
+init_db()
+
+# 메인 앱 로직에서
+if 'event_data' not in st.session_state:
+    st.session_state.event_data = load_event_data()
+
+# 데이터 변경 후
+save_event_data(st.session_state.event_data)
+def get_db_connection():
+    conn = sqlite3.connect('event_planner.db')
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+def init_db():
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_data TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        conn.commit()
 
 def check_required_fields(step):
     event_data = st.session_state.event_data
