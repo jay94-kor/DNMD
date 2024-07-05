@@ -533,7 +533,77 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
         else:
             handle_item_details(item, component)
 
+    if category == "Media":
+        handle_media_component(component, category)
+
     event_data['components'][category] = component
+
+def handle_media_component(component: Dict[str, Any], category: str) -> None:
+    # 촬영일 정보 수집
+    shooting_date_status = render_option_menu(
+        "촬영일이 정해졌나요?",
+        ["정해짐", "미정"],
+        f"{category}_shooting_date_status"
+    )
+
+    if shooting_date_status == "정해짐":
+        component['shooting_date'] = st.date_input(
+            "촬영일을 선택해주세요",
+            min_value=date.today(),
+            key=f"{category}_shooting_date"
+        )
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            component['shooting_start_date'] = st.date_input(
+                "촬영 시작 가능일",
+                min_value=date.today(),
+                key=f"{category}_shooting_start_date"
+            )
+        with col2:
+            component['shooting_end_date'] = st.date_input(
+                "촬영 마감일",
+                min_value=component['shooting_start_date'],
+                key=f"{category}_shooting_end_date"
+            )
+
+    # 납품일 정보 수집
+    component['delivery_dates'] = component.get('delivery_dates', [])
+    
+    add_delivery_date = st.button("납품일 추가")
+    if add_delivery_date:
+        component['delivery_dates'].append({})
+
+    for idx, delivery in enumerate(component['delivery_dates']):
+        st.subheader(f"납품일 {idx + 1}")
+        
+        delivery['status'] = render_option_menu(
+            "납품일이 정해졌나요?",
+            ["정해짐", "미정"],
+            f"{category}_delivery_status_{idx}"
+        )
+
+        if delivery['status'] == "정해짐":
+            delivery['date'] = st.date_input(
+                "납품일을 선택해주세요",
+                min_value=date.today(),
+                key=f"{category}_delivery_date_{idx}"
+            )
+        else:
+            delivery['date'] = None
+
+        delivery['items'] = {}
+        for item in component['items']:
+            quantity = st.number_input(
+                f"{item} 납품 수량",
+                min_value=0,
+                value=delivery['items'].get(item, 0),
+                key=f"{category}_{item}_quantity_{idx}"
+            )
+            if quantity > 0:
+                delivery['items'][item] = quantity
+
+    component['delivery_dates'] = [d for d in component['delivery_dates'] if d['items']]
 
 def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['vendor_reason'] = render_option_menu(
@@ -703,6 +773,69 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
 
     # 열 너비 설정
     for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']:
+        ws.column_dimensions[col].width = 20
+
+    wb.save(filename)
+
+def create_media_summary(event_data: Dict[str, Any], filename: str) -> None:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "미디어 발주 요약"
+
+    # 기본 정보
+    ws['A1'] = "미디어 발주 요약서"
+    ws['A1'].font = Font(size=16, bold=True)
+    ws.merge_cells('A1:G1')
+
+    basic_info = [
+        ('프로젝트명', event_data.get('event_name', '')),
+        ('클라이언트', event_data.get('client_name', '')),
+        ('담당 PM', event_data.get('manager_name', '')),
+        ('연락처', event_data.get('manager_contact', ''))
+    ]
+
+    for row, (key, value) in enumerate(basic_info, start=3):
+        ws[f'A{row}'] = key
+        ws[f'B{row}'] = value
+
+    # 미디어 정보
+    media_component = event_data.get('components', {}).get('Media', {})
+    
+    row = 8
+    ws[f'A{row}'] = "촬영 정보"
+    ws[f'A{row}'].font = Font(bold=True)
+    row += 1
+
+    if media_component.get('shooting_date'):
+        ws[f'A{row}'] = "촬영일"
+        ws[f'B{row}'] = str(media_component['shooting_date'])
+    else:
+        ws[f'A{row}'] = "촬영 기간"
+        ws[f'B{row}'] = f"{media_component.get('shooting_start_date', '')} ~ {media_component.get('shooting_end_date', '')}"
+    
+    row += 2
+    ws[f'A{row}'] = "납품 정보"
+    ws[f'A{row}'].font = Font(bold=True)
+    row += 1
+
+    for idx, delivery in enumerate(media_component.get('delivery_dates', []), 1):
+        ws[f'A{row}'] = f"납품일 {idx}"
+        ws[f'B{row}'] = str(delivery['date']) if delivery['date'] else '미정'
+        row += 1
+        
+        ws[f'A{row}'] = "항목"
+        ws[f'B{row}'] = "수량"
+        row += 1
+        
+        for item, quantity in delivery['items'].items():
+            ws[f'A{row}'] = item
+            ws[f'B{row}'] = quantity
+            row += 1
+        
+        row += 1
+
+    # 스타일 적용
+    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
         ws.column_dimensions[col].width = 20
 
     wb.save(filename)
@@ -1023,6 +1156,18 @@ def main():
                 else:
                     st.error("모든 필수 항목을 입력해주세요.")
                     highlight_missing_fields(missing_fields)
+
+    if st.button("정의서 생성"):
+    event_data = st.session_state.event_data
+    create_excel_summary(event_data, "event_summary.xlsx")
+    
+    if 'Media' in event_data.get('components', {}):
+        create_media_summary(event_data, "media_order_summary.xlsx")
+        st.success("이벤트 정의서와 미디어 발주 요약서가 생성되었습니다.")
+    else:
+        st.success("이벤트 정의서가 생성되었습니다.")
+
+
 
 if __name__ == "__main__":
     main()
