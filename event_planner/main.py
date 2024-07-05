@@ -65,7 +65,6 @@ def basic_info() -> None:
         handle_offline_event(event_data)
 
 def handle_general_info(event_data: Dict[str, Any]) -> None:
-    st.write(f"현재 예상 참여 관객 수: {event_data.get('scale', 0)}명")  # 기존 예상 참여 관객 수 표시
 
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
