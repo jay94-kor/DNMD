@@ -69,7 +69,8 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
 
     event_data['event_name'] = st.text_input("용역명", value=event_data.get('event_name', ''), key="event_name_basic", autocomplete="off")
     event_data['client_name'] = st.text_input("클라이언트명", value=event_data.get('client_name', ''), key="client_name_basic")
-    event_data['manager_name'] = st.text_input("담당자명", value=event_data.get('manager_name', ''), key="manager_name_basic")
+    event_data['manager_name'] = st.text_input("담당 PM", value=event_data.get('manager_name', ''), key="manager_name_basic")
+    event_data['manager_email'] = st.text_input("담당 PM 이메일", value=event_data.get('manager_email', ''), key="manager_email_basic")
     
     event_data['manager_position'] = render_option_menu(
         "담당자 직급",
@@ -218,14 +219,19 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = st.date_input("시작 날짜", value=event_data.get('start_date', date.today()), key="start_date")
     event_data['end_date'] = st.date_input("종료 날짜", value=event_data.get('end_date', event_data['start_date']), key="end_date")
 
-    event_data['setup_start'] = render_option_menu("셋업 시작", config['SETUP_OPTIONS'], "setup_start")
+    event_data['setup_start'] = render_option_menu("셋업 시작일", config['SETUP_OPTIONS'], "setup_start")
 
     if event_data['setup_start'] == config['SETUP_OPTIONS'][0]:
         event_data['setup_date'] = event_data['start_date'] - timedelta(days=1)
     else:
         event_data['setup_date'] = event_data['start_date']
 
-    event_data['teardown'] = render_option_menu("철수", config['TEARDOWN_OPTIONS'], "teardown")
+    event_data['teardown'] = render_option_menu("철수 마감일", config['TEARDOWN_OPTIONS'], "teardown")
+
+    if event_data['teardown'] == config['TEARDOWN_OPTIONS'][0]:
+        event_data['teardown_date'] = event_data['end_date']
+    else:
+        event_data['teardown_date'] = event_data['end_date'] + timedelta(days=1)
 
 def venue_info() -> None:
     event_data = st.session_state.event_data
@@ -521,49 +527,44 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     ws.title = "전체 행사 요약"
     
     # 열 너비 설정
-    for col in ['A', 'B', 'C', 'D']:
+    for col in ['A', 'B', 'C', 'D', 'E', 'F']:
         ws.column_dimensions[col].width = 30
     
     # 기본 정보 추가
-    ws['A1'] = "용역명"
+    ws['A1'] = "프로젝트명"
     ws['B1'] = event_data.get('event_name', '')
-    ws['C1'] = "고객사"
-    ws['D1'] = event_data.get('client_name', '')
+    ws['C1'] = "용역유형"
+    ws['D1'] = event_data.get('event_type', '')
     
-    ws['A2'] = "담당자명"
-    ws['B2'] = event_data.get('manager_name', '')
-    ws['C2'] = "담당자 직급"
-    ws['D2'] = event_data.get('manager_position', '')
+    ws['A2'] = "고객사"
+    ws['B2'] = event_data.get('client_name', '')
+    ws['C2'] = "담당 PM"
+    ws['D2'] = f"{event_data.get('manager_name', '')} ({event_data.get('manager_position', '')})"
     
-    ws['A3'] = "담당자 연락처"
+    ws['A3'] = "담당 PM 연락처"
     ws['B3'] = event_data.get('manager_contact', '')
-    ws['C3'] = "용역 유형"
-    ws['D3'] = event_data.get('event_type', '')
+    ws['C3'] = "담당 PM 이메일"
+    ws['D3'] = event_data.get('manager_email', '')
     
     ws['A4'] = "용역 종류"
     ws['B4'] = event_data.get('contract_type', '')
-    ws['C4'] = "규모"
+    ws['C4'] = "예상 참여 관객 수"
     ws['D4'] = f"{event_data.get('scale', '')}명"
     
-    ws['A5'] = "시작일"
-    ws['B5'] = str(event_data.get('start_date', ''))
-    ws['C5'] = "종료일"
-    ws['D5'] = str(event_data.get('end_date', ''))
+    ws['A5'] = "셋업 시작일"
+    ws['B5'] = str(event_data.get('setup_date', ''))
+    ws['C5'] = "철수 마감일"
+    ws['D5'] = str(event_data.get('teardown_date', ''))
     
-    ws['A6'] = "셋업 시작"
-    ws['B6'] = event_data.get('setup_start', '')
-    ws['C6'] = "철수"
-    ws['D6'] = event_data.get('teardown', '')
+    ws['A6'] = "용역 시작일"
+    ws['B6'] = str(event_data.get('start_date', ''))
+    ws['C6'] = "용역 마감일"
+    ws['D6'] = str(event_data.get('end_date', ''))
     
     ws['A7'] = "총 계약 금액"
     ws['B7'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
-    ws['C7'] = "예상 수익률"
-    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}%"
-    
-    ws['A8'] = "예상 수익 금액"
-    ws['B8'] = f"{format_currency(event_data.get('expected_profit', 0))} 원"
-    ws['C8'] = "장소 확정 상태"
-    ws['D8'] = event_data.get('venue_status', '')
+    ws['C7'] = "수익률 / 수익 금액"
+    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}% / {format_currency(event_data.get('expected_profit', 0))} 원"
     
     # 카테고리별 예산 추가
     ws['A10'] = "카테고리별 예산"
@@ -616,49 +617,44 @@ def create_category_excel(event_data: Dict[str, Any], category: str, component: 
     ws.title = sanitize_sheet_title(f'{category} 발주요청서')
     
     # 열 너비 설정
-    for col in ['A', 'B', 'C', 'D']:
+    for col in ['A', 'B', 'C', 'D', 'E', 'F']:
         ws.column_dimensions[col].width = 30
     
     # 기본 정보 추가
-    ws['A1'] = "용역명"
+    ws['A1'] = "프로젝트명"
     ws['B1'] = event_data.get('event_name', '')
-    ws['C1'] = "고객사"
-    ws['D1'] = event_data.get('client_name', '')
+    ws['C1'] = "용역유형"
+    ws['D1'] = event_data.get('event_type', '')
     
-    ws['A2'] = "담당자명"
-    ws['B2'] = event_data.get('manager_name', '')
-    ws['C2'] = "담당자 직급"
-    ws['D2'] = event_data.get('manager_position', '')
+    ws['A2'] = "고객사"
+    ws['B2'] = event_data.get('client_name', '')
+    ws['C2'] = "담당 PM"
+    ws['D2'] = f"{event_data.get('manager_name', '')} ({event_data.get('manager_position', '')})"
     
-    ws['A3'] = "담당자 연락처"
+    ws['A3'] = "담당 PM 연락처"
     ws['B3'] = event_data.get('manager_contact', '')
-    ws['C3'] = "용역 유형"
-    ws['D3'] = event_data.get('event_type', '')
+    ws['C3'] = "담당 PM 이메일"
+    ws['D3'] = event_data.get('manager_email', '')
     
     ws['A4'] = "용역 종류"
     ws['B4'] = event_data.get('contract_type', '')
-    ws['C4'] = "규모"
+    ws['C4'] = "예상 참여 관객 수"
     ws['D4'] = f"{event_data.get('scale', '')}명"
     
-    ws['A5'] = "시작일"
-    ws['B5'] = str(event_data.get('start_date', ''))
-    ws['C5'] = "종료일"
-    ws['D5'] = str(event_data.get('end_date', ''))
+    ws['A5'] = "셋업 시작일"
+    ws['B5'] = str(event_data.get('setup_date', ''))
+    ws['C5'] = "철수 마감일"
+    ws['D5'] = str(event_data.get('teardown_date', ''))
     
-    ws['A6'] = "셋업 시작"
-    ws['B6'] = event_data.get('setup_start', '')
-    ws['C6'] = "철수"
-    ws['D6'] = event_data.get('teardown', '')
+    ws['A6'] = "용역 시작일"
+    ws['B6'] = str(event_data.get('start_date', ''))
+    ws['C6'] = "용역 마감일"
+    ws['D6'] = str(event_data.get('end_date', ''))
     
     ws['A7'] = "총 계약 금액"
     ws['B7'] = f"{format_currency(event_data.get('contract_amount', 0))} 원"
-    ws['C7'] = "예상 수익률"
-    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}%"
-    
-    ws['A8'] = "예상 수익 금액"
-    ws['B8'] = f"{format_currency(event_data.get('expected_profit', 0))} 원"
-    ws['C8'] = "장소 확정 상태"
-    ws['D8'] = event_data.get('venue_status', '')
+    ws['C7'] = "수익률 / 수익 금액"
+    ws['D7'] = f"{event_data.get('expected_profit_percentage', 0)}% / {format_currency(event_data.get('expected_profit', 0))} 원"
     
     # 카테고리 정보 추가
     ws['A10'] = "카테고리 정보"
@@ -793,7 +789,7 @@ def highlight_missing_fields(missing_fields):
     field_names = {
         'event_name': '용역명',
         'client_name': '클라이언트명',
-        'manager_name': '담당자명',
+        'manager_name': '담당 PM',
         'manager_position': '담당자 직급',
         'manager_contact': '담당자 연락처',
         'event_type': '용역 유형',
@@ -803,8 +799,8 @@ def highlight_missing_fields(missing_fields):
         'expected_profit_percentage': '예상 수익률',
         'start_date': '시작일',
         'end_date': '종료일',
-        'setup_start': '셋업 시작',
-        'teardown': '철수',
+        'setup_start': '셋업 시작일',
+        'teardown': '철수 마감일',
         'venue_status': '장소 확정 상태',
         'venue_type': '장소 유형',
         'desired_region': '희망하는 지역',
