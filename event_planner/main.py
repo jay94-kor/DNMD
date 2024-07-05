@@ -425,7 +425,7 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
     
     component['items'] = st.multiselect(
         f"{category} 항목 선택",
-        event_options.CATEGORIES.get(category, []),
+        event_options.CATEGORIES.get(category, []) + ["기타"],
         default=component.get('items', []),
         key=f"{category}_items"
     )
@@ -451,7 +451,10 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
         component['vendor_manager'] = ''
 
     for item in component['items']:
-        handle_item_details(item, component)
+        if item == "기타":
+            component['other_details'] = st.text_area(f"{category} 기타 세부사항", value=component.get('other_details', ''), key=f"{category}_other_details")
+        else:
+            handle_item_details(item, component)
 
     event_data['components'][category] = component
 
@@ -567,10 +570,16 @@ def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     
     wb.save(filename)
 
+def sanitize_sheet_title(title: str) -> str:
+    invalid_chars = ['\\', '/', '*', '[', ']', ':', '?']
+    for char in invalid_chars:
+        title = title.replace(char, '')
+    return title
+
 def create_category_excel(event_data: Dict[str, Any], category: str, component: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = f'{category} 발주요청서'
+    ws.title = sanitize_sheet_title(f'{category} 발주요청서')
     
     # 열 너비 설정
     for col in ['A', 'B', 'C', 'D']:
@@ -712,8 +721,8 @@ def check_required_fields(step):
                         missing_fields.append('outdoor_location_description')
                 elif event_data.get('location_type') == "직접 지정":
                     required_fields = ['location_type', 'location_name', 'location_address', 'location_status']
-        elif event_data.get('event_type') == "오프라인 이벤트":
-            required_fields = ['venue_status', 'venue_type']
+        else:
+            required_fields = ['venue_status', 'venue_type', 'scale']
             if event_data.get('venue_status') == "알 수 없는 상태":
                 required_fields.extend(['desired_region', 'desired_capacity'])
             else:
