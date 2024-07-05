@@ -308,14 +308,15 @@ def venue_info() -> None:
             "venue_type"
         )
 
-        event_data['scale'] = st.number_input(
-            "예상 참여 관객 수",
-            min_value=0,
-            value=event_data.get('scale', 0),
-            step=1,
-            format="%d",
-            key="scale_input_venue"
-        )
+        if event_data['venue_type'] != "온라인":
+            event_data['scale'] = st.number_input(
+                "예상 참여 관객 수",
+                min_value=0,
+                value=event_data.get('scale', 0),
+                step=1,
+                format="%d",
+                key="scale_input_venue"
+            )
 
         if event_data['venue_type'] == "온라인":
             st.info("온라인 이벤트는 물리적 장소 정보가 필요하지 않습니다.")
@@ -1139,15 +1140,14 @@ init_db()
 
 def check_required_fields(step):
     event_data = st.session_state.event_data
-    required_fields = []
     missing_fields = []
 
     if step == 0:  # 기본 정보
         required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'contract_amount', 'expected_profit_percentage']
-        if event_data.get('event_type') == "온라인 콘텐츠":
-            required_fields.extend(['start_date', 'end_date'])
-        elif event_data.get('event_type') == "오프라인 이벤트":
-            required_fields.extend(['start_date', 'end_date', 'setup_start', 'teardown'])
+        for field in required_fields:
+            if not event_data.get(field):
+                missing_fields.append(field)
+
     elif step == 1:  # 장소 정보
         if event_data.get('event_type') == "온라인 콘텐츠":
             if event_data.get('location_needed') == "필요":
@@ -1158,18 +1158,27 @@ def check_required_fields(step):
                         missing_fields.append('outdoor_location_description')
                 elif event_data.get('location_type') == "직접 지정":
                     required_fields = ['location_type', 'location_name', 'location_address', 'location_status']
-        else:
+                    for field in required_fields:
+                        if not event_data.get(field):
+                            missing_fields.append(field)
+        else:  # 오프라인 이벤트
             required_fields = ['venue_status', 'venue_type', 'scale']
+            for field in required_fields:
+                if not event_data.get(field):
+                    missing_fields.append(field)
             if event_data.get('venue_status') == "알 수 없는 상태":
-                required_fields.extend(['desired_region', 'desired_capacity'])
+                if not event_data.get('desired_region'):
+                    missing_fields.append('desired_region')
             else:
-                required_fields.extend(['venues'])
-                if event_data.get('venues'):
+                if not event_data.get('venues'):
+                    missing_fields.append('venues')
+                else:
                     for i, venue in enumerate(event_data['venues']):
                         if not venue.get('name'):
                             missing_fields.append(f'venues[{i}].name')
                         if not venue.get('address'):
                             missing_fields.append(f'venues[{i}].address')
+
     elif step == 2:  # 용역 구성 요소
         if not event_data.get('selected_categories'):
             missing_fields.append('selected_categories')
@@ -1183,12 +1192,6 @@ def check_required_fields(step):
                         missing_fields.append(f'components.{category}.status')
                     if not component.get('items'):
                         missing_fields.append(f'components.{category}.items')
-    else:
-        return True, []  # 정의서 생성 단계는 모든 필드가 이미 채워져 있어야 함
-
-    for field in required_fields:
-        if not event_data.get(field):
-            missing_fields.append(field)
 
     return len(missing_fields) == 0, missing_fields
 
@@ -1233,6 +1236,10 @@ def highlight_missing_fields(missing_fields):
         else:
             st.error(f"{field_names.get(field, field)} 제목을 입력해주세요.")
 
+def display_missing_fields(missing_fields):
+    for field in missing_fields:
+        st.error(f"{field} 필드를 입력해주세요.")
+
 def main():
     st.title("이벤트 플래너")
 
@@ -1253,6 +1260,12 @@ def main():
     step_names = ["기본 정보", "장소 정보", "용역 구성 요소", "정의서 생성"]
 
     current_step = st.session_state.step
+    event_type = st.session_state.event_data.get('event_type')
+
+    if event_type == "온라인 콘텐츠" and current_step == 1:
+        current_step = 2
+        st.session_state.step = 2
+
     selected_step = option_menu(
         None,
         step_names,
@@ -1268,7 +1281,10 @@ def main():
     )
 
     if selected_step != step_names[current_step]:
-        st.session_state.step = step_names.index(selected_step)
+        new_step = step_names.index(selected_step)
+        if event_type == "온라인 콘텐츠" and new_step == 1:
+            new_step = 2
+        st.session_state.step = new_step
         st.experimental_rerun()
 
     functions[current_step]()
@@ -1277,20 +1293,34 @@ def main():
 
     with col1:
         if current_step > 0:
-            if st.button("이전 단계로"):
-                st.session_state.step -= 1
+            if st.button("이전"):
+                if event_type == "온라인 콘텐츠" and current_step == 2:
+                    st.session_state.step = 0
+                else:
+                    st.session_state.step -= 1
                 st.experimental_rerun()
 
     with col3:
-        if current_step < len(functions) - 1:
-            if st.button("다음 단계로"):
-                fields_complete, missing_fields = check_required_fields(current_step)
-                if fields_complete:
-                    st.session_state.step += 1
+        if current_step < 3:
+            if st.button("다음"):
+                is_valid, missing_fields = check_required_fields(current_step)
+                if is_valid:
+                    if event_type == "온라인 콘텐츠" and current_step == 0:
+                        st.session_state.step = 2
+                    else:
+                        st.session_state.step += 1
                     st.experimental_rerun()
                 else:
-                    st.error("모든 필수 항목을 입력해주세요.")
-                    highlight_missing_fields(missing_fields)
+                    display_missing_fields(missing_fields)
+        elif current_step == 3:
+            if st.button("저장"):
+                save_event_data(st.session_state.event_data)
+                st.success("이벤트 데이터가 성공적으로 저장되었습니다.")
+
+    with col2:
+        if st.button("저장"):
+            save_event_data(st.session_state.event_data)
+            st.success("이벤트 데이터가 성공적으로 저장되었습니다.")
 
 if __name__ == "__main__":
     main()
