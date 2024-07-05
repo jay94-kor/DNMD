@@ -600,12 +600,14 @@ def handle_media_component(component: Dict[str, Any], category: str) -> None:
                 f"{item} 납품 수량",
                 min_value=0,
                 value=delivery['items'].get(item, 0),
-                key=f"{category}_{item}_quantity_{idx}"
+                key=f"{category}_delivery_item_{idx}_{item}"
             )
             if quantity > 0:
                 delivery['items'][item] = quantity
 
-    component['delivery_dates'] = [d for d in component['delivery_dates'] if d['items']]
+    if st.button("납품일 삭제", key=f"{category}_remove_delivery_date"):
+        if component['delivery_dates']:
+            component['delivery_dates'].pop()
 
 def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['vendor_reason'] = render_option_menu(
@@ -846,7 +848,7 @@ def create_media_summary(event_data: Dict[str, Any], filename: str) -> None:
 def create_category_excel(event_data: Dict[str, Any], category: str, component: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = sanitize_sheet_title(f'{category} 발주요청서')
+    ws.title = sanitize_sheet_title(category)
 
     # 제목
     ws.merge_cells('A1:H1')
@@ -873,8 +875,6 @@ def create_category_excel(event_data: Dict[str, Any], category: str, component: 
         ('철수 마감', str(event_data.get('teardown_date', '')), '용역 시작일', str(event_data.get('start_date', ''))),
         ('용역 마감일', str(event_data.get('end_date', '')), '총 계약 금액', f"{format_currency(event_data.get('contract_amount', 0))} 원"),
         ('수익률 / 수익 금액', f"{event_data.get('expected_profit_percentage', 0)}% / {format_currency(event_data.get('expected_profit', 0))} 원", '', ''),
-        ('장소', ', '.join([v.get('name', '') for v in event_data.get('venues', [])]), '장소 상태', event_data.get('venue_status', '')),
-        ('주소', ', '.join([v.get('address', '') for v in event_data.get('venues', [])]), '', '')
     ]
 
     row = 7
@@ -897,6 +897,46 @@ def create_category_excel(event_data: Dict[str, Any], category: str, component: 
 
         row += 1
 
+    # 촬영일 정보
+    row += 1
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+    ws['A' + str(row)] = '촬영일 정보'
+    ws['A' + str(row)].font = Font(bold=True)
+    ws['A' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+
+    row += 1
+    if 'shooting_date' in component:
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+        ws['A' + str(row)] = f"촬영일: {component['shooting_date']}"
+    else:
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+        ws['A' + str(row)] = f"촬영 가능 기간: {component['shooting_start_date']} ~ {component['shooting_end_date']}"
+
+    # 납품일 정보
+    row += 2
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+    ws['A' + str(row)] = '납품일 정보'
+    ws['A' + str(row)].font = Font(bold=True)
+    ws['A' + str(row)].alignment = Alignment(horizontal='left', vertical='center')
+
+    for delivery in component.get('delivery_dates', []):
+        row += 1
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+        if delivery['status'] == "정해짐":
+            ws['A' + str(row)] = f"납품일: {delivery['date']}"
+        else:
+            ws['A' + str(row)] = "납품일: 미정"
+
+        row += 1
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+        ws['A' + str(row)] = "납품 항목:"
+        for item, quantity in delivery['items'].items():
+            row += 1
+            ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+            ws['A' + str(row)] = f"- {item}: {quantity}개"
+
+    # 아이템 목록
+    row += 2
     headers = ['번호', '아이템명', '상세 설명', '수량', '단위', '기간', '기간 단위', '비고']
     for col_num, header in enumerate(headers, 1):
         cell = ws.cell(row=row, column=col_num)
@@ -907,6 +947,7 @@ def create_category_excel(event_data: Dict[str, Any], category: str, component: 
 
     item_number = 1
     for item in component.get('items', []):
+        row += 1
         ws.append([
             item_number,
             item,
@@ -920,7 +961,7 @@ def create_category_excel(event_data: Dict[str, Any], category: str, component: 
         item_number += 1
 
     for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
-        ws.column_dimensions[col].width = 30
+        ws.column_dimensions[col].auto_size = True
 
     wb.save(filename)
 
