@@ -225,7 +225,7 @@ def handle_video_production(event_data: Dict[str, Any]) -> None:
         # start_date가 정의된 후에 end_date의 기본값을 설정합니다.
         end_date = st.date_input("과업 종료일",
                                  value=event_data.get('end_date', start_date + timedelta(days=1)),
-                                 min_value=start_date + timedelta(days=1),
+                                 min_value=start_date,
                                  key="end_date")
 
     event_data['start_date'] = start_date
