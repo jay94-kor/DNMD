@@ -265,13 +265,25 @@ def venue_info() -> None:
             handle_known_venue_status(event_data)
 
 def handle_online_content_location(event_data: Dict[str, Any]) -> None:
-    location_needed = st.selectbox("촬영 로케이션 필요 여부", ["필요", "불필요"], key="location_needed")
+    location_needed = render_option_menu(
+        "촬영 로케이션 필요 여부",
+        ["필요", "불필요"],
+        "location_needed"
+    )
     
     if location_needed == "필요":
-        location_type = st.selectbox("어떤 로케이션이 필요한가요?", ["협력사가 알아서", "직접 지정"], key="location_type")
+        location_type = render_option_menu(
+            "어떤 로케이션이 필요한가요?",
+            ["프로덕션이 알아서 구해오기", "직접 지정"],
+            "location_type"
+        )
         
         if location_type == "프로덕션이 알아서 구해오기":
-            location_preference = st.selectbox("실내, 실외, 혼합 중 하나를 선택해주세요.", ["실내", "실외", "혼합"], key="location_preference")
+            location_preference = render_option_menu(
+                "실내, 실외, 혼합 중 하나를 선택해주세요.",
+                ["실내", "실외", "혼합"],
+                "location_preference"
+            )
             
             if location_preference == "실내":
                 event_data['indoor_location_description'] = st.text_area("어떤 느낌의 장소인지 작성해주세요.", key="indoor_location_description")
@@ -279,7 +291,11 @@ def handle_online_content_location(event_data: Dict[str, Any]) -> None:
                 event_data['outdoor_location_description'] = st.text_area("어떤 느낌의 장소인지 작성해주세요.", key="outdoor_location_description")
         
         elif location_type == "직접 지정":
-            event_data['location_type'] = st.selectbox("실내인지 실외인지 선택해주세요.", ["실내", "실외"], key="direct_location_type")
+            event_data['location_type'] = render_option_menu(
+                "실내인지 실외인지 선택해주세요.",
+                ["실내", "실외"],
+                "direct_location_type"
+            )
             event_data['location_name'] = st.text_input("장소명", key="location_name")
             event_data['location_address'] = st.text_input("주소", key="location_address")
             event_data['location_status'] = render_option_menu(
