@@ -493,25 +493,72 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
 
     component['budget'] = st.number_input(f"{category} 예산 (원)", min_value=0, value=component.get('budget', 0), key=f"{category}_budget")
 
-    delivery_options = ["셋업 시작일", "행사 시작일", "특정일"]
-    component['delivery_date_option'] = render_option_menu(
-        f"{category} 납품 기일",
-        delivery_options,
-        f"{category}_delivery_date_option"
+    # 촬영일 정보 수집
+    shooting_date_status = render_option_menu(
+        "촬영일이 정해졌나요?",
+        ["정해짐", "미정"],
+        f"{category}_shooting_date_status"
     )
 
-    if component['delivery_date_option'] == "셋업 시작일":
-        component['delivery_date'] = event_data.get('setup_date')
-        st.write(f"납품 기일: {component['delivery_date']}")
-    elif component['delivery_date_option'] == "행사 시작일":
-        component['delivery_date'] = event_data.get('start_date')
-        st.write(f"납품 기일: {component['delivery_date']}")
-    elif component['delivery_date_option'] == "특정일":
-        component['delivery_date'] = st.date_input(
-            f"{category} 납품 기일 선택",
-            value=component.get('delivery_date', date.today()),
-            key=f"{category}_delivery_date"
+    if shooting_date_status == "정해짐":
+        component['shooting_date'] = st.date_input(
+            "촬영일을 선택해주세요",
+            min_value=date.today(),
+            key=f"{category}_shooting_date"
         )
+    else:
+        col1, col2 = st.columns(2)
+        with col1:
+            component['shooting_start_date'] = st.date_input(
+                "촬영 시작 가능일",
+                min_value=date.today(),
+                key=f"{category}_shooting_start_date"
+            )
+        with col2:
+            component['shooting_end_date'] = st.date_input(
+                "촬영 마감일",
+                min_value=component['shooting_start_date'],
+                key=f"{category}_shooting_end_date"
+            )
+
+    # 납품일 정보 수집
+    component['delivery_dates'] = component.get('delivery_dates', [])
+    
+    if st.button("납품일 추가", key=f"{category}_add_delivery_date"):
+        component['delivery_dates'].append({})
+
+    for idx, delivery in enumerate(component['delivery_dates']):
+        st.subheader(f"납품일 {idx + 1}")
+        
+        delivery['status'] = render_option_menu(
+            "납품일이 정해졌나요?",
+            ["정해짐", "미정"],
+            f"{category}_delivery_status_{idx}"
+        )
+
+        if delivery['status'] == "정해짐":
+            delivery['date'] = st.date_input(
+                "납품일을 선택해주세요",
+                min_value=date.today(),
+                key=f"{category}_delivery_date_{idx}"
+            )
+        else:
+            delivery['date'] = None
+
+        delivery['items'] = {}
+        for item in component['items']:
+            quantity = st.number_input(
+                f"{item} 납품 수량",
+                min_value=0,
+                value=delivery['items'].get(item, 0),
+                key=f"{category}_delivery_item_{idx}_{item}"
+            )
+            if quantity > 0:
+                delivery['items'][item] = quantity
+
+    if st.button("납품일 삭제", key=f"{category}_remove_delivery_date"):
+        if component['delivery_dates']:
+            component['delivery_dates'].pop()
 
     cooperation_options = ["협력사 매칭 필요", "선호하는 업체 있음"]
     component['cooperation_status'] = render_option_menu(
