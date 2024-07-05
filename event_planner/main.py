@@ -69,7 +69,7 @@ def basic_info() -> None:
     guide_text = """
     - **용역명**: 프로젝트의 공식 이름을 입력하세요.
     - **클라이언트명**: 고객사의 정확한 법인명을 입력하세요.
-    - **담당 PM**: 프로젝트 매니저의 이름을 입력하세요.
+    - **담당 PM**: 프���젝트 매니저의 이름을 입력하세요.
     - **담당자 연락처**: 숫자만 입력해주세요 (예: 01012345678).
     """
     display_guide(guide_text)
@@ -254,7 +254,7 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     event_data['start_date'] = start_date
     event_data['end_date'] = end_date
 
-    # 셋업 시작일과 철수 마감일 입력
+    # 셋업 시작일과 철수 마��일 입력
     col3, col4 = st.columns(2)
 
     with col3:
@@ -375,7 +375,7 @@ def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
 
     def format_region(region: str) -> str:
         region_emojis = {
-            "서울": "🗼", "부산": "🌉", "인천": "🛳️", "대구": "🌆", "대전": "🏙️", "광주": "🏞️",
+            "서울": "🗼", "��산": "🌉", "인천": "🛳️", "대구": "🌆", "대전": "🏙️", "광주": "🏞️",
             "울산": "🏭", "세종": "🏛️", "경기도": "🏘️", "강원도": "⛰️", "충청북도": "🌳", "충청남도": "🌊",
             "전라북도": "🍚", "전라남도": "🌴", "경상북도": "🍎", "경상남도": "🐘", "제주도": "🍊"
         }
@@ -425,7 +425,7 @@ def handle_venue_facilities(event_data: Dict[str, Any]) -> None:
             pass
 
         facility_options = ["음향 시설", "조명 시설", "LED 시설", "빔프로젝트 시설", "주차", "Wifi", "기타"]
-        event_data['facilities'] = st.multiselect("행사장 자체 보유 시설", facility_options, default=event_data.get('facilities', []), key="facilities")
+        event_data['facilities'] = st.multiselect("��사장 자체 보유 시설", facility_options, default=event_data.get('facilities', []), key="facilities")
 
         if "기타" in event_data['facilities']:
             event_data['other_facilities'] = st.text_input("기타 시설 입력", key="other_facility_input")
@@ -840,6 +840,87 @@ def create_media_summary(event_data: Dict[str, Any], filename: str) -> None:
 
     wb.save(filename)
 
+def main():
+    # ... (기존 코드)
+
+    if st.button("정의서 생성"):
+        event_data = st.session_state.event_data
+        create_excel_summary(event_data, "event_summary.xlsx")
+        
+        if 'Media' in event_data.get('components', {}):
+            create_media_summary(event_data, "media_order_summary.xlsx")
+            st.success("이벤트 정의서와 미디어 발주 요약서가 생성되었습니다.")
+        else:
+            st.success("이벤트 정의서가 생성되었습니다.")
+
+        # ... (나머지 코드)
+
+if __name__ == "__main__":
+    main()
+
+def create_media_summary(event_data: Dict[str, Any], filename: str) -> None:
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "미디어 발주 요약"
+
+    # 기본 정보
+    ws['A1'] = "미디어 발주 요약서"
+    ws['A1'].font = Font(size=16, bold=True)
+    ws.merge_cells('A1:G1')
+
+    basic_info = [
+        ('프로젝트명', event_data.get('event_name', '')),
+        ('클라이언트', event_data.get('client_name', '')),
+        ('담당 PM', event_data.get('manager_name', '')),
+        ('연락처', event_data.get('manager_contact', ''))
+    ]
+
+    for row, (key, value) in enumerate(basic_info, start=3):
+        ws[f'A{row}'] = key
+        ws[f'B{row}'] = value
+
+    # 미디어 정보
+    media_component = event_data.get('components', {}).get('Media', {})
+    
+    row = 8
+    ws[f'A{row}'] = "촬영 정보"
+    ws[f'A{row}'].font = Font(bold=True)
+    row += 1
+
+    if media_component.get('shooting_date'):
+        ws[f'A{row}'] = "촬영일"
+        ws[f'B{row}'] = str(media_component['shooting_date'])
+    else:
+        ws[f'A{row}'] = "촬영 기간"
+        ws[f'B{row}'] = f"{media_component.get('shooting_start_date', '')} ~ {media_component.get('shooting_end_date', '')}"
+    
+    row += 2
+    ws[f'A{row}'] = "납품 정보"
+    ws[f'A{row}'].font = Font(bold=True)
+    row += 1
+
+    for idx, delivery in enumerate(media_component.get('delivery_dates', []), 1):
+        ws[f'A{row}'] = f"납품일 {idx}"
+        ws[f'B{row}'] = str(delivery['date']) if delivery['date'] else '미정'
+        row += 1
+        
+        ws[f'A{row}'] = "항목"
+        ws[f'B{row}'] = "수량"
+        row += 1
+        
+        for item, quantity in delivery['items'].items():
+            ws[f'A{row}'] = item
+            ws[f'B{row}'] = quantity
+            row += 1
+        
+        row += 1
+
+    # 스타일 적용
+    for col in ['A', 'B', 'C', 'D', 'E', 'F', 'G']:
+        ws.column_dimensions[col].width = 20
+
+    wb.save(filename)
+
 @safe_operation
 def create_category_excel(event_data: Dict[str, Any], category: str, component: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
@@ -1158,14 +1239,14 @@ def main():
                     highlight_missing_fields(missing_fields)
 
     if st.button("정의서 생성"):
-    event_data = st.session_state.event_data
-    create_excel_summary(event_data, "event_summary.xlsx")
-    
-    if 'Media' in event_data.get('components', {}):
-        create_media_summary(event_data, "media_order_summary.xlsx")
-        st.success("이벤트 정의서와 미디어 발주 요약서가 생성되었습니다.")
-    else:
-        st.success("이벤트 정의서가 생성되었습니다.")
+        event_data = st.session_state.event_data
+        create_excel_summary(event_data, "event_summary.xlsx")
+        
+        if 'Media' in event_data.get('components', {}):
+            create_media_summary(event_data, "media_order_summary.xlsx")
+            st.success("이벤트 정의서와 미디어 발주 요약서가 생성되었습니다.")
+        else:
+            st.success("이벤트 정의서가 생성되었습니다.")
 
 
 
