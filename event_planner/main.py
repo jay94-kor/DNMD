@@ -1293,7 +1293,7 @@ def main():
 
     with col1:
         if current_step > 0:
-            if st.button("이전"):
+            if st.button("이전", key="previous_button"):
                 if event_type == "온라인 콘텐츠" and current_step == 2:
                     st.session_state.step = 0
                 else:
@@ -1302,7 +1302,7 @@ def main():
 
     with col3:
         if current_step < 3:
-            if st.button("다음"):
+            if st.button("다음", key="next_button"):
                 is_valid, missing_fields = check_required_fields(current_step)
                 if is_valid:
                     if event_type == "온라인 콘텐츠" and current_step == 0:
@@ -1313,12 +1313,12 @@ def main():
                 else:
                     display_missing_fields(missing_fields)
         elif current_step == 3:
-            if st.button("저장"):
+            if st.button("저장", key="save_button_final"):
                 save_event_data(st.session_state.event_data)
                 st.success("이벤트 데이터가 성공적으로 저장되었습니다.")
 
     with col2:
-        if st.button("저장"):
+        if st.button("저장", key="save_button_middle"):
             save_event_data(st.session_state.event_data)
             st.success("이벤트 데이터가 성공적으로 저장되었습니다.")
 
