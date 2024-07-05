@@ -231,35 +231,62 @@ def venue_info() -> None:
     event_data = st.session_state.event_data
     st.header("장소 정보")
 
-    event_data['venue_status'] = render_option_menu(
-        "장소 확정 상태",
-        event_options.STATUS_OPTIONS,
-        "venue_status"
-    )
-
-    venue_type_options = ["실내", "실외", "혼합", "온라인"]
-    event_data['venue_type'] = render_option_menu(
-        "희망하는 장소 유형",
-        venue_type_options,
-        "venue_type"
-    )
-
-    event_data['scale'] = st.number_input(
-        "예상 참여 관객 수", 
-        min_value=0, 
-        value=event_data.get('scale', 0),
-        step=1,
-        format="%d",
-        key="scale_input_venue"
-    )
-
-    if event_data['venue_type'] == "온라인":
-        st.info("온라인 이벤트는 물리적 장소 정보가 필요하지 않습니다.")
-        event_data['venues'] = []
-    elif event_data['venue_status'] == "알 수 없는 상태":
-        handle_unknown_venue_status(event_data)
+    if event_data['event_type'] == "온라인 콘텐츠":
+        handle_online_content_location(event_data)
     else:
-        handle_known_venue_status(event_data)
+        event_data['venue_status'] = render_option_menu(
+            "장소 확정 상태",
+            event_options.STATUS_OPTIONS,
+            "venue_status"
+        )
+
+        venue_type_options = ["실내", "실외", "혼합", "온라인"]
+        event_data['venue_type'] = render_option_menu(
+            "희망하는 장소 유형",
+            venue_type_options,
+            "venue_type"
+        )
+
+        event_data['scale'] = st.number_input(
+            "예상 참여 관객 수", 
+            min_value=0, 
+            value=event_data.get('scale', 0),
+            step=1,
+            format="%d",
+            key="scale_input_venue"
+        )
+
+        if event_data['venue_type'] == "온라인":
+            st.info("온라인 이벤트는 물리적 장소 정보가 필요하지 않습니다.")
+            event_data['venues'] = []
+        elif event_data['venue_status'] == "알 수 없는 상태":
+            handle_unknown_venue_status(event_data)
+        else:
+            handle_known_venue_status(event_data)
+
+def handle_online_content_location(event_data: Dict[str, Any]) -> None:
+    location_needed = st.radio("촬영 로케이션 필요 여부", ["필요", "불필요"], key="location_needed")
+    
+    if location_needed == "필요":
+        location_type = st.radio("어떤 로케이션이 필요한가요?", ["프로덕션이 알아서 구해오기", "직접 지정"], key="location_type")
+        
+        if location_type == "프로덕션이 알아서 구해오기":
+            location_preference = st.radio("실내, 실외, 혼합 중 하나를 선택해주세요.", ["실내", "실외", "혼합"], key="location_preference")
+            
+            if location_preference == "실내":
+                event_data['indoor_location_description'] = st.text_area("어떤 느낌의 장소인지 작성해주세요.", key="indoor_location_description")
+            elif location_preference == "실외":
+                event_data['outdoor_location_description'] = st.text_area("어떤 느낌의 장소인지 작성해주세요.", key="outdoor_location_description")
+        
+        elif location_type == "직접 지정":
+            event_data['location_type'] = st.radio("실내인지 실외인지 선택해주세요.", ["실내", "실외"], key="direct_location_type")
+            event_data['location_name'] = st.text_input("장소명", key="location_name")
+            event_data['location_address'] = st.text_input("주소", key="location_address")
+            event_data['location_status'] = render_option_menu(
+                "확정의 정도를 선택해주세요.",
+                event_options.STATUS_OPTIONS,
+                "location_status"
+            )
 
 def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
     major_regions = [
@@ -468,7 +495,7 @@ def generate_summary_excel() -> None:
 def create_excel_summary(event_data: Dict[str, Any], filename: str) -> None:
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "전체 행사 요약"
+    ws.title = "전��� 행사 요약"
     
     # 열 너비 설정
     for col in ['A', 'B', 'C', 'D']:
