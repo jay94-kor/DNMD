@@ -703,8 +703,17 @@ def check_required_fields(step):
         elif event_data.get('event_type') == "오프라인 이벤트":
             required_fields.extend(['start_date', 'end_date', 'setup_start', 'teardown'])
     elif step == 1:  # 장소 정보
-        if event_data.get('event_type') != "온라인":
-            required_fields = ['venue_status', 'venue_type', 'scale', 'expected_participants']
+        if event_data.get('event_type') == "온라인 콘텐츠":
+            if event_data.get('location_needed') == "필요":
+                if event_data.get('location_type') == "프로덕션이 알아서 구해오기":
+                    if event_data.get('location_preference') == "실내" and len(event_data.get('indoor_location_description', '')) < 50:
+                        missing_fields.append('indoor_location_description')
+                    elif event_data.get('location_preference') == "실외" and len(event_data.get('outdoor_location_description', '')) < 50:
+                        missing_fields.append('outdoor_location_description')
+                elif event_data.get('location_type') == "직접 지정":
+                    required_fields = ['location_type', 'location_name', 'location_address', 'location_status']
+        elif event_data.get('event_type') == "오프라인 이벤트":
+            required_fields = ['venue_status', 'venue_type']
             if event_data.get('venue_status') == "알 수 없는 상태":
                 required_fields.extend(['desired_region', 'desired_capacity'])
             else:
