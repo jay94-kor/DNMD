@@ -576,9 +576,15 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
         component['delivery_dates'].append({})
 
     if category == "미디어":
-        component['reference_link'] = st.text_input("레퍼런스 링크 (필수)", value=component.get('reference_link', ''), key=f"{category}_reference_link")
-        if not component['reference_link']:
-            st.warning("미디어 카테고리에서는 레퍼런스 링크를 반드시 입력해야 합니다.")
+        component['reference_links'] = component.get('reference_links', [''])
+        for i, link in enumerate(component['reference_links']):
+            component['reference_links'][i] = st.text_input(f"레퍼런스 링크 {i+1} (필수)", value=link, key=f"{category}_reference_link_{i}")
+        
+        if st.button("레퍼런스 링크 추가", key=f"{category}_add_reference_link"):
+            component['reference_links'].append('')
+
+        if len(component['reference_links']) > 1 and st.button("레퍼런스 링크 삭제", key=f"{category}_remove_reference_link"):
+            component['reference_links'].pop()
 
     cooperation_options = ["협력사 매칭 필요", "선호하는 업체 있음"]
     component['cooperation_status'] = render_option_menu(
@@ -601,6 +607,28 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
             component['other_details'] = st.text_area(f"{category} 기타 세부사항", value=component.get('other_details', ''), key=f"{category}_other_details")
         else:
             handle_item_details(item, component)
+
+    # 항목당 총 수량 계산 및 검토
+    total_quantities = {item: 0 for item in component['items']}
+    for delivery in component['delivery_dates']:
+        for item, quantity in delivery['items'].items():
+            total_quantities[item] += quantity
+
+    st.subheader("항목별 총 수량 검토")
+    for item in component['items']:
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.write(f"{item}:")
+        with col2:
+            st.write(f"총 납품 수량: {total_quantities[item]}")
+        with col3:
+            expected_quantity = component.get(f'{item}_quantity', 0)
+            st.write(f"예상 수량: {expected_quantity}")
+        
+        if total_quantities[item] != expected_quantity:
+            st.warning(f"{item}의 총 납품 수량과 예상 수량이 일치하지 않습니다.")
+        else:
+            st.success(f"{item}의 총 납품 수량과 예상 수량이 일치합니다.")
 
     event_data['components'][category] = component
 
