@@ -69,7 +69,7 @@ def basic_info() -> None:
     guide_text = """
     - **용역명**: 프로젝트의 공식 이름을 입력하세요.
     - **클라이언트명**: 고객사의 정확한 법인명을 입력하세요.
-    - **담당 PM**: 프젝트 매니저의 이름��� 입력하세요.
+    - **담당 PM**: 프로젝트 매니저의 이름을 입력하세요.
     - **담당자 연락처**: 숫자만 입력해주세요 (예: 01012345678).
     """
     display_guide(guide_text)
@@ -952,7 +952,7 @@ def highlight_missing_fields(missing_fields):
             subfield = field.split('.')[-1]
             st.error(f"{field_names.get(base, base)} 목록의 {int(index)+1}번째 항목의 {field_names.get(subfield, subfield)}을(를) 입력해주세요.")
         else:
-            st.error(f"{field_names.get(field, field)} ��목을 입력해주세요.")
+            st.error(f"{field_names.get(field, field)} 제목을 입력해주세요.")
 
 def main():
     st.title("이벤트 플래너")
