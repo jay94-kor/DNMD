@@ -112,15 +112,15 @@ def handle_general_info(event_data: Dict[str, Any]) -> None:
 def render_option_menu(label: str, options: List[str], key: str) -> str:
     icons = ["🔹" for _ in options]
     selected = option_menu(
-        None, options,
+        label, options,
         icons=icons,
         menu_icon="cast",
         default_index=0,
         orientation="horizontal",
         styles={
-            "container": {"padding": "0!important", "background-color": "#f0f0f0"},
-            "icon": {"color": "#ff6347", "font-size": "16px"},
-            "nav-link": {"font-size": "14px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},
+            "container": {"padding": "5px", "background-color": "#f0f0f0"},
+            "icon": {"color": "#ff6347", "font-size": "20px"},
+            "nav-link": {"font-size": "18px", "text-align": "center", "margin":"0px", "--hover-color": "#ffcccc", "--icon-color": "#ff6347"},
             "nav-link-selected": {"background-color": "#ff6347", "color": "white", "--icon-color": "white"},
         },
         key=key
@@ -222,6 +222,7 @@ def handle_video_production(event_data: Dict[str, Any]) -> None:
     with col1:
         start_date = st.date_input("과업 시작일", value=event_data.get('start_date', date.today()), key="start_date")
     with col2:
+        # start_date가 정의된 후에 end_date의 기본값을 설정합니다.
         end_date = st.date_input("과업 종료일",
                                  value=event_data.get('end_date', start_date + timedelta(days=1)),
                                  min_value=start_date + timedelta(days=1),
@@ -240,39 +241,39 @@ def handle_offline_event(event_data: Dict[str, Any]) -> None:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        event_data['start_date'] = st.date_input("시작 날짜",
-                                                 value=event_data.get('start_date', date.today()),
-                                                 key="start_date")
+        start_date = st.date_input("시작 날짜",
+                                   value=event_data.get('start_date', date.today()),
+                                                                     key="start_date")
 
     with col2:
-        event_data['end_date'] = st.date_input("종료 날짜",
-                                               value=event_data.get('end_date', event_data['start_date']),
-                                               min_value=event_data['start_date'],
-                                               key="end_date")
+        end_date = st.date_input("종료 날짜",
+                                 value=event_data.get('end_date', start_date),
+                                 min_value=start_date,
+                                 key="end_date")
 
     with col3:
         event_data['setup_start'] = render_option_menu("셋업 시작일", config['SETUP_OPTIONS'], "setup_start")
 
     if event_data['setup_start'] == config['SETUP_OPTIONS'][0]:
-        event_data['setup_date'] = event_data['start_date'] - timedelta(days=1)
+        event_data['setup_date'] = start_date - timedelta(days=1)
     else:
-        event_data['setup_date'] = event_data['start_date']
+        event_data['setup_date'] = start_date
 
     event_data['teardown'] = render_option_menu("철수 마감일", config['TEARDOWN_OPTIONS'], "teardown")
 
     if event_data['teardown'] == config['TEARDOWN_OPTIONS'][0]:
-        event_data['teardown_date'] = event_data['end_date']
+        event_data['teardown_date'] = end_date
     else:
-        event_data['teardown_date'] = event_data['end_date'] + timedelta(days=1)
+        event_data['teardown_date'] = end_date + timedelta(days=1)
 
     st.write(f"셋업 시작일: {event_data['setup_date']}")
     st.write(f"철수 마감일: {event_data['teardown_date']}")
 
-    if event_data['setup_date'] > event_data['start_date']:
+    if event_data['setup_date'] > start_date:
         st.error("셋업 시작일은 이벤트 시작일보다 늦을 수 없습니다.")
-    if event_data['end_date'] < event_data['start_date']:
+    if end_date < start_date:
         st.error("이벤트 종료일은 시작일보다 빠를 수 없습니다.")
-    if event_data['teardown_date'] < event_data['end_date']:
+    if event_data['teardown_date'] < end_date:
         st.error("철수 마감일은 이벤트 종료일보다 빠를 수 없습니다.")
 
 def venue_info() -> None:
