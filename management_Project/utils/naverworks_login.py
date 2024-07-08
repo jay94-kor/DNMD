@@ -1,5 +1,4 @@
 import requests
-import json
 
 NAVERWORKS_CLIENT_ID = 'GqyMZ3FGt0LFkBTjl5KH'
 NAVERWORKS_CLIENT_SECRET = 'knjbifyZLU'
@@ -15,9 +14,9 @@ def get_naverworks_token(code, state):
         'grant_type': 'authorization_code',
         'client_id': NAVERWORKS_CLIENT_ID,
         'client_secret': NAVERWORKS_CLIENT_SECRET,
-        'redirect_uri': NAVERWORKS_REDIRECT_URI,
         'code': code,
-        'state': state
+        'state': state,
+        'redirect_uri': NAVERWORKS_REDIRECT_URI
     }
     response = requests.post(token_url, headers=headers, data=data)
     token_json = response.json()
