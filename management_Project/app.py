@@ -1,5 +1,5 @@
 import streamlit as st
-from pages import login, signup, dashboard, project_management, project_detail, output_management, request_handling, user_management, partner_management, partner_request
+from pages import login, signup, dashboard, project_management, project_detail, output_management, request_handling, user_management, partner_management, partner_request, callback
 
 def main():
     st.sidebar.title("Navigation")
@@ -26,12 +26,8 @@ def main():
         partner_management.partner_management_screen()
     elif page == "Partner Request":
         partner_request.partner_request_screen()
-
-    # 네이버웍스 로그인 콜백 처리
-    code = query_params.get("code", [None])[0]
-    state = query_params.get("state", [None])[0]
-    if code and state == 'naverworks':
-        login.login_screen()
+    elif page == "callback":
+        callback.callback_screen()
 
 if __name__ == "__main__":
     main()
