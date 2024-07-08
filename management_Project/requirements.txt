@@ -3,3 +3,4 @@ pyyaml
 sqlalchemy
 passlib
 requests
+streamlit-option-menu

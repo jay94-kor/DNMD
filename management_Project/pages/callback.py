@@ -4,7 +4,6 @@ from utils.naverworks_login import get_naverworks_token, get_naverworks_user_inf
 def callback_screen():
     st.title("네이버웍스 로그인 콜백 처리")
 
-    # 네이버웍스 로그인 콜백 처리
     query_params = st.experimental_get_query_params()
     code = query_params.get("code", [None])[0]
     state = query_params.get("state", [None])[0]

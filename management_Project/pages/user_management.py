@@ -1,11 +1,10 @@
 import streamlit as st
-from utils.database import get_db
+from utils.database import get_db, User
 from sqlalchemy.orm import Session
 
 def user_management_screen():
     st.title("사용자 관리")
     
-    # 로그인된 사용자가 어드민인지 확인
     query_params = st.experimental_get_query_params()
     email = query_params.get("email", [None])[0]
 
@@ -15,7 +14,6 @@ def user_management_screen():
     if user and user.is_admin:
         st.write("관리자가 사용자 계정을 관리할 수 있습니다.")
         
-        # 사용자 리스트 표시
         users = db.query(User).all()
         for user in users:
             st.write(f"사용자: {user.email}, 관리자 권한: {user.is_admin}")
