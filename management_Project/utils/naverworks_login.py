@@ -5,7 +5,14 @@ NAVERWORKS_CLIENT_SECRET = 'knjbifyZLU'
 NAVERWORKS_REDIRECT_URI = 'https://qphcfosgo8apg8euvibmhd.streamlit.app/callback'
 
 def get_naverworks_login_url():
-    return f"https://auth.worksmobile.com/oauth2/v2.0/authorize?response_type=code&client_id={NAVERWORKS_CLIENT_ID}&redirect_uri={NAVERWORKS_REDIRECT_URI}&state=naverworks"
+    return (
+        f"https://auth.worksmobile.com/oauth2/v2.0/authorize"
+        f"?response_type=code"
+        f"&client_id={NAVERWORKS_CLIENT_ID}"
+        f"&redirect_uri={NAVERWORKS_REDIRECT_URI}"
+        f"&state=naverworks"
+        f"&scope=bot"
+    )
 
 def get_naverworks_token(code, state):
     token_url = "https://auth.worksmobile.com/oauth2/v2.0/token"
