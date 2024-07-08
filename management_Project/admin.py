@@ -1,6 +1,5 @@
 import streamlit as st
 from utils.database import get_db, User
-from sqlalchemy.orm import Session
 
 def admin_screen():
     st.title("관리자 페이지")

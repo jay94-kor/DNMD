@@ -26,6 +26,13 @@ class User(Base):
     hashed_password = Column(String)
     is_admin = Column(Boolean, default=False)
 
+# 프로젝트 모델 정의
+class Project(Base):
+    __tablename__ = "projects"
+    id = Column(Integer, Sequence("project_id_seq"), primary_key=True, index=True)
+    name = Column(String, index=True)
+    status = Column(String)
+
 def init_db():
     Base.metadata.create_all(bind=engine)
 
