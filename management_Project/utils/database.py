@@ -6,48 +6,11 @@ import logging
 
 from config import settings
 
-# DATABASE_URL = "sqlite:///./local_test.db"
-DATABASE_URL = "sqlite:////mount/src/dnmd/management_Project/local_test.db"
+DATABASE_URL = settings['database']['url']
 
 engine = create_engine(DATABASE_URL, echo=True)
 
 SessionLocal = Session(autoflush=False, bind=engine)
-
-
-def get_db() -> scoped_session:
-    try:
-        yield SessionLocal
-        SessionLocal.commit()
-    except Exception as ex:
-        logging.error(f"Something failed, rolling back database transaction. {ex}")
-        SessionLocal.rollback()
-        raise
-    finally:
-        SessionLocal.close()
-
-
-Base = declarative_base()
-
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, Sequence("user_id_seq"), primary_key=True, index=True)
-    name = Column(String, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    is_admin = Column(Boolean, default=False)
-
-def init_db():
-    User.metadata.create_all(engine)
-    logging.info("Database initialized successfully.")
-
-
-if __name__ == "__main__":
-    init_db()
-    test_db_connection()
-
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
 @contextmanager
 def get_db():
@@ -57,7 +20,8 @@ def get_db():
     finally:
         db.close()
 
-# 사용자 모델 정의
+Base = declarative_base()
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, Sequence("user_id_seq"), primary_key=True, index=True)
@@ -66,7 +30,6 @@ class User(Base):
     hashed_password = Column(String)
     is_admin = Column(Boolean, default=False)
 
-# 프로젝트 모델 정의
 class Project(Base):
     __tablename__ = "projects"
     id = Column(Integer, Sequence("project_id_seq"), primary_key=True, index=True)
@@ -75,8 +38,6 @@ class Project(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
-
-    # 어드민 계정 추가
     db = SessionLocal()
     admin_user = db.query(User).filter(User.email == "admin").first()
     if not admin_user:
