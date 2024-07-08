@@ -13,20 +13,15 @@ def create_tables():
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS budget_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                대분류 TEXT,
                 항목명 TEXT,
                 단가 REAL,
-                개 INTEGER,
-                단위 TEXT,
-                개 INTEGER,
-                단위 TEXT,
+                개수1 INTEGER,
+                단위1 TEXT,
+                개수2 INTEGER,
+                단위2 TEXT,
                 배정예산 REAL,
-                잔액 REAL,
-                지출내역1 REAL,
-                협력사1 TEXT,
-                지출내역2 REAL,
-                협력사2 TEXT,
-                지출내역3 REAL,
-                협력사3 TEXT
+                잔액 REAL
             )
         """))
         conn.commit()
@@ -39,12 +34,13 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['항목명', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액'])
+        df = pd.DataFrame(columns=['대분류', '항목명', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액'])
     
     # 데이터 편집기 표시
     edited_df = st.data_editor(
         df,
         column_config={
+            "대분류": st.column_config.TextColumn(required=True, width="medium"),
             "항목명": st.column_config.TextColumn(required=True, width="large"),
             "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium"),
             "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
@@ -75,12 +71,14 @@ def budget_input():
     # 지출 추가 폼
     if 'show_expense_form' in st.session_state and st.session_state.show_expense_form:
         with st.form("expense_form"):
-            selected_item = st.selectbox("항목 선택", options=edited_df['항목명'].tolist())
+            selected_category = st.selectbox("대분류 선택", options=edited_df['대분류'].unique().tolist())
+            selected_items = edited_df[edited_df['대분류'] == selected_category]['항목명'].tolist()
+            selected_item = st.selectbox("항목 선택", options=selected_items)
             expense_amount = st.number_input("지출 희망 금액", min_value=0)
             partner = st.text_input("협력사")
             
             if st.form_submit_button("지출 승인 요청"):
-                item_index = edited_df[edited_df['항목명'] == selected_item].index[0]
+                item_index = edited_df[(edited_df['대분류'] == selected_category) & (edited_df['항목명'] == selected_item)].index[0]
                 if expense_amount <= edited_df.loc[item_index, '잔액']:
                     edited_df.loc[item_index, '잔액'] -= expense_amount
                     # 여기에 지출 정보를 별도의 테이블에 저장하는 로직을 추가할 수 있습니다.
