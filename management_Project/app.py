@@ -15,13 +15,16 @@ def create_tables():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 대분류 TEXT,
                 항목명 TEXT,
-                단가 REAL,
+                단가 INTEGER,
                 개수1 INTEGER,
                 단위1 TEXT,
                 개수2 INTEGER,
                 단위2 TEXT,
-                배정예산 REAL,
-                잔액 REAL
+                배정예산 INTEGER,
+                잔액 INTEGER,
+                지출희망금액1 INTEGER,
+                지출희망금액2 INTEGER,
+                지출희망금액3 INTEGER
             )
         """))
         conn.commit()
@@ -34,21 +37,29 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['대분류', '항목��', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액'])
+        df = pd.DataFrame(columns=['대분류', '항목명', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3'])
     
+    # 누락된 열 추가
+    for col in ['지출희망금액1', '지출희망금액2', '지출희망금액3']:
+        if col not in df.columns:
+            df[col] = 0
+
     # 데이터 편집기 표시
     edited_df = st.data_editor(
         df,
         column_config={
             "대분류": st.column_config.TextColumn(required=True, width="medium"),
             "항목명": st.column_config.TextColumn(required=True, width="large"),
-            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium"),
+            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium", format="%d"),
             "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
             "단위1": st.column_config.TextColumn(required=True, width="small"),
             "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
             "단위2": st.column_config.TextColumn(required=True, width="small"),
             "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium"),
             "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium"),
+            "지출희망금액1": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
+            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
+            "지출희망금액3": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
         },
         hide_index=True,
         num_rows="dynamic",
@@ -57,7 +68,7 @@ def budget_input():
     
     # 배정예산 계산
     edited_df['배정예산'] = (edited_df['단가'] * edited_df['개수1'] * edited_df['개수2']).astype(int)
-
+    
     # 잔액 계산
     edited_df['잔액'] = (edited_df['배정예산'] - 
                         edited_df['지출희망금액1'].fillna(0) - 
