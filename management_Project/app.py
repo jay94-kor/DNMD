@@ -25,7 +25,7 @@ def budget_input():
 
 def view_budget():
     with engine.connect() as conn:
-        df = pd.read_sql("SELECT * FROM budgets", conn)
+        df = pd.read_sql_query(text("SELECT * FROM budgets"), conn)
     st.dataframe(df)
 
 # 발주 요청 및 예산 차감 기능
@@ -35,24 +35,27 @@ def place_order():
     
     if st.button('발주 요청'):
         with engine.connect() as conn:
-            conn.execute("INSERT INTO orders (project, amount, status) VALUES (?, ?, 'pending')", (project, amount))
-            conn.execute("UPDATE budgets SET budget = budget - ? WHERE project = ?", (amount, project))
+            conn.execute(text("INSERT INTO orders (project, amount, status) VALUES (:project, :amount, 'pending')"), 
+                         {"project": project, "amount": amount})
+            conn.execute(text("UPDATE budgets SET budget = budget - :amount WHERE project = :project"), 
+                         {"amount": amount, "project": project})
+            conn.commit()
         st.success('발주 요청 완료 및 예산 차감')
 
 # 예산 현황 조회
 def view_remaining_budget():
     with engine.connect() as conn:
-        df = pd.read_sql("SELECT project, budget FROM budgets", conn)
+        df = pd.read_sql_query(text("SELECT project, budget FROM budgets"), conn)
     st.dataframe(df)
 
 # 프로젝트 목록 조회
 def get_projects():
     with engine.connect() as conn:
-        result = conn.execute("SELECT DISTINCT project FROM budgets")
-        projects = [row['project'] for row in result]
+        result = conn.execute(text("SELECT DISTINCT project FROM budgets"))
+        projects = [row[0] for row in result]
     return projects
 
-# 테이블 생성 함��
+# 테이블 생성 함수
 def create_tables():
     with engine.connect() as conn:
         conn.execute(text("""
