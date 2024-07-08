@@ -4,9 +4,9 @@ from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from contextlib import contextmanager
 import logging
 
-from config import settings
+from config import settings  # config 모듈에서 settings 가져오기
 
-DATABASE_URL = settings['database']['url']
+DATABASE_URL = settings['database']['url']  # 설정 파일에서 데이터베이스 URL 가져오기
 
 engine = create_engine(DATABASE_URL, echo=True)
 
