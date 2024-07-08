@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from config import settings
 
 # 프로젝트 루트 디렉토리 찾기
 project_root = Path(__file__).parent.parent
