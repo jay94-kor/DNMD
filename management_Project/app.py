@@ -37,13 +37,8 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['대분류', '항목명', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3'])
+        df = pd.DataFrame(columns=['대분류', '항목명', '단가', '개수1', '단위1', '개수2', '단위2'])
     
-    # 누락된 열 추가
-    for col in ['지출희망금액1', '지출희망금액2', '지출희망금액3']:
-        if col not in df.columns:
-            df[col] = 0
-
     # 데이터 편집기 표시
     edited_df = st.data_editor(
         df,
@@ -55,11 +50,6 @@ def budget_input():
             "단위1": st.column_config.TextColumn(required=True, width="small"),
             "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
             "단위2": st.column_config.TextColumn(required=True, width="small"),
-            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
-            "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
-            "지출희망금액1": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
-            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
-            "지출희망금액3": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
         },
         hide_index=True,
         num_rows="dynamic",
@@ -67,8 +57,15 @@ def budget_input():
         key="budget_editor"
     )
     
-    # 배정예산 및 잔액 계산
+    # 배정예산 계산
     edited_df['배정예산'] = (edited_df['단가'] * edited_df['개수1'] * edited_df['개수2']).astype(int)
+    
+    # 지출희망금액 열 추가
+    for col in ['지출희망금액1', '지출희망금액2', '지출희망금액3']:
+        if col not in edited_df.columns:
+            edited_df[col] = 0
+    
+    # 잔액 계산
     edited_df['잔액'] = (edited_df['배정예산'] - 
                         edited_df['지출희망금액1'].fillna(0) - 
                         edited_df['지출희망금액2'].fillna(0) - 
@@ -162,7 +159,7 @@ def main():
     st.title('예산 관리 시스템')
     
     with st.sidebar:
-        selected = option_menu("메인 메뉴", ["예산 입력", "예산 조회"], 
+        selected = option_menu("��인 메뉴", ["예산 입력", "예산 조회"], 
             icons=['pencil-fill', 'eye-fill'], menu_icon="list", default_index=0)
 
     if selected == "예산 입력":
