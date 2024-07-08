@@ -1,98 +1,86 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
-from sqlalchemy import create_engine, text
 from streamlit_option_menu import option_menu
+from sqlalchemy import create_engine, text
+import os
 
 # 데이터베이스 연결 설정
-import os
 DATABASE = os.path.join(os.getcwd(), 'budget.db')
 engine = create_engine(f'sqlite:///{DATABASE}')
 
-# 예산 입력 및 조회 기능
-def budget_input():
-    project = st.text_input('프로젝트 이름')
-    budget = st.number_input('예산 금액', min_value=0)
-    
-    if st.button('예산 입력'):
-        try:
-            with engine.connect() as conn:
-                conn.execute(text("INSERT INTO budgets (project, budget) VALUES (:project, :budget)"), 
-                             {"project": project, "budget": budget})
-                conn.commit()
-            st.success('예산 입력 완료')
-        except Exception as e:
-            st.error(f'오류 발생: {str(e)}')
-
-def view_budget():
-    with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM budgets"), conn)
-    st.dataframe(df)
-
-# 발주 요청 및 예산 차감 기능
-def place_order():
-    project = st.selectbox('프로젝트 선택', options=get_projects())
-    amount = st.number_input('발주 금액', min_value=0)
-    
-    if st.button('발주 요청'):
-        with engine.connect() as conn:
-            conn.execute(text("INSERT INTO orders (project, amount, status) VALUES (:project, :amount, 'pending')"), 
-                         {"project": project, "amount": amount})
-            conn.execute(text("UPDATE budgets SET budget = budget - :amount WHERE project = :project"), 
-                         {"amount": amount, "project": project})
-            conn.commit()
-        st.success('발주 요청 완료 및 예산 차감')
-
-# 예산 현황 조회
-def view_remaining_budget():
-    with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT project, budget FROM budgets"), conn)
-    st.dataframe(df)
-
-# 프로젝트 목록 조회
-def get_projects():
-    with engine.connect() as conn:
-        result = conn.execute(text("SELECT DISTINCT project FROM budgets"))
-        projects = [row[0] for row in result]
-    return projects
-
-# 테이블 생성 함수
 def create_tables():
     with engine.connect() as conn:
         conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS budgets (
+            CREATE TABLE IF NOT EXISTS budget_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                project TEXT NOT NULL,
-                budget REAL NOT NULL
-            )
-        """))
-        conn.execute(text("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                project TEXT NOT NULL,
-                amount REAL NOT NULL,
-                status TEXT NOT NULL
+                항목명 TEXT,
+                단가 REAL,
+                개 INTEGER,
+                규격 TEXT,
+                기간 INTEGER,
+                단위 TEXT,
+                총액 REAL,
+                지출희망금액 REAL,
+                협력사 TEXT
             )
         """))
         conn.commit()
 
-# 메인 앱 함수
+def budget_input():
+    st.subheader("예산 항목 입력")
+    
+    # 데이터베이스에서 기존 데이터 불러오기
+    with engine.connect() as conn:
+        df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
+    
+    if df.empty:
+        df = pd.DataFrame(columns=['항목명', '단가', '개', '규격', '기간', '단위', '총액', '지출희망금액', '협력사'])
+    
+    # 데이터 편집기 표시
+    edited_df = st.data_editor(
+        df,
+        column_config={
+            "항목명": st.column_config.TextColumn(required=True),
+            "단가": st.column_config.NumberColumn(required=True, min_value=0),
+            "개": st.column_config.NumberColumn(required=True, min_value=1, step=1),
+            "규격": st.column_config.TextColumn(),
+            "기간": st.column_config.NumberColumn(required=True, min_value=1, step=1),
+            "단위": st.column_config.TextColumn(required=True),
+            "총액": st.column_config.NumberColumn(required=True, format="₩%d"),
+            "지출희망금액": st.column_config.NumberColumn(required=True, format="₩%d"),
+            "협력사": st.column_config.TextColumn(),
+        },
+        hide_index=True,
+        num_rows="dynamic"
+    )
+    
+    # 총액 계산
+    edited_df['총액'] = edited_df['단가'] * edited_df['개'] * edited_df['기간']
+    
+    if st.button("저장"):
+        # 데이터베이스에 저장
+        with engine.connect() as conn:
+            edited_df.to_sql('budget_items', conn, if_exists='replace', index=False)
+        st.success("데이터가 성공적으로 저장되었습니다.")
+
+def view_budget():
+    st.subheader("예산 조회")
+    with engine.connect() as conn:
+        df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
+    st.dataframe(df)
+
 def main():
     create_tables()
     st.title('예산 관리 시스템')
     
     with st.sidebar:
-        selected = option_menu("메인 메뉴", ["예산 입력", "예산 조회", "발주 요청", "잔여 예산 조회"], 
-            icons=['pencil-fill', 'eye-fill', 'cart-fill', 'cash-stack'], menu_icon="list", default_index=0)
+        selected = option_menu("메인 메뉴", ["예산 입력", "예산 조회"], 
+            icons=['pencil-fill', 'eye-fill'], menu_icon="list", default_index=0)
 
     if selected == "예산 입력":
         budget_input()
     elif selected == "예산 조회":
         view_budget()
-    elif selected == "발주 요청":
-        place_order()
-    elif selected == "잔여 예산 조회":
-        view_remaining_budget()
 
 if __name__ == '__main__':
     main()
