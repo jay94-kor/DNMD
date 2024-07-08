@@ -4,6 +4,10 @@ from streamlit_option_menu import option_menu
 from sqlalchemy import create_engine, text
 import os
 
+# 금액 포맷 함수 추가
+def format_currency(value):
+    return f"{value:,.0f}원"
+
 # 데이터베이스 연결 설정
 DATABASE = os.path.join(os.getcwd(), 'budget.db')
 engine = create_engine(f'sqlite:///{DATABASE}')
@@ -50,16 +54,16 @@ def budget_input():
         column_config={
             "대분류": st.column_config.TextColumn(required=True, width="medium"),
             "항목명": st.column_config.TextColumn(required=True, width="large"),
-            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium", format="%d"),
+            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium", format=format_currency),
             "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
             "단위1": st.column_config.TextColumn(required=True, width="small"),
             "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
             "단위2": st.column_config.TextColumn(required=True, width="small"),
-            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
-            "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
-            "지출희망금액1": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
-            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
-            "지출희망금액3": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
+            "배정예산": st.column_config.NumberColumn(required=True, format=format_currency, width="medium", disabled=True),
+            "잔액": st.column_config.NumberColumn(required=True, format=format_currency, width="medium", disabled=True),
+            "지출희망금액1": st.column_config.NumberColumn(min_value=0, format=format_currency, width="medium"),
+            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format=format_currency, width="medium"),
+            "지출희망금액3": st.column_config.NumberColumn(min_value=0, format=format_currency, width="medium"),
         },
         hide_index=True,
         num_rows="dynamic",
@@ -80,20 +84,21 @@ def budget_input():
         column_config={
             "대분류": st.column_config.TextColumn(required=True, width="medium"),
             "항목명": st.column_config.TextColumn(required=True, width="large"),
-            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium", format="%d"),
+            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium", format=format_currency),
             "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
             "단위1": st.column_config.TextColumn(required=True, width="small"),
             "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
             "단위2": st.column_config.TextColumn(required=True, width="small"),
-            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
-            "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
-            "지출희망금액1": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
-            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
-            "지출희망금액3": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
+            "배정예산": st.column_config.NumberColumn(required=True, format=format_currency, width="medium", disabled=True),
+            "잔액": st.column_config.NumberColumn(required=True, format=format_currency, width="medium", disabled=True),
+            "지출희망금액1": st.column_config.NumberColumn(min_value=0, format=format_currency, width="medium"),
+            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format=format_currency, width="medium"),
+            "지출희망금액3": st.column_config.NumberColumn(min_value=0, format=format_currency, width="medium"),
         },
         hide_index=True,
-        num_rows="dynamic",
         use_container_width=True,
+        disabled=["배정예산", "잔액"],
+        key="updated_budget_editor"
     )
     
     if st.button("저장"):
@@ -120,7 +125,7 @@ def budget_input():
             expense_amount = st.number_input("지출 희망 금액", min_value=0, step=1, value=0)
             partner = st.text_input("협력사")
             
-            if st.form_submit_button("지출 승인 요청"):
+            if st.form_submit_button("��출 승인 요청"):
                 item_index = edited_df[(edited_df['대분류'] == selected_category) & (edited_df['항목명'] == selected_item)].index[0]
                 if expense_amount <= edited_df.loc[item_index, '잔액']:
                     # 빈 지출희망금액 열 찾기
@@ -134,9 +139,9 @@ def budget_input():
                     
                     # 잔액 재계산
                     edited_df.loc[item_index, '잔액'] = (edited_df.loc[item_index, '배정예산'] - 
-                                                        edited_df.loc[item_index, '지출희망금액1'].fillna(0) - 
-                                                        edited_df.loc[item_index, '지출희망금액2'].fillna(0) - 
-                                                        edited_df.loc[item_index, '지출희망금액3'].fillna(0)).astype(int)
+                                                            edited_df.loc[item_index, '지출희망금액1'].fillna(0) - 
+                                                            edited_df.loc[item_index, '지출희망금액2'].fillna(0) - 
+                                                            edited_df.loc[item_index, '지출희망금액3'].fillna(0)).astype(int)
                     
                     st.success("지출 승인 요청이 완료되었습니다.")
                 else:
