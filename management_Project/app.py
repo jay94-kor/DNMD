@@ -34,7 +34,7 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['대분류', '항목명', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액'])
+        df = pd.DataFrame(columns=['대분류', '항목��', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액'])
     
     # 데이터 편집기 표시
     edited_df = st.data_editor(
@@ -55,8 +55,14 @@ def budget_input():
         use_container_width=True,
     )
     
+    # 배정예산 계산
+    edited_df['배정예산'] = (edited_df['단가'] * edited_df['개수1'] * edited_df['개수2']).astype(int)
+
     # 잔액 계산
-    edited_df['잔액'] = edited_df['배정예산']
+    edited_df['잔액'] = (edited_df['배정예산'] - 
+                        edited_df['지출희망금액1'].fillna(0) - 
+                        edited_df['지출희망금액2'].fillna(0) - 
+                        edited_df['지출희망금액3'].fillna(0)).astype(int)
     
     if st.button("저장"):
         # 데이터베이스에 저장
@@ -74,7 +80,7 @@ def budget_input():
             selected_category = st.selectbox("대분류 선택", options=edited_df['대분류'].unique().tolist())
             selected_items = edited_df[edited_df['대분류'] == selected_category]['항목명'].tolist()
             selected_item = st.selectbox("항목 선택", options=selected_items)
-            expense_amount = st.number_input("지출 희망 금액", min_value=0)
+            expense_amount = st.number_input("지출 희망 금액", min_value=0, step=1, value=0)
             partner = st.text_input("협력사")
             
             if st.form_submit_button("지출 승인 요청"):
