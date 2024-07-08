@@ -88,17 +88,35 @@ def budget_input():
     # 지출 추가 폼
     if 'show_expense_form' in st.session_state and st.session_state.show_expense_form:
         with st.form("expense_form"):
-            selected_category = st.selectbox("대분류 선택", options=edited_df['대분류'].unique().tolist())
-            selected_items = edited_df[edited_df['대분류'] == selected_category]['항목명'].tolist()
-            selected_item = st.selectbox("항목 선택", options=selected_items)
+            # 대분류 선택 (빈 값이 아닌 경우만 포함)
+            valid_categories = edited_df['대분류'].dropna().unique().tolist()
+            selected_category = st.selectbox("대분류 선택", options=valid_categories)
+            
+            # 선택된 대분류에 해당하는 항목명만 표시
+            valid_items = edited_df[edited_df['대분류'] == selected_category]['항목명'].dropna().unique().tolist()
+            selected_item = st.selectbox("항목 선택", options=valid_items)
+            
             expense_amount = st.number_input("지출 희망 금액", min_value=0, step=1, value=0)
             partner = st.text_input("협력사")
             
             if st.form_submit_button("지출 승인 요청"):
                 item_index = edited_df[(edited_df['대분류'] == selected_category) & (edited_df['항목명'] == selected_item)].index[0]
                 if expense_amount <= edited_df.loc[item_index, '잔액']:
-                    edited_df.loc[item_index, '잔액'] -= expense_amount
-                    # 여기에 지출 정보를 별도의 테이블에 저장하는 로직을 추가할 수 있습니다.
+                    # 빈 지출희망금액 열 찾기
+                    for i in range(1, 4):
+                        if pd.isna(edited_df.loc[item_index, f'지출희망금액{i}']):
+                            edited_df.loc[item_index, f'지출희망금액{i}'] = expense_amount
+                            break
+                    else:
+                        st.error("더 이상 지출을 추가할 수 없습니다.")
+                        return
+                    
+                    # 잔액 재계산
+                    edited_df.loc[item_index, '잔액'] = (edited_df.loc[item_index, '배정예산'] - 
+                                                        edited_df.loc[item_index, '지출희망금액1'].fillna(0) - 
+                                                        edited_df.loc[item_index, '지출희망금액2'].fillna(0) - 
+                                                        edited_df.loc[item_index, '지출희망금액3'].fillna(0)).astype(int)
+                    
                     st.success("지출 승인 요청이 완료되었습니다.")
                 else:
                     st.error("잔액이 부족합니다.")
@@ -109,7 +127,7 @@ def budget_input():
 
     # 지출 내역 표시
     st.subheader("지출 내역")
-    # 여기에 지출 내역을 표시하는 코드를 추가할 수 있습니다.
+    st.dataframe(edited_df[['대분류', '항목명', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3']])
 
 def view_budget():
     st.subheader("예산 조회")
