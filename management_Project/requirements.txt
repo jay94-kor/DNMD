@@ -5,3 +5,4 @@ passlib
 requests
 streamlit-option-menu
 werkzeug
+loguru

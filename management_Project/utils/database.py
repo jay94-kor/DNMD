@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Sequence, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from contextlib import contextmanager
-from loguru import logger
+import logging
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, scoped_session
@@ -22,7 +22,7 @@ def get_db() -> scoped_session:
         yield SessionLocal
         SessionLocal.commit()
     except Exception as ex:
-        logger.error(f"Something failed, rolling back database transaction. {ex}")
+        logging.error(f"Something failed, rolling back database transaction. {ex}")
         SessionLocal.rollback()
         raise
     finally:
@@ -41,7 +41,7 @@ class User(BaseModel):
 
 def init_db():
     User.metadata.create_all(engine)
-    logger.info("Database initialized successfully.")
+    logging.info("Database initialized successfully.")
 
 
 if __name__ == "__main__":
