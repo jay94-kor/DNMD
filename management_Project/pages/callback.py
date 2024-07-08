@@ -15,7 +15,6 @@ def callback_screen():
             if token:
                 user_info = get_naverworks_user_info(token)
                 st.success(f"{user_info['name']}님 환영합니다!")
-                # 네이버웍스 사용자 정보를 활용한 추가 처리 로직 (회원가입, 로그인 등)
                 st.experimental_set_query_params(page="Dashboard")
             else:
                 st.error("네이버웍스 로그인 실패")
