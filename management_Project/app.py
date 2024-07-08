@@ -34,7 +34,7 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['항목명', '단가', '수', '단위', '수', '단위', '총액', '배정예산', '잔액'])
+        df = pd.DataFrame(columns=['항목명', '단가', '수', '단가', '수', '단위', '총액', '배정예산', '잔액'])
     
     # 데이터 편집기 표시
     edited_df = st.data_editor(
@@ -55,7 +55,7 @@ def budget_input():
     )
     
     # 총액과 잔액 계산
-    edited_df['총액'] = edited_df['단가'] * edited_df['수'] * edited_df['단위']
+    edited_df['총액'] = edited_df['단가'] * edited_df['개'] * edited_df['기간']
     edited_df['잔액'] = edited_df['배정예산']
     
     if st.button("저장"):
@@ -109,4 +109,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
