@@ -31,7 +31,7 @@ def view_budget():
 # 발주 요청 및 예산 차감 기능
 def place_order():
     project = st.selectbox('프로젝트 선택', options=get_projects())
-    amount = st.number_input('발주 금액', min_value=0)
+    amount = st.number_input('발�� 금액', min_value=0)
     
     if st.button('발주 요청'):
         with engine.connect() as conn:
@@ -80,16 +80,16 @@ def main():
     create_tables()
     st.title('예산 관리 시스템')
     
-    menu = ['예산 입력', '예산 조회', '발주 요청', '잔여 예산 조회']
-    choice = st.sidebar.selectbox('메뉴', menu)
+    st.sidebar.title('메뉴')
+    option = st.sidebar.radio('선택', ['예산 입력', '예산 조회', '발주 요청', '잔여 예산 조회'])
     
-    if choice == '예산 입력':
+    if option == '예산 입력':
         budget_input()
-    elif choice == '예산 조회':
+    elif option == '예산 조회':
         view_budget()
-    elif choice == '발주 요청':
+    elif option == '발주 요청':
         place_order()
-    elif choice == '잔여 예산 조회':
+    elif option == '잔여 예산 조회':
         view_remaining_budget()
 
 if __name__ == '__main__':
