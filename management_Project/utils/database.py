@@ -1,11 +1,8 @@
 from sqlalchemy import create_engine, Column, Integer, String, Sequence, Boolean
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from contextlib import contextmanager
 import logging
-from pydantic import BaseModel
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, scoped_session
 
 from config import settings
 
@@ -29,15 +26,13 @@ def get_db() -> scoped_session:
         SessionLocal.close()
 
 
-class User(BaseModel):
-    id: int
-    name: str
-    email: str
-    password: str
-
-    class Config:
-        from_attributes = True
-
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, Sequence("user_id_seq"), primary_key=True, index=True)
+    name = Column(String, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_admin = Column(Boolean, default=False)
 
 def init_db():
     User.metadata.create_all(engine)
