@@ -1,10 +1,21 @@
+import os
+from pathlib import Path
+
+# 프로젝트 루트 디렉토리 찾기
+project_root = Path(__file__).parent.parent
+
+# config.yaml 파일의 절대 경로 생성
+config_path = os.path.join(project_root, 'config', 'config.yaml')
+
+# config 모듈에서 settings 가져오기
+from config import load_config
+settings = load_config(config_path)
+
 from sqlalchemy import create_engine, Column, Integer, String, Sequence, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from contextlib import contextmanager
 import logging
-
-from config import settings  # config 모듈에서 settings 가져오기
 
 DATABASE_URL = settings['database']['url']  # 설정 파일에서 데이터베이스 URL 가져오기
 
