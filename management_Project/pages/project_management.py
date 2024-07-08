@@ -9,11 +9,14 @@ def project_management_screen():
     project_name = st.text_input("프로젝트 이름", placeholder="프로젝트 이름을 입력하세요")
     project_status = st.selectbox("프로젝트 상태", ["진행 중", "완료", "보류"])
     if st.button("프로젝트 생성"):
-        db = next(get_db())
-        new_project = Project(name=project_name, status=project_status)
-        db.add(new_project)
-        db.commit()
-        st.success(f"프로젝트 '{project_name}' 생성 완료")
+        try:
+            with get_db() as db:
+                new_project = Project(name=project_name, status=project_status)
+                db.add(new_project)
+                db.commit()
+            st.success(f"프로젝트 '{project_name}' 생성 완료")
+        except Exception as e:
+            st.error(f"프로젝트 생성 중 오류 발생: {str(e)}")
     
     st.header("기존 프로젝트")
     db = next(get_db())
