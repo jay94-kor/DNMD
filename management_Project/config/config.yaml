@@ -1,2 +1,2 @@
 database:
-  url: "sqlite:///./test.db"
+  url: "sqlite:////mount/src/dnmd/management_Project/local_test.db"

@@ -10,7 +10,7 @@ DATABASE_URL = settings['database']['url']
 
 engine = create_engine(DATABASE_URL, echo=True)
 
-SessionLocal = Session(autoflush=False, bind=engine)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @contextmanager
 def get_db():
