@@ -1,8 +1,6 @@
 import streamlit as st
 from pages import login, dashboard, project_management, project_detail, output_management, request_handling, user_management, partner_management, partner_request, callback
-
 from streamlit_option_menu import option_menu
-from pages import login, dashboard, project_management, project_detail, output_management, request_handling, user_management, partner_management, partner_request, callback
 
 def main():
     st.set_page_config(layout="wide")
