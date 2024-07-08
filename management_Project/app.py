@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 from sqlalchemy import create_engine, text
+from streamlit_option_menu import option_menu
 
 # 데이터베이스 연결 설정
 import os
@@ -31,7 +32,7 @@ def view_budget():
 # 발주 요청 및 예산 차감 기능
 def place_order():
     project = st.selectbox('프로젝트 선택', options=get_projects())
-    amount = st.number_input('발�� 금액', min_value=0)
+    amount = st.number_input('발주 금액', min_value=0)
     
     if st.button('발주 요청'):
         with engine.connect() as conn:
@@ -80,16 +81,17 @@ def main():
     create_tables()
     st.title('예산 관리 시스템')
     
-    st.sidebar.title('메뉴')
-    option = st.sidebar.radio('선택', ['예산 입력', '예산 조회', '발주 요청', '잔여 예산 조회'])
-    
-    if option == '예산 입력':
+    with st.sidebar:
+        selected = option_menu("메인 메뉴", ["예산 입력", "예산 조회", "발주 요청", "잔여 예산 조회"], 
+            icons=['pencil-fill', 'eye-fill', 'cart-fill', 'cash-stack'], menu_icon="list", default_index=0)
+
+    if selected == "예산 입력":
         budget_input()
-    elif option == '예산 조회':
+    elif selected == "예산 조회":
         view_budget()
-    elif option == '발주 요청':
+    elif selected == "발주 요청":
         place_order()
-    elif option == '잔여 예산 조회':
+    elif selected == "잔여 예산 조회":
         view_remaining_budget()
 
 if __name__ == '__main__':
