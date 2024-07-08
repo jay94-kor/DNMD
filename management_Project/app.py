@@ -164,7 +164,10 @@ def budget_input():
 
     # 지출 내역 표시
     st.subheader("지출 내역")
-    st.dataframe(df[['대분류', '항��명', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3']])
+    if '항목명' in df.columns:
+        st.dataframe(df[['대분류', '항목명', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3']])
+    else:
+        st.error("데이터프레임에 '항목명' 열이 없습니다.")
 
 def view_budget():
     st.subheader("예산 조회")
