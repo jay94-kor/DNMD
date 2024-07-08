@@ -39,34 +39,28 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['항목명', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액', 
-                                   '지출내역1', '협력사1', '지출내역2', '협력사2', '지출내역3', '협력사3'])
+        df = pd.DataFrame(columns=['항목명', '단가', '개수1', '단위1', '개수2', '단위2', '배정예산', '잔액'])
     
     # 데이터 편집기 표시
     edited_df = st.data_editor(
         df,
         column_config={
-            "항목명": st.column_config.TextColumn(required=True),
-            "단가": st.column_config.NumberColumn(required=True, min_value=0),
-            "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1),
-            "단위1": st.column_config.TextColumn(required=True),
-            "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1),
-            "단위2": st.column_config.TextColumn(required=True),
-            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d"),
-            "잔액": st.column_config.NumberColumn(required=True, format="₩%d"),
-            "지출내역1": st.column_config.NumberColumn(format="₩%d"),
-            "협력사1": st.column_config.TextColumn(),
-            "지출내역2": st.column_config.NumberColumn(format="₩%d"),
-            "협력사2": st.column_config.TextColumn(),
-            "지출내역3": st.column_config.NumberColumn(format="₩%d"),
-            "협력사3": st.column_config.TextColumn(),
+            "항목명": st.column_config.TextColumn(required=True, width="large"),
+            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium"),
+            "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
+            "단위1": st.column_config.TextColumn(required=True, width="small"),
+            "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
+            "단위2": st.column_config.TextColumn(required=True, width="small"),
+            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium"),
+            "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium"),
         },
         hide_index=True,
-        num_rows="dynamic"
+        num_rows="dynamic",
+        use_container_width=True,
     )
     
     # 잔액 계산
-    edited_df['잔액'] = edited_df['배정예산'] - edited_df['지출내역1'].fillna(0) - edited_df['지출내역2'].fillna(0) - edited_df['지출내역3'].fillna(0)
+    edited_df['잔액'] = edited_df['배정예산']
     
     if st.button("저장"):
         # 데이터베이스에 저장
@@ -97,6 +91,10 @@ def budget_input():
                 # 데이터베이스 업데이트
                 with engine.connect() as conn:
                     edited_df.to_sql('budget_items', conn, if_exists='replace', index=False)
+
+    # 지출 내역 표시
+    st.subheader("지출 내역")
+    # 여기에 지출 내역을 표시하는 코드를 추가할 수 있습니다.
 
 def view_budget():
     st.subheader("예산 조회")
