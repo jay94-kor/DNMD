@@ -37,12 +37,18 @@ def project_detail_screen():
             # 팀 멤버 추가 및 제거
             new_member = st.text_input("새 팀 멤버 추가", placeholder="팀 멤버 이름을 입력하세요")
             if st.button("멤버 추가"):
-                # 멤버 추가 로직 (DB 업데이트)
-                st.success(f"팀 멤버 '{new_member}'가 추가되었습니다.")
+                if new_member:
+                    # 실제 DB 연동 로직 구현 필요
+                    st.success(f"팀 멤버 '{new_member}'가 추가되었습니다.")
+                else:
+                    st.error("팀 멤버 이름을 입력해주세요.")
             remove_member = st.text_input("팀 멤버 제거", placeholder="팀 멤버 이름을 입력하세요")
             if st.button("멤버 제거"):
-                # 멤버 제거 로직 (DB 업데이트)
-                st.success(f"팀 멤버 '{remove_member}'가 제거되었습니다.")
+                if remove_member:
+                    # 실제 DB 연동 로직 구현 필요
+                    st.success(f"팀 멤버 '{remove_member}'가 제거되었습니다.")
+                else:
+                    st.error("제거할 팀 멤버 이름을 입력해주세요.")
         else:
             st.error("프로젝트를 찾을 수 없습니다.")
 

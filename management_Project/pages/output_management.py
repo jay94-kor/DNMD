@@ -10,8 +10,11 @@ def output_management_screen():
     output_item = st.text_input("항목명", placeholder="산출내역서 항목을 입력하세요")
     amount = st.number_input("금액", min_value=0)
     if st.button("추가"):
-        # 산출내역서 추가 로직
-        st.success("산출내역서가 추가되었습니다.")
+        if output_item and amount > 0:
+            # 실제 DB 연동 로직 구현 필요
+            st.success(f"산출내역서 '{output_item}' (금액: {amount})가 추가되었습니다.")
+        else:
+            st.error("항목명과 유효한 금액을 입력해주세요.")
 
 if __name__ == "__main__":
     output_management_screen()

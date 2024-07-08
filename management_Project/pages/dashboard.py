@@ -1,23 +1,42 @@
 import streamlit as st
+from utils.database import get_db, Project, User
+import pandas as pd
 
 def dashboard_screen():
     st.title("대시보드")
     
-    # 전체 예산 배정 금액, 매출액, 사용액, 사용 요청액, 평균 순이익을 시각화하는 그래프 및 차트
-    st.header("전체 예산 상태")
-    st.bar_chart({"금액": [1000000, 750000, 500000, 250000], "항목": ["배정 금액", "매출액", "사용액", "사용 요청액"]})
-    
-    # 각 프로젝트별 순이익률 그래프
-    st.header("프로젝트별 순이익률")
-    st.line_chart({"프로젝트 A": [0.1, 0.15, 0.2], "프로젝트 B": [0.05, 0.1, 0.15]})
-    
-    # 사용자별 담당 프로젝트 리스트 및 평균 수익률
-    st.header("사용자별 담당 프로젝트")
-    st.table({"사용자": ["사용자 1", "사용자 2"], "프로젝트": ["프로젝트 A, 프로젝트 B", "프로젝트 C"], "평균 수익률": [0.15, 0.1]})
-    
-    # 그룹별 예산 사용 현황 및 순이익률 시각화
-    st.header("그룹별 예산 사용 현황")
-    st.area_chart({"그룹 A": [300000, 250000, 200000], "그룹 B": [400000, 350000, 300000]})
+    with get_db() as db:
+        # 전체 예산 상태
+        st.header("전체 예산 상태")
+        projects = db.query(Project).all()
+        total_budget = sum(project.budget for project in projects)
+        total_revenue = sum(project.revenue for project in projects)
+        total_expenses = sum(project.expenses for project in projects)
+        total_requested = sum(project.requested_amount for project in projects)
+        
+        budget_data = pd.DataFrame({
+            "항목": ["배정 금액", "매출액", "사용액", "사용 요청액"],
+            "금액": [total_budget, total_revenue, total_expenses, total_requested]
+        })
+        st.bar_chart(budget_data.set_index("항목"))
+        
+        # 프로젝트별 순이익률
+        st.header("프로젝트별 순이익률")
+        project_profit_rates = {project.name: (project.revenue - project.expenses) / project.revenue 
+                                for project in projects if project.revenue > 0}
+        st.line_chart(project_profit_rates)
+        
+        # 사용자별 담당 프로젝트
+        st.header("사용자별 담당 프로젝트")
+        users = db.query(User).all()
+        user_projects = []
+        for user in users:
+            user_projects.append({
+                "사용자": user.name,
+                "프로젝트": ", ".join([project.name for project in user.projects]),
+                "평균 수익률": sum(project_profit_rates.get(project.name, 0) for project in user.projects) / len(user.projects) if user.projects else 0
+            })
+        st.table(pd.DataFrame(user_projects))
 
 if __name__ == "__main__":
     dashboard_screen()
