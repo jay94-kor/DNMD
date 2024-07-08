@@ -16,12 +16,17 @@ def create_tables():
                 항목명 TEXT,
                 단가 REAL,
                 개 INTEGER,
-                규격 TEXT,
-                기간 INTEGER,
                 단위 TEXT,
-                총액 REAL,
+                개 INTEGER,
+                단위 TEXT,
                 배정예산 REAL,
-                잔액 REAL
+                잔액 REAL,
+                지출내역1 REAL,
+                협력사1 TEXT,
+                지출내역2 REAL,
+                협력사2 TEXT,
+                지출내역3 REAL,
+                협력사3 TEXT
             )
         """))
         conn.commit()
@@ -34,7 +39,8 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['항목명', '단가', '개', '규격', '기간', '단위', '총액', '배정예산', '잔액'])
+        df = pd.DataFrame(columns=['항목명', '단가', '개', '단위', '개', '단위', '배정예산', '잔액', 
+                                   '지출내역1', '협력사1', '지출내역2', '협력사2', '지출내역3', '협력사3'])
     
     # 데이터 편집기 표시
     edited_df = st.data_editor(
@@ -43,12 +49,17 @@ def budget_input():
             "항목명": st.column_config.TextColumn(required=True),
             "단가": st.column_config.NumberColumn(required=True, min_value=0),
             "개": st.column_config.NumberColumn(required=True, min_value=1, step=1),
-            "규격": st.column_config.TextColumn(),
-            "기간": st.column_config.NumberColumn(required=True, min_value=1, step=1),
             "단위": st.column_config.TextColumn(required=True),
-            "총액": st.column_config.NumberColumn(required=True, format="₩%d"),
+            "개": st.column_config.NumberColumn(required=True, min_value=1, step=1),
+            "단위": st.column_config.TextColumn(required=True),
             "배정예산": st.column_config.NumberColumn(required=True, format="₩%d"),
             "잔액": st.column_config.NumberColumn(required=True, format="₩%d"),
+            "지출내역1": st.column_config.NumberColumn(format="₩%d"),
+            "협력사1": st.column_config.TextColumn(),
+            "지출내역2": st.column_config.NumberColumn(format="₩%d"),
+            "협력사2": st.column_config.TextColumn(),
+            "지출내역3": st.column_config.NumberColumn(format="₩%d"),
+            "협력사3": st.column_config.TextColumn(),
         },
         hide_index=True,
         num_rows="dynamic"
