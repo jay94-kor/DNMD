@@ -1,50 +1,66 @@
 import streamlit as st
-from streamlit_option_menu import option_menu
-from pages import login, dashboard, project_management, project_detail, output_management, request_handling, user_management, partner_management, partner_request, callback
-from utils.database import get_db, Project, User
+import pandas as pd
+import sqlite3
+from sqlalchemy import create_engine
 
+# 데이터베이스 연결 설정
+DATABASE = 'budget.db'
+engine = create_engine(f'sqlite:///{DATABASE}')
+
+# 예산 입력 및 조회 기능
+def budget_input():
+    project = st.text_input('프로젝트 이름')
+    budget = st.number_input('예산 금액', min_value=0)
+    
+    if st.button('예산 입력'):
+        with engine.connect() as conn:
+            conn.execute("INSERT INTO budgets (project, budget) VALUES (?, ?)", (project, budget))
+        st.success('예산 입력 완료')
+
+def view_budget():
+    with engine.connect() as conn:
+        df = pd.read_sql("SELECT * FROM budgets", conn)
+    st.dataframe(df)
+
+# 발주 요청 및 예산 차감 기능
+def place_order():
+    project = st.selectbox('프로젝트 선택', options=get_projects())
+    amount = st.number_input('발주 금액', min_value=0)
+    
+    if st.button('발주 요청'):
+        with engine.connect() as conn:
+            conn.execute("INSERT INTO orders (project, amount, status) VALUES (?, ?, 'pending')", (project, amount))
+            conn.execute("UPDATE budgets SET budget = budget - ? WHERE project = ?", (amount, project))
+        st.success('발주 요청 완료 및 예산 차감')
+
+# 예산 현황 조회
+def view_remaining_budget():
+    with engine.connect() as conn:
+        df = pd.read_sql("SELECT project, budget FROM budgets", conn)
+    st.dataframe(df)
+
+# 프로젝트 목록 조회
+def get_projects():
+    with engine.connect() as conn:
+        result = conn.execute("SELECT DISTINCT project FROM budgets")
+        projects = [row['project'] for row in result]
+    return projects
+
+# 메인 앱 함수
 def main():
-    st.set_page_config(layout="wide")
+    st.title('예산 관리 시스템')
+    
+    menu = ['예산 입력', '예산 조회', '발주 요청', '잔여 예산 조회']
+    choice = st.sidebar.selectbox('메뉴', menu)
+    
+    if choice == '예산 입력':
+        budget_input()
+    elif choice == '예산 조회':
+        view_budget()
+    elif choice == '발주 요청':
+        place_order()
+    elif choice == '잔여 예산 조회':
+        view_remaining_budget()
 
-    if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
-    if 'is_admin' not in st.session_state:
-        st.session_state.is_admin = False
-
-    if st.session_state.logged_in:
-        with st.sidebar:
-            menu_items = ["대시보드", "프로젝트 관리", "프로젝트 상세", "산출내역서 관리", "수정 요청 처리", "사용자 관리", "협력사 관리", "협력사 추가 요청"]
-            if st.session_state.is_admin:
-                menu_items.append("관리자 페이지")
-            
-            selected = option_menu(
-                "네비게이션",
-                menu_items,
-                icons=["graph-up", "clipboard-data", "clipboard-check", "file-earmark-text", "inbox", "people", "building", "plus-circle", "gear"],
-                menu_icon="cast",
-                default_index=0,
-            )
-
-        if selected == "대시보드":
-            dashboard.dashboard_screen()
-        elif selected == "프로젝트 관리":
-            project_management.project_management_screen()
-        elif selected == "프로젝트 상세":
-            project_detail.project_detail_screen()
-        elif selected == "산출내역서 관리":
-            output_management.output_management_screen()
-        elif selected == "수정 요청 처리":
-            request_handling.request_handling_screen()
-        elif selected == "사용자 관리":
-            user_management.user_management_screen()
-        elif selected == "협력사 관리":
-            partner_management.partner_management_screen()
-        elif selected == "협력사 추가 요청":
-            partner_request.partner_request_screen()
-        elif selected == "관리자 페이지" and st.session_state.is_admin:
-            admin.admin_screen()
-    else:
-        login.login_screen()
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

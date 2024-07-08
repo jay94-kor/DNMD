@@ -1,9 +1,0 @@
-streamlit
-pyyaml
-sqlalchemy
-passlib
-requests
-streamlit-option-menu
-werkzeug
-loguru
-pydantic
