@@ -26,6 +26,8 @@ def get_db() -> scoped_session:
         SessionLocal.close()
 
 
+Base = declarative_base()
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, Sequence("user_id_seq"), primary_key=True, index=True)
