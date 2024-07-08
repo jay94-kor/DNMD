@@ -17,7 +17,8 @@ def login_screen():
         else:
             st.error("로그인 실패. 이메일 또는 비밀번호를 확인하세요.")
 
-    st.markdown("[회원가입](#Signup)")
+    if st.button("회원가입"):
+        st.experimental_set_query_params(page="Signup")
 
 if __name__ == "__main__":
     login_screen()

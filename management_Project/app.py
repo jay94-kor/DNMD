@@ -3,7 +3,8 @@ from pages import login, signup, dashboard, project_management, project_detail, 
 
 def main():
     st.sidebar.title("Navigation")
-    page = st.sidebar.selectbox("Select a page", ["Login", "Signup", "Dashboard", "Project Management", "Project Detail", "Output Management", "Request Handling", "User Management", "Partner Management", "Partner Request"])
+    query_params = st.experimental_get_query_params()
+    page = query_params.get("page", ["Login"])[0]
 
     if page == "Login":
         login.login_screen()
