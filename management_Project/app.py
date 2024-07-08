@@ -34,7 +34,7 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['항목명', '단가', '수', '단가', '수', '단위', '총액', '배정예산', '잔액'])
+        df = pd.DataFrame(columns=['항목명', '단가', '개', '규격', '기간', '단위', '총액', '배정예산', '잔액'])
     
     # 데이터 편집기 표시
     edited_df = st.data_editor(
