@@ -2,7 +2,7 @@ import requests
 
 NAVERWORKS_CLIENT_ID = 'GqyMZ3FGt0LFkBTjl5KH'
 NAVERWORKS_CLIENT_SECRET = 'knjbifyZLU'
-NAVERWORKS_REDIRECT_URI = 'https://qphcfosgo8apg8euvibmhd.streamlit.app/callback'
+NAVERWORKS_REDIRECT_URI = 'https://qphcfosgo8apg8euvibmhd.streamlit.app/?page=callback'
 
 def get_naverworks_login_url():
     return (
@@ -35,4 +35,14 @@ def get_naverworks_user_info(token):
     headers = {'Authorization': f'Bearer {token}'}
     response = requests.get(user_info_url, headers=headers)
     response.raise_for_status()  # 오류가 발생하면 예외를 발생시킵니다.
+    return response.json()
+
+def call_naverworks_api(endpoint, token, method='GET', data=None):
+    url = f"https://www.worksapis.com/v1.0{endpoint}"
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json; charset=UTF-8'
+    }
+    response = requests.request(method, url, headers=headers, json=data)
+    response.raise_for_status()
     return response.json()
