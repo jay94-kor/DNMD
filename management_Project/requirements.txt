@@ -2,3 +2,4 @@ streamlit
 pyyaml
 sqlalchemy
 sqlite
+passlib
