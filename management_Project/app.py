@@ -1,5 +1,5 @@
 import streamlit as st
-from pages import login, signup, dashboard, project_management, project_detail, output_management, request_handling, user_management, partner_management, partner_request, callback
+from pages import login, dashboard, project_management, project_detail, output_management, request_handling, user_management, partner_management, partner_request, callback
 
 def main():
     st.sidebar.title("Navigation")
@@ -8,8 +8,6 @@ def main():
 
     if page == "Login":
         login.login_screen()
-    elif page == "Signup":
-        signup.signup_screen()
     elif page == "Dashboard":
         dashboard.dashboard_screen()
     elif page == "Project Management":
