@@ -55,8 +55,38 @@ def budget_input():
             "단위1": st.column_config.TextColumn(required=True, width="small"),
             "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
             "단위2": st.column_config.TextColumn(required=True, width="small"),
-            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium"),
-            "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium"),
+            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
+            "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
+            "지출희망금액1": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
+            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
+            "지출희망금액3": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
+        },
+        hide_index=True,
+        num_rows="dynamic",
+        use_container_width=True,
+        key="budget_editor"
+    )
+    
+    # 배정예산 및 잔액 계산
+    edited_df['배정예산'] = (edited_df['단가'] * edited_df['개수1'] * edited_df['개수2']).astype(int)
+    edited_df['잔액'] = (edited_df['배정예산'] - 
+                        edited_df['지출희망금액1'].fillna(0) - 
+                        edited_df['지출희망금액2'].fillna(0) - 
+                        edited_df['지출희망금액3'].fillna(0)).astype(int)
+
+    # 업데이트된 데이터프레임 표시
+    st.data_editor(
+        edited_df,
+        column_config={
+            "대분류": st.column_config.TextColumn(required=True, width="medium"),
+            "항목명": st.column_config.TextColumn(required=True, width="large"),
+            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium", format="%d"),
+            "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
+            "단위1": st.column_config.TextColumn(required=True, width="small"),
+            "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
+            "단위2": st.column_config.TextColumn(required=True, width="small"),
+            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
+            "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
             "지출희망금액1": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
             "지출희망금액2": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
             "지출희망금액3": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
@@ -65,15 +95,6 @@ def budget_input():
         num_rows="dynamic",
         use_container_width=True,
     )
-    
-    # 배정예산 계산
-    edited_df['배정예산'] = (edited_df['단가'] * edited_df['개수1'] * edited_df['개수2']).astype(int)
-    
-    # 잔액 계산
-    edited_df['잔액'] = (edited_df['배정예산'] - 
-                        edited_df['지출희망금액1'].fillna(0) - 
-                        edited_df['지출희망금액2'].fillna(0) - 
-                        edited_df['지출희망금액3'].fillna(0)).astype(int)
     
     if st.button("저장"):
         # 데이터베이스에 저장
