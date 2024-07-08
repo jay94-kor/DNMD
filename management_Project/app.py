@@ -39,41 +39,58 @@ def budget_input():
     if df.empty:
         df = pd.DataFrame(columns=['대분류', '항목명', '단가', '개수1', '단위1', '개수2', '단위2'])
     
-    # 데이터 편집기 표시
-    edited_df = st.data_editor(
-        df,
-        column_config={
-            "대분류": st.column_config.TextColumn(required=True, width="medium"),
-            "항목명": st.column_config.TextColumn(required=True, width="large"),
-            "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium", format="₩%d"),
-            "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
-            "단위1": st.column_config.TextColumn(required=True, width="small"),
-            "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
-            "단위2": st.column_config.TextColumn(required=True, width="small"),
-        },
-        hide_index=True,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="budget_editor"
-    )
+    # 대분류 입력
+    categories = st.multiselect("대분류 선택/추가", options=list(df['대분류'].unique()) + ['새 대분류 추가'], default=list(df['대분류'].unique()))
+    
+    new_category = st.text_input("새 대분류 이름 (필요시 입력)")
+    if new_category and new_category not in categories:
+        categories.append(new_category)
+    
+    # 선택된 대분류에 대한 항목 표시 및 편집
+    for category in categories:
+        st.subheader(f"대분류: {category}")
+        category_df = df[df['대분류'] == category]
+        
+        edited_df = st.data_editor(
+            category_df,
+            column_config={
+                "항목명": st.column_config.TextColumn(required=True, width="large"),
+                "단가": st.column_config.NumberColumn(required=True, min_value=0, width="medium", format="₩%d"),
+                "개수1": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
+                "단위1": st.column_config.TextColumn(required=True, width="small"),
+                "개수2": st.column_config.NumberColumn(required=True, min_value=1, step=1, width="small"),
+                "단위2": st.column_config.TextColumn(required=True, width="small"),
+            },
+            hide_index=True,
+            num_rows="dynamic",
+            key=f"budget_editor_{category}"
+        )
+        
+        # 대분류 열 추가
+        edited_df['대분류'] = category
+        
+        # 기존 데이터프레임 업데이트
+        df = df[df['대분류'] != category]  # 현재 대분류 데이터 제거
+        df = pd.concat([df, edited_df], ignore_index=True)  # 새로운 데이터 추가
     
     # 배정예산 계산
-    edited_df['배정예산'] = (edited_df['단가'] * edited_df['개수1'] * edited_df['개수2']).astype(int)
+    df['배정예산'] = (df['단가'] * df['개수1'] * df['개수2']).astype(int)
     
     # 지출희망금액 열 추가
     for col in ['지출희망금액1', '지출희망금액2', '지출희망금액3']:
-        if col not in edited_df.columns:
-            edited_df[col] = 0
+        if col not in df.columns:
+            df[col] = 0
     
     # 잔액 계산
-    edited_df['잔액'] = (edited_df['배정예산'] - 
-                        edited_df['지출희망금액1'].fillna(0) - 
-                        edited_df['지출희망금액2'].fillna(0) - 
-                        edited_df['지출희망금액3'].fillna(0)).astype(int)
+    df['잔액'] = (df['배정예산'] - 
+                  df['지출희망금액1'].fillna(0) - 
+                  df['지출희망금액2'].fillna(0) - 
+                  df['지출희망금액3'].fillna(0)).astype(int)
 
-    # 업데이트된 데이터프레임 표시
+    # 전체 예산 항목 표시
+    st.subheader("전체 예산 항목")
     st.data_editor(
-        edited_df,
+        df,
         column_config={
             "대분류": st.column_config.TextColumn(required=True, width="medium"),
             "항목명": st.column_config.TextColumn(required=True, width="large"),
@@ -97,7 +114,7 @@ def budget_input():
     if st.button("저장"):
         # 데이터베이스에 저장
         with engine.connect() as conn:
-            edited_df.to_sql('budget_items', conn, if_exists='replace', index=False)
+            df.to_sql('budget_items', conn, if_exists='replace', index=False)
         st.success("데이터가 성공적으로 저장되었습니다.")
     
     # 지출 추가 버튼
@@ -108,33 +125,33 @@ def budget_input():
     if 'show_expense_form' in st.session_state and st.session_state.show_expense_form:
         with st.form("expense_form"):
             # 대분류 선택 (빈 값이 아닌 경우만 포함)
-            valid_categories = edited_df['대분류'].dropna().unique().tolist()
+            valid_categories = df['대분류'].dropna().unique().tolist()
             selected_category = st.selectbox("대분류 선택", options=valid_categories)
             
             # 선택된 대분류에 해당하는 항목명만 표시
-            valid_items = edited_df[edited_df['대분류'] == selected_category]['항목명'].dropna().unique().tolist()
+            valid_items = df[df['대분류'] == selected_category]['항목명'].dropna().unique().tolist()
             selected_item = st.selectbox("항목 선택", options=valid_items)
             
             expense_amount = st.number_input("지출 희망 금액", min_value=0, step=1, value=0)
             partner = st.text_input("협력사")
             
             if st.form_submit_button("지출 승인 요청"):
-                item_index = edited_df[(edited_df['대분류'] == selected_category) & (edited_df['항목명'] == selected_item)].index[0]
-                if expense_amount <= edited_df.loc[item_index, '잔액']:
+                item_index = df[(df['대분류'] == selected_category) & (df['항목명'] == selected_item)].index[0]
+                if expense_amount <= df.loc[item_index, '잔액']:
                     # 빈 지출희망금액 열 찾기
                     for i in range(1, 4):
-                        if pd.isna(edited_df.loc[item_index, f'지출희망금액{i}']):
-                            edited_df.loc[item_index, f'지출희망금액{i}'] = expense_amount
+                        if pd.isna(df.loc[item_index, f'지출희망금액{i}']):
+                            df.loc[item_index, f'지출희망금액{i}'] = expense_amount
                             break
                     else:
                         st.error("더 이상 지출을 추가할 수 없습니다.")
                         return
                     
                     # 잔액 재계산
-                    edited_df.loc[item_index, '잔액'] = (edited_df.loc[item_index, '배정예산'] - 
-                                                            edited_df.loc[item_index, '지출희망금액1'].fillna(0) - 
-                                                            edited_df.loc[item_index, '지출희망금액2'].fillna(0) - 
-                                                            edited_df.loc[item_index, '지출희망금액3'].fillna(0)).astype(int)
+                    df.loc[item_index, '잔액'] = (df.loc[item_index, '배정예산'] - 
+                                                    df.loc[item_index, '지출희망금액1'].fillna(0) - 
+                                                    df.loc[item_index, '지출희망금액2'].fillna(0) - 
+                                                    df.loc[item_index, '지출희망금액3'].fillna(0)).astype(int)
                     
                     st.success("지출 승인 요청이 완료되었습니다.")
                 else:
@@ -142,11 +159,11 @@ def budget_input():
                 
                 # 데이터베이스 업데이트
                 with engine.connect() as conn:
-                    edited_df.to_sql('budget_items', conn, if_exists='replace', index=False)
+                    df.to_sql('budget_items', conn, if_exists='replace', index=False)
 
     # 지출 내역 표시
     st.subheader("지출 내역")
-    st.dataframe(edited_df[['대분류', '항목명', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3']])
+    st.dataframe(df[['대분류', '항목명', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3']])
 
 def view_budget():
     st.subheader("예산 조회")
@@ -159,7 +176,7 @@ def main():
     st.title('예산 관리 시스템')
     
     with st.sidebar:
-        selected = option_menu("��인 메뉴", ["예산 입력", "예산 조회"], 
+        selected = option_menu("인 메뉴", ["예산 입력", "예산 조회"], 
             icons=['pencil-fill', 'eye-fill'], menu_icon="list", default_index=0)
 
     if selected == "예산 입력":
