@@ -20,8 +20,8 @@ def create_tables():
                 기간 INTEGER,
                 단위 TEXT,
                 총액 REAL,
-                지출희망금액 REAL,
-                협력사 TEXT
+                배정예산 REAL,
+                잔액 REAL
             )
         """))
         conn.commit()
@@ -34,7 +34,7 @@ def budget_input():
         df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
     if df.empty:
-        df = pd.DataFrame(columns=['항목명', '단가', '개', '규격', '기간', '단위', '총액', '지출희망금액', '협력사'])
+        df = pd.DataFrame(columns=['항목명', '단가', '개', '규격', '기간', '단위', '총액', '배정예산', '잔액'])
     
     # 데이터 편집기 표시
     edited_df = st.data_editor(
@@ -47,21 +47,46 @@ def budget_input():
             "기간": st.column_config.NumberColumn(required=True, min_value=1, step=1),
             "단위": st.column_config.TextColumn(required=True),
             "총액": st.column_config.NumberColumn(required=True, format="₩%d"),
-            "지출희망금액": st.column_config.NumberColumn(required=True, format="₩%d"),
-            "협력사": st.column_config.TextColumn(),
+            "배정예산": st.column_config.NumberColumn(required=True, format="₩%d"),
+            "잔액": st.column_config.NumberColumn(required=True, format="₩%d"),
         },
         hide_index=True,
         num_rows="dynamic"
     )
     
-    # 총액 계산
+    # 총액과 잔액 계산
     edited_df['총액'] = edited_df['단가'] * edited_df['개'] * edited_df['기간']
+    edited_df['잔액'] = edited_df['배정예산']
     
     if st.button("저장"):
         # 데이터베이스에 저장
         with engine.connect() as conn:
             edited_df.to_sql('budget_items', conn, if_exists='replace', index=False)
         st.success("데이터가 성공적으로 저장되었습니다.")
+    
+    # 지출 추가 버튼
+    if st.button("지출 추가"):
+        st.session_state.show_expense_form = True
+    
+    # 지출 추가 폼
+    if 'show_expense_form' in st.session_state and st.session_state.show_expense_form:
+        with st.form("expense_form"):
+            selected_item = st.selectbox("항목 선택", options=edited_df['항목명'].tolist())
+            expense_amount = st.number_input("지출 희망 금액", min_value=0)
+            partner = st.text_input("협력사")
+            
+            if st.form_submit_button("지출 승인 요청"):
+                item_index = edited_df[edited_df['항목명'] == selected_item].index[0]
+                if expense_amount <= edited_df.loc[item_index, '잔액']:
+                    edited_df.loc[item_index, '잔액'] -= expense_amount
+                    # 여기에 지출 정보를 별도의 테이블에 저장하는 로직을 추가할 수 있습니다.
+                    st.success("지출 승인 요청이 완료되었습니다.")
+                else:
+                    st.error("잔액이 부족합니다.")
+                
+                # 데이터베이스 업데이트
+                with engine.connect() as conn:
+                    edited_df.to_sql('budget_items', conn, if_exists='replace', index=False)
 
 def view_budget():
     st.subheader("예산 조회")
