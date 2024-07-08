@@ -27,5 +27,11 @@ def main():
     elif page == "Partner Request":
         partner_request.partner_request_screen()
 
+    # 네이버 로그인 콜백 처리
+    code = query_params.get("code", [None])[0]
+    state = query_params.get("state", [None])[0]
+    if code and state == 'naver':
+        login.login_screen()
+
 if __name__ == "__main__":
     main()
