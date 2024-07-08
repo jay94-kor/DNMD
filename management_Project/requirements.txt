@@ -7,4 +7,3 @@ streamlit-option-menu
 werkzeug
 loguru
 pydantic
-yaml
