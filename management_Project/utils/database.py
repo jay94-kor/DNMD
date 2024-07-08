@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Sequence
+from sqlalchemy import create_engine, Column, Integer, String, Sequence, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -22,14 +22,21 @@ class User(Base):
     name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
+    is_admin = Column(Boolean, default=False)
 
-# 프로젝트 모델 정의
-class Project(Base):
-    __tablename__ = "projects"
-    id = Column(Integer, Sequence("project_id_seq"), primary_key=True, index=True)
-    name = Column(String, index=True)
-    status = Column(String, index=True)
-
-# 데이터베이스 초기화
 def init_db():
     Base.metadata.create_all(bind=engine)
+
+    # 어드민 계정 추가
+    db = SessionLocal()
+    admin_user = db.query(User).filter(User.email == "admin").first()
+    if not admin_user:
+        admin_user = User(
+            name="Admin",
+            email="admin",
+            hashed_password="$2b$12$4v1z8jFn7JXsoXsTfyC5KOPO5FhbApQW1XZZP5HqThk63As1xMs.W",  # dnmdadmin!의 해시된 값
+            is_admin=True
+        )
+        db.add(admin_user)
+        db.commit()
+    db.close()
