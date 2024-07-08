@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 # 데이터베이스 연결 설정
 import os
@@ -16,7 +16,9 @@ def budget_input():
     if st.button('예산 입력'):
         try:
             with engine.connect() as conn:
-                conn.execute("INSERT INTO budgets (project, budget) VALUES (?, ?)", (project, budget))
+                conn.execute(text("INSERT INTO budgets (project, budget) VALUES (:project, :budget)"), 
+                             {"project": project, "budget": budget})
+                conn.commit()
             st.success('예산 입력 완료')
         except Exception as e:
             st.error(f'오류 발생: {str(e)}')
@@ -50,24 +52,25 @@ def get_projects():
         projects = [row['project'] for row in result]
     return projects
 
-# 테이블 생성 함수
+# 테이블 생성 함��
 def create_tables():
     with engine.connect() as conn:
-        conn.execute("""
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS budgets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 project TEXT NOT NULL,
                 budget REAL NOT NULL
             )
-        """)
-        conn.execute("""
+        """))
+        conn.execute(text("""
             CREATE TABLE IF NOT EXISTS orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 project TEXT NOT NULL,
                 amount REAL NOT NULL,
                 status TEXT NOT NULL
             )
-        """)
+        """))
+        conn.commit()
 
 # 메인 앱 함수
 def main():
