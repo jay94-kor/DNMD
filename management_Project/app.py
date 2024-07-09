@@ -12,7 +12,7 @@ DATABASE = os.path.join(os.getcwd(), 'budget.db')
 engine = create_engine(f'sqlite:///{DATABASE}')
 
 # OpenAI API 키 설정
-openai.api_key = "your-api-key-here"
+openai.api_key = "sk-jangdongjae-BnMFFeY23bLspZTDL3WtT3BlbkFJOVWjsbcijPgCELvYfQ7k"
 
 def create_tables():
     with engine.connect() as conn:
