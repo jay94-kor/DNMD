@@ -13,9 +13,7 @@ import openpyxl
 DATABASE = os.path.join(os.getcwd(), 'budget.db')
 engine = create_engine(f'sqlite:///{DATABASE}')
 
-# OpenAI API 키 설정
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 def create_tables():
     with engine.connect() as conn:
