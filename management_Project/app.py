@@ -3,10 +3,16 @@ import pandas as pd
 from streamlit_option_menu import option_menu
 from sqlalchemy import create_engine, text
 import os
+import openai
+from io import BytesIO
+import openpyxl
 
 # 데이터베이스 연결 설정
 DATABASE = os.path.join(os.getcwd(), 'budget.db')
 engine = create_engine(f'sqlite:///{DATABASE}')
+
+# OpenAI API 키 설정
+openai.api_key = "your-api-key-here"
 
 def create_tables():
     with engine.connect() as conn:
@@ -209,13 +215,55 @@ def view_budget():
     
     st.dataframe(df)
 
+def analyze_excel(df):
+    # 데이터프레임을 문자열로 변환
+    df_str = df.to_string()
+    
+    # OpenAI API를 사용하여 데이터 분석
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that analyzes Excel data and converts it to a specific format."},
+            {"role": "user", "content": f"Analyze this Excel data and convert it to the format with columns: 대분류, 항목명, 단가, 개수1, 단위1, 개수2, 단위2, 배정예산. Here's the data:\n\n{df_str}"}
+        ]
+    )
+    
+    # API 응답에서 변환된 데이터 추출
+    converted_data = response.choices[0].message['content']
+    
+    # 변환된 데이터를 데이터프레임으로 변환
+    converted_df = pd.read_csv(BytesIO(converted_data.encode()), sep='\s+')
+    
+    return converted_df
+
+def upload_excel():
+    st.subheader("엑셀 파일 업로드")
+    
+    uploaded_file = st.file_uploader("엑셀 파일을 선택하세요", type=["xlsx", "xls"])
+    
+    if uploaded_file is not None:
+        df = pd.read_excel(uploaded_file)
+        st.write("원본 데이터:")
+        st.dataframe(df)
+        
+        if st.button("데이터 분석 및 변환"):
+            converted_df = analyze_excel(df)
+            st.write("변환된 데이터:")
+            st.dataframe(converted_df)
+            
+            if st.button("데이터베이스에 저장"):
+                with engine.connect() as conn:
+                    converted_df.to_sql('budget_items', conn, if_exists='append', index=False)
+                st.success("데이터가 성공적으로 저장되었습니다.")
+
 def main():
     create_tables()
     st.title('예산 관리 시스템')
     
     with st.sidebar:
-        selected = option_menu("메뉴", ["예산 입력", "지출 추가", "예산 조회"], 
-            icons=['pencil-fill', 'cash-coin', 'eye-fill'], menu_icon="list", default_index=0)
+        selected = option_menu("메뉴", ["예산 입력", "지출 추가", "예산 조회", "엑셀 업로드"], 
+            icons=['pencil-fill', 'cash-coin', 'eye-fill', 'file-earmark-excel'], menu_icon="list", default_index=0)
+
 
     if selected == "예산 입력":
         budget_input()
@@ -223,6 +271,8 @@ def main():
         add_expense()
     elif selected == "예산 조회":
         view_budget()
+    elif selected == "엑셀 업로드":
+        upload_excel()
 
 if __name__ == '__main__':
     main()
