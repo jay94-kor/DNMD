@@ -12,7 +12,7 @@ DATABASE = os.path.join(os.getcwd(), 'budget.db')
 engine = create_engine(f'sqlite:///{DATABASE}')
 
 # OpenAI API 키 설정
-openai.api_key = "sk-jangdongjae-BnMFFeY23bLspZTDL3WtT3BlbkFJOVWjsbcijPgCELvYfQ7k"
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def create_tables():
     with engine.connect() as conn:
@@ -269,7 +269,7 @@ def main():
         budget_input()
     elif selected == "지출 추가":
         add_expense()
-    elif selected == "예산 조회":
+    elif selected == "예�� 조회":
         view_budget()
     elif selected == "엑셀 업로드":
         upload_excel()
