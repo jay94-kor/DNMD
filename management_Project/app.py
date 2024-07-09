@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 from streamlit_option_menu import option_menu
 from sqlalchemy import create_engine, text
-import os
 import openai
+import os
+from io import BytesIO  # BytesIO를 io 모듈에서 import
 import openpyxl
 
 # 데이터베이스 연결 설정
