@@ -4,7 +4,6 @@ from streamlit_option_menu import option_menu
 from sqlalchemy import create_engine, text
 import os
 import openai
-from io import BytesIO
 import openpyxl
 
 # 데이터베이스 연결 설정
@@ -101,7 +100,7 @@ def budget_input():
         df = df[df['대분류'] != selected_category]  # 현재 대분류 데이터 제거
         df = pd.concat([df, edited_df], ignore_index=True)  # 새로운 데이터 추가
         
-        # 데이터베이스에 저���
+        # 데이터베이스에 저장
         with engine.connect() as conn:
             df.to_sql('budget_items', conn, if_exists='replace', index=False)
         st.success("데이터가 성공적으로 저장되었습니다.")
