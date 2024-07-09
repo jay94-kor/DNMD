@@ -13,7 +13,11 @@ import openpyxl
 DATABASE = os.path.join(os.getcwd(), 'budget.db')
 engine = create_engine(f'sqlite:///{DATABASE}')
 
+# .env 파일에서 환경 변수 로드
+load_dotenv()
 
+# OpenAI API 키 설정
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def create_tables():
     with engine.connect() as conn:
@@ -122,7 +126,7 @@ def budget_input():
             "배정예산": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
             "잔액": st.column_config.NumberColumn(required=True, format="₩%d", width="medium", disabled=True),
             "지출희망금액1": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
-            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
+            "지출희망금액2": st.column_config.NumberColumn(min_value=0, format="��%d", width="medium"),
             "지출희망금액3": st.column_config.NumberColumn(min_value=0, format="₩%d", width="medium"),
         },
         hide_index=True,
@@ -232,7 +236,7 @@ def analyze_excel(df):
     # API 응답에서 변환된 데이터 추출
     converted_data = response.choices[0].message['content']
     
-    # 변환된 데이터를 데이��프레임으로 변환
+    # 변환된 데이터를 데이프레임으로 변환
     converted_df = pd.read_csv(BytesIO(converted_data.encode()), sep='\s+')
     
     return converted_df
