@@ -3,6 +3,7 @@ import pandas as pd
 from streamlit_option_menu import option_menu
 from sqlalchemy import create_engine, text
 import openai
+from dotenv import load_dotenv
 
 import os
 from io import BytesIO  # BytesIO를 io 모듈에서 import
@@ -13,6 +14,7 @@ DATABASE = os.path.join(os.getcwd(), 'budget.db')
 engine = create_engine(f'sqlite:///{DATABASE}')
 
 # OpenAI API 키 설정
+load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def create_tables():
@@ -232,7 +234,7 @@ def analyze_excel(df):
     # API 응답에서 변환된 데이터 추출
     converted_data = response.choices[0].message['content']
     
-    # 변환된 데이터를 데이터프레임으로 변환
+    # 변환된 데이터를 데이��프레임으로 변환
     converted_df = pd.read_csv(BytesIO(converted_data.encode()), sep='\s+')
     
     return converted_df
