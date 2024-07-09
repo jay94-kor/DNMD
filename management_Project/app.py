@@ -164,10 +164,18 @@ def budget_input():
 
     # 지출 내역 표시
     st.subheader("지출 내역")
-    if '항목명' in df.columns:
-        st.dataframe(df[['대분류', '항목명', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3']])
+    
+    # 데이터프레임에 존재하는 열만 선택
+    columns_to_display = ['대분류', '항목명', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3']
+    existing_columns = [col for col in columns_to_display if col in df.columns]
+    
+    if existing_columns:
+        st.dataframe(df[existing_columns])
     else:
-        st.error("데이터프레임에 '항목명' 열이 없습니다.")
+        st.error("표시할 열이 없습니다.")
+    
+    # 디버깅을 위해 데이터프레임의 열 이름 출력
+    st.write("데이터프레임의 열:", df.columns.tolist())
 
 def view_budget():
     st.subheader("예산 조회")
