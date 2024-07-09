@@ -20,11 +20,17 @@ def create_tables():
                 단위1 TEXT,
                 개수2 INTEGER,
                 단위2 TEXT,
-                배정예산 INTEGER,
-                잔액 INTEGER,
-                지출희망금액1 INTEGER,
-                지출희망금액2 INTEGER,
-                지출희망금액3 INTEGER
+                배정예산 INTEGER
+            )
+        """))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS expenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                budget_item_id INTEGER,
+                지출금액 INTEGER,
+                지출일자 DATE,
+                협력사 TEXT,
+                FOREIGN KEY (budget_item_id) REFERENCES budget_items (id)
             )
         """))
         conn.commit()
@@ -162,25 +168,45 @@ def budget_input():
                 with engine.connect() as conn:
                     df.to_sql('budget_items', conn, if_exists='replace', index=False)
 
-    # 지출 내역 표시
-    st.subheader("지출 내역")
+def add_expense():
+    st.subheader("지출 추가")
     
-    # 데이터프레임에 존재하는 열만 선택
-    columns_to_display = ['대분류', '항목명', '배정예산', '잔액', '지출희망금액1', '지출희망금액2', '지출희망금액3']
-    existing_columns = [col for col in columns_to_display if col in df.columns]
+    # 예산 항목 불러오기
+    with engine.connect() as conn:
+        budget_items = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
     
-    if existing_columns:
-        st.dataframe(df[existing_columns])
-    else:
-        st.error("표시할 열이 없습니다.")
+    # 사용자 입력
+    selected_item = st.selectbox("항목 선택", options=budget_items['항목명'].tolist())
+    expense_amount = st.number_input("지출 금액", min_value=0, step=1000)
+    expense_date = st.date_input("지출 일자")
+    partner = st.text_input("협력사")
     
-    # 디버깅을 위해 데이터프레임의 열 이름 출력
-    st.write("데이터프레임의 열:", df.columns.tolist())
+    if st.button("지출 추가"):
+        item_id = budget_items[budget_items['항목명'] == selected_item]['id'].values[0]
+        
+        # 지출 추가
+        with engine.connect() as conn:
+            conn.execute(text("""
+                INSERT INTO expenses (budget_item_id, 지출금액, 지출일자, 협력사)
+                VALUES (:item_id, :amount, :date, :partner)
+            """), {"item_id": item_id, "amount": expense_amount, "date": expense_date, "partner": partner})
+            conn.commit()
+        
+        st.success("지출이 추가되었습니다.")
 
 def view_budget():
-    st.subheader("예산 조회")
+    st.subheader("예산 및 지출 현황")
+    
     with engine.connect() as conn:
-        df = pd.read_sql_query(text("SELECT * FROM budget_items"), conn)
+        # 예산 항목과 총 지출액 조회
+        df = pd.read_sql_query(text("""
+            SELECT bi.*, COALESCE(SUM(e.지출금액), 0) as 총지출액,
+                   bi.배정예산 - COALESCE(SUM(e.지출금액), 0) as 잔액
+            FROM budget_items bi
+            LEFT JOIN expenses e ON bi.id = e.budget_item_id
+            GROUP BY bi.id
+        """), conn)
+    
     st.dataframe(df)
 
 def main():
@@ -188,11 +214,13 @@ def main():
     st.title('예산 관리 시스템')
     
     with st.sidebar:
-        selected = option_menu("인 메뉴", ["예산 입력", "예산 조회"], 
-            icons=['pencil-fill', 'eye-fill'], menu_icon="list", default_index=0)
+        selected = option_menu("메뉴", ["예산 입력", "지출 추가", "예산 조회"], 
+            icons=['pencil-fill', 'cash-coin', 'eye-fill'], menu_icon="list", default_index=0)
 
     if selected == "예산 입력":
         budget_input()
+    elif selected == "지출 추가":
+        add_expense()
     elif selected == "예산 조회":
         view_budget()
 
