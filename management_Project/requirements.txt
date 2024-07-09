@@ -3,3 +3,5 @@ pandas
 SQLAlchemy
 streamlit-option-menu
 openai
+BytesIO
+openpyxl
