@@ -101,7 +101,7 @@ def budget_input():
         df = df[df['대분류'] != selected_category]  # 현재 대분류 데이터 제거
         df = pd.concat([df, edited_df], ignore_index=True)  # 새로운 데이터 추가
         
-        # 데이터베이스에 저장
+        # 데이터베이스에 저���
         with engine.connect() as conn:
             df.to_sql('budget_items', conn, if_exists='replace', index=False)
         st.success("데이터가 성공적으로 저장되었습니다.")
@@ -269,7 +269,7 @@ def main():
         budget_input()
     elif selected == "지출 추가":
         add_expense()
-    elif selected == "예�� 조회":
+    elif selected == "예산 조회":
         view_budget()
     elif selected == "엑셀 업로드":
         upload_excel()
