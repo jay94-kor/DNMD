@@ -1342,26 +1342,14 @@ def main():
 
     col1, col2 = st.columns([1, 1])
 
-    with col1:
-        if current_step > 0:
-            if st.button("이전", key="previous_button"):
-                st.session_state.previous_button = True
-
-    with col2:
-        if current_step < 3:
-            if st.button("다음", key="next_button"):
-                st.session_state.next_button = True
-
-    if st.session_state.previous_button:
-        st.session_state.previous_button = False
+    if col1.button("이전", key="previous_button") and current_step > 0:
         if event_type == "온라인 콘텐츠" and current_step == 2:
             st.session_state.step = 0
         else:
             st.session_state.step -= 1
         st.experimental_rerun()
 
-    if st.session_state.next_button:
-        st.session_state.next_button = False
+    if col2.button("다음", key="next_button") and current_step < 3:
         is_valid, missing_fields = check_required_fields(current_step)
         if is_valid:
             if event_type == "온라인 콘텐츠" and current_step == 0:
