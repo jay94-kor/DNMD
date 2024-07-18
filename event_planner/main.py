@@ -1338,27 +1338,40 @@ def main():
 
     col1, col2 = st.columns([1, 1])
 
+    if 'previous_button' not in st.session_state:
+        st.session_state.previous_button = False
+    if 'next_button' not in st.session_state:
+        st.session_state.next_button = False
+
     with col1:
         if current_step > 0:
             if st.button("이전", key="previous_button"):
-                if event_type == "온라인 콘텐츠" and current_step == 2:
-                    st.session_state.step = 0
-                else:
-                    st.session_state.step -= 1
-                st.experimental_rerun()
+                st.session_state.previous_button = True
 
     with col2:
         if current_step < 3:
             if st.button("다음", key="next_button"):
-                is_valid, missing_fields = check_required_fields(current_step)
-                if is_valid:
-                    if event_type == "온라인 콘텐츠" and current_step == 0:
-                        st.session_state.step = 2
-                    else:
-                        st.session_state.step += 1
-                    st.experimental_rerun()
-                else:
-                    highlight_missing_fields(missing_fields)
+                st.session_state.next_button = True
+
+    if st.session_state.previous_button:
+        st.session_state.previous_button = False
+        if event_type == "온라인 콘텐츠" and current_step == 2:
+            st.session_state.step = 0
+        else:
+            st.session_state.step -= 1
+        st.experimental_rerun()
+
+    if st.session_state.next_button:
+        st.session_state.next_button = False
+        is_valid, missing_fields = check_required_fields(current_step)
+        if is_valid:
+            if event_type == "온라인 콘텐츠" and current_step == 0:
+                st.session_state.step = 2
+            else:
+                st.session_state.step += 1
+            st.experimental_rerun()
+        else:
+            highlight_missing_fields(missing_fields)
 
 if __name__ == "__main__":
     main()
