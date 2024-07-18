@@ -842,6 +842,8 @@ def handle_other_items(component: Dict[str, Any], category: str) -> None:
     if 'other_items' not in component:
         component['other_items'] = []
 
+    rerun_needed = False  # rerun이 필요한지 여부를 추적
+
     for i, other_item in enumerate(component['other_items']):
         col1, col2 = st.columns([3, 1])
         with col1:
@@ -850,15 +852,18 @@ def handle_other_items(component: Dict[str, Any], category: str) -> None:
         with col2:
             if st.button(f"삭제 {i+1}", key=f"{category}_delete_other_item_{i}"):
                 component['other_items'].pop(i)
-                st.experimental_rerun()
+                rerun_needed = True  # rerun이 필요함을 표시
 
     if st.button(f"{category} 기타 항목 추가", key=f"{category}_add_other_item"):
         component['other_items'].append('')
-        st.experimental_rerun()
+        rerun_needed = True  # rerun이 필요함을 표시
 
     for i, other_item in enumerate(component['other_items']):
         if other_item:  # 빈 문자열이 아닌 경우에만 처리
             handle_item_details(f"기타_{i+1}", component, item_name=other_item)
+
+    if rerun_needed:
+        st.experimental_rerun()  # rerun이 필요한 경우에만 호출
 
 def safe_operation(func):
     def wrapper(*args, **kwargs):
