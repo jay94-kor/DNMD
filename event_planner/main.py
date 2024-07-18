@@ -432,6 +432,8 @@ def handle_offline_event_venue(event_data: Dict[str, Any]) -> None:
     elif event_data['venue_status'] == "알 수 없는 상태":
         handle_unknown_venue_status(event_data)
     else:
+        if 'venues' not in event_data:
+            event_data['venues'] = [{'name': '', 'address': ''}]
         handle_known_venue_status(event_data)
 
 def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
@@ -1248,7 +1250,7 @@ def highlight_missing_fields(missing_fields):
         'venue_status': '장소 확정 상태',
         'venue_type': '장소 유형',
         'desired_region': '희망하는 지역',
-        'desired_capacity': '희망하는 ���용 인원',
+        'desired_capacity': '희망하는 수용 인원',
         'venues': '장소',
         'selected_categories': '선택된 카테고리',
         'components': '용역 구성 요소',
