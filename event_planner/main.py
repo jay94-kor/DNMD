@@ -164,7 +164,7 @@ def basic_info() -> None:
     handle_budget_info(event_data)
 
     if event_data['event_type'] == "온라인 콘텐츠":
-        handle_video_production(event_data)
+        handle_online_content(event_data)
     elif event_data['event_type'] == "오프라인 이벤트":
         handle_offline_event(event_data)
 
@@ -319,24 +319,73 @@ def handle_profit_info(event_data: Dict[str, Any]) -> None:
     if total_category_budget > event_data['contract_amount']:
         st.warning(f"주의: 카테고리별 예산 총액({format_currency(total_category_budget)} 원)이 총 계약 금액({format_currency(event_data['contract_amount'])} 원)을 초과합니다.")
 
-def handle_video_production(event_data: Dict[str, Any]) -> None:
+def handle_online_content(event_data: Dict[str, Any]) -> None:
+    st.subheader("온라인 콘텐츠 정보")
+    
     col1, col2 = st.columns(2)
     with col1:
-        start_date = st.date_input("과업 시작일", 
+        event_data['start_date'] = st.date_input("콘텐츠 제작 시작일", 
                                    value=event_data.get('start_date', date.today()), 
-                                   key="video_start_date")
+                                   key="online_start_date")
     with col2:
-        end_date = st.date_input("과업 종료일",
-                                 value=max(event_data.get('end_date', start_date), start_date),
-                                 min_value=start_date,
-                                 key="video_end_date")
+        event_data['end_date'] = st.date_input("콘텐츠 제작 종료일",
+                                 value=max(event_data.get('end_date', event_data['start_date']), event_data['start_date']),
+                                 min_value=event_data['start_date'],
+                                 key="online_end_date")
 
-    event_data['start_date'] = start_date
-    event_data['end_date'] = end_date
+    event_data['online_platform'] = st.text_input(
+        "사용할 온라인 플랫폼",
+        value=event_data.get('online_platform', ''),
+        help="예: YouTube, Zoom, Twitch 등",
+        key="online_platform"
+    )
+    
+    event_data['streaming_method'] = render_option_menu(
+        "스트리밍 방식",
+        ["라이브", "녹화 후 업로드", "혼합"],
+        "streaming_method"
+    )
+    
+    if event_data['streaming_method'] in ["라이브", "혼합"]:
+        event_data['streaming_date'] = st.date_input(
+            "스트리밍 날짜",
+            value=event_data.get('streaming_date', date.today()),
+            key="streaming_date"
+        )
+        event_data['streaming_time'] = st.time_input(
+            "스트리밍 시작 시간",
+            value=event_data.get('streaming_time', datetime.now().time()),
+            key="streaming_time"
+        )
+    
+    if event_data['streaming_method'] in ["녹화 후 업로드", "혼합"]:
+        event_data['recording_location'] = st.text_input(
+            "녹화 장소",
+            value=event_data.get('recording_location', ''),
+            key="recording_location"
+        )
+        event_data['upload_date'] = st.date_input(
+            "업로드 예정일",
+            value=event_data.get('upload_date', date.today()),
+            key="upload_date"
+        )
+    
+    event_data['expected_duration'] = st.number_input(
+        "예상 콘텐츠 길이 (분)",
+        min_value=1,
+        value=event_data.get('expected_duration', 60),
+        key="expected_duration"
+    )
+    
+    event_data['content_description'] = st.text_area(
+        "콘텐츠 간단 설명",
+        value=event_data.get('content_description', ''),
+        key="content_description"
+    )
 
-    duration = (end_date - start_date).days
+    duration = (event_data['end_date'] - event_data['start_date']).days
     months, days = divmod(duration, 30)
-    st.write(f"과업 기간: {months}개월 {days}일")
+    st.write(f"콘텐츠 제작 기간: {months}개월 {days}일")
 
 def handle_offline_event(event_data: Dict[str, Any]) -> None:
     st.subheader("오프라인 이벤트 정보")
@@ -746,73 +795,6 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
 
     event_data['components'][category] = component
 
-def handle_media_component(component: Dict[str, Any], category: str) -> None:
-    shooting_date_status = render_option_menu(
-        "촬영일이 정해졌나요?",
-        ["정해짐", "미정"],
-        f"{category}_shooting_date_status"
-    )
-
-    if shooting_date_status == "정해짐":
-        component['shooting_date'] = st.date_input(
-            "촬영일을 선택해주세요",
-            min_value=date.today(),
-            key=f"{category}_shooting_date"
-        )
-    else:
-        col1, col2 = st.columns(2)
-        with col1:
-            component['shooting_start_date'] = st.date_input(
-                "촬영 시작 가능일",
-                min_value=date.today(),
-                key=f"{category}_shooting_start_date"
-            )
-        with col2:
-            component['shooting_end_date'] = st.date_input(
-                "촬영 마감일",
-                min_value=component['shooting_start_date'],
-                key=f"{category}_shooting_end_date"
-            )
-
-    component['delivery_dates'] = component.get('delivery_dates', [])
-    
-    add_delivery_date = st.button("납품일 추가")
-    if add_delivery_date:
-        component['delivery_dates'].append({})
-
-    for idx, delivery in enumerate(component['delivery_dates']):
-        st.subheader(f"납품일 {idx + 1}")
-        
-        delivery['status'] = render_option_menu(
-            "납품일이 정해졌나요?",
-            ["정해짐", "미정"],
-            f"{category}_delivery_status_{idx}"
-        )
-
-        if delivery['status'] == "정해짐":
-            delivery['date'] = st.date_input(
-                "납품일을 선택해주세요",
-                min_value=date.today(),
-                key=f"{category}_delivery_date_{idx}"
-            )
-        else:
-            delivery['date'] = None
-
-        delivery['items'] = {}
-        for item in component['items']:
-            quantity = st.number_input(
-                f"{item} 납품 수량",
-                min_value=0,
-                value=delivery['items'].get(item, 0),
-                key=f"{category}_delivery_item_{idx}_{item}"
-            )
-            if quantity > 0:
-                delivery['items'][item] = quantity
-
-    if st.button("납품일 삭제", key=f"{category}_remove_delivery_date"):
-        if component['delivery_dates']:
-            component['delivery_dates'].pop()
-
 def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['vendor_reason'] = render_option_menu(
         "선호하는 이유를 선택해주세요:",
@@ -1094,7 +1076,7 @@ def create_category_excel(event_data: Dict[str, Any], category: str, component: 
     ws['A5'] = '아래 사항에 대하여 귀사의 견적을 요청하오니 견적서를 제출하여 주시기 바라며,\n견적서 제출 후 계약을 진행하여 주시기 바랍니다.'
     ws['A5'].alignment = Alignment(horizontal='left')
 
-    # 프로젝트 정보
+# 프로젝트 정보
     project_info = [
         ('프로젝트명', event_data.get('event_name', ''), '용역유형', event_data.get('event_type', '')),
         ('고객사', event_data.get('client_name', ''), '담당 PM', f"{event_data.get('manager_name', '')} ({event_data.get('manager_position', '')})"),
@@ -1204,32 +1186,43 @@ def check_required_fields(step):
     missing_fields = []
 
     if step == 0:  # 기본 정보
-        required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'contract_amount', 'expected_profit_percentage']
+        required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'contract_amount', 'expected_profit_percentage', 'start_date', 'end_date']
+        for field in required_fields:
+            if not event_data.get(field):
+                missing_fields.append(field)
+        
+        # 날짜 검증
+        if event_data.get('start_date') and event_data.get('end_date'):
+            if event_data['start_date'] > event_data['end_date']:
+                missing_fields.append('invalid_date_range')
+
+    elif step == 1:  # 장소 정보
+        if event_data.get('event_type') == "온라인 콘텐츠":
+            required_fields = ['online_platform', 'streaming_method']
+        elif event_data.get('event_type') == "오프라인 이벤트":
+            required_fields = ['venue_status', 'venue_type', 'scale', 'setup_date', 'teardown_date']
+            
+            # 날짜 검증
+            if all(event_data.get(field) for field in ['setup_date', 'start_date', 'end_date', 'teardown_date']):
+                if not (event_data['setup_date'] <= event_data['start_date'] <= event_data['end_date'] <= event_data['teardown_date']):
+                    missing_fields.append('invalid_event_dates')
+
         for field in required_fields:
             if not event_data.get(field):
                 missing_fields.append(field)
 
-    elif step == 1:  # 장소 정보
-        if event_data.get('event_type') == "온라인 콘텐츠" or event_data.get('venue_type') == "온라인":
-            # 온라인 이벤트의 경우 scale과 venue 정보가 필요하지 않음
-            pass
-        else:  # 오프라인 이벤트
-            required_fields = ['venue_status', 'venue_type', 'scale']
-            for field in required_fields:
-                if not event_data.get(field):
-                    missing_fields.append(field)
-            if event_data.get('venue_status') == "알 수 없는 상태":
-                if not event_data.get('desired_region'):
-                    missing_fields.append('desired_region')
+        if event_data.get('venue_status') == "알 수 없는 상태":
+            if not event_data.get('desired_region'):
+                missing_fields.append('desired_region')
+        else:
+            if not event_data.get('venues'):
+                missing_fields.append('venues')
             else:
-                if not event_data.get('venues'):
-                    missing_fields.append('venues')
-                else:
-                    for i, venue in enumerate(event_data['venues']):
-                        if not venue.get('name'):
-                            missing_fields.append(f'venues[{i}].name')
-                        if not venue.get('address'):
-                            missing_fields.append(f'venues[{i}].address')
+                for i, venue in enumerate(event_data['venues']):
+                    if not venue.get('name'):
+                        missing_fields.append(f'venues[{i}].name')
+                    if not venue.get('address'):
+                        missing_fields.append(f'venues[{i}].address')
 
     elif step == 2:  # 용역 구성 요소
         if not event_data.get('selected_categories'):
@@ -1273,11 +1266,17 @@ def highlight_missing_fields(missing_fields):
         'status': '상태',
         'items': '항목',
         'name': '장소명',
-        'address': '주소'
+        'address': '주소',
+        'online_platform': '온라인 플랫폼',
+        'streaming_method': '스트리밍 방식'
     }
 
     for field in missing_fields:
-        if '.' in field:
+        if field == 'invalid_date_range':
+            st.error("시작일이 종료일보다 늦을 수 없습니다.")
+        elif field == 'invalid_event_dates':
+            st.error("이벤트 날짜가 올바르지 않습니다. 셋업 시작일 ≤ 시작일 ≤ 종료일 ≤ 철수 마감일 순서여야 합니다.")
+        elif '.' in field:
             category, subfield = field.split('.', 1)
             st.error(f"{field_names.get(category, category)} 카테고리의 {field_names.get(subfield, subfield)} 항목을 입력해주세요.")
         elif '[' in field:
@@ -1286,11 +1285,7 @@ def highlight_missing_fields(missing_fields):
             subfield = field.split('.')[-1]
             st.error(f"{field_names.get(base, base)} 목록의 {int(index)+1}번째 항목의 {field_names.get(subfield, subfield)}을(를) 입력해주세요.")
         else:
-            st.error(f"{field_names.get(field, field)} 제목을 입력해주세요.")
-
-def display_missing_fields(missing_fields):
-    for field in missing_fields:
-        st.error(f"{field} 필드를 입력해주세요.")
+            st.error(f"{field_names.get(field, field)} 항목을 입력해주세요.")
 
 def main():
     st.title("이벤트 플래너")
@@ -1363,7 +1358,7 @@ def main():
                         st.session_state.step += 1
                     st.experimental_rerun()
                 else:
-                    display_missing_fields(missing_fields)
+                    highlight_missing_fields(missing_fields)
 
-if __name__ == "__main__":
-    main()
+    if __name__ == "__main__":
+        main()
