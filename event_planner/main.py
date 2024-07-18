@@ -1360,5 +1360,5 @@ def main():
                 else:
                     highlight_missing_fields(missing_fields)
 
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()
