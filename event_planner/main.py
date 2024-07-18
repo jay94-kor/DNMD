@@ -1186,15 +1186,18 @@ def check_required_fields(step):
                 missing_fields.append(field)
 
     elif step == 1:  # 장소 정보
-        if event_data.get('event_type') == "온라인 콘텐츠":
-            # 온라인 콘텐츠의 경우 장소 정보가 필요하지 않음
+        if event_data.get('event_type') == "온라인 콘텐츠" or event_data.get('venue_type') == "온라인":
+            # 온라인 이벤트의 경우 scale과 venue 정보가 필요하지 않음
             pass
         else:  # 오프라인 이벤트
-            required_fields = ['venue_status', 'venue_type']
+            required_fields = ['venue_status', 'venue_type', 'scale']
             for field in required_fields:
                 if not event_data.get(field):
                     missing_fields.append(field)
-            if event_data.get('venue_status') != "알 수 없는 상태":
+            if event_data.get('venue_status') == "알 수 없는 상태":
+                if not event_data.get('desired_region'):
+                    missing_fields.append('desired_region')
+            else:
                 if not event_data.get('venues'):
                     missing_fields.append('venues')
                 else:
