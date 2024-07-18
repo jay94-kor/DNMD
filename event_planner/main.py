@@ -475,8 +475,8 @@ def handle_offline_event_venue(event_data: Dict[str, Any]) -> None:
 
     if event_data['venue_type'] == "온라인":
         st.info("온라인 이벤트는 물리적 장소 정보가 필요하지 않습니다.")
-        event_data['scale'] = 0  # 온라인 이벤트의 경우 scale을 0으로 설정
-        event_data['venues'] = []  # 온라인 이벤트의 경우 빈 리스트로 설정
+        event_data['scale'] = 999  # 온라인 이벤트의 경우 scale을 999로 설정
+        event_data['venues'] = [{'name': '온라인', 'address': '온라인'}]  # 온라인 이벤트의 경우 장소명과 주소를 '온라인'으로 설정
     else:
         event_data['scale'] = st.number_input(
             "예상 참여 관객 수",
@@ -1194,39 +1194,21 @@ def check_required_fields(step):
     missing_fields = []
 
     if step == 0:  # 기본 정보
-        required_fields = ['event_name', 'client_name', 'manager_name', 'manager_position', 'manager_contact', 'event_type', 'contract_type', 'contract_amount', 'expected_profit_percentage', 'start_date', 'end_date']
+        required_fields = ['event_name', 'client_name', 'manager_name', 'manager_contact', 'event_type', 'contract_type']
         for field in required_fields:
             if not event_data.get(field):
                 missing_fields.append(field)
-        
-        # 날짜 검증
-        if event_data.get('start_date') and event_data.get('end_date'):
-            if event_data['start_date'] > event_data['end_date']:
-                missing_fields.append('invalid_date_range')
 
     elif step == 1:  # 장소 정보
-        if event_data.get('event_type') == "온라인 콘텐츠":
-            required_fields = ['online_platform', 'streaming_method']
-        elif event_data.get('event_type') == "오프라인 이벤트":
-            required_fields = ['venue_status', 'venue_type', 'scale', 'setup_date', 'teardown_date']
-            
-            # 날짜 검증
-            if all(event_data.get(field) for field in ['setup_date', 'start_date', 'end_date', 'teardown_date']):
-                if not (event_data['setup_date'] <= event_data['start_date'] <= event_data['end_date'] <= event_data['teardown_date']):
-                    missing_fields.append('invalid_event_dates')
-
-        for field in required_fields:
-            if not event_data.get(field):
-                missing_fields.append(field)
-
-        if event_data.get('venue_status') == "알 수 없는 상태":
-            if not event_data.get('desired_region'):
-                missing_fields.append('desired_region')
-        else:
-            if not event_data.get('venues'):
-                missing_fields.append('venues')
-            else:
-                for i, venue in enumerate(event_data['venues']):
+        if event_data.get('event_type') != "온라인 콘텐츠":
+            if not event_data.get('venue_status'):
+                missing_fields.append('venue_status')
+            if not event_data.get('venue_type'):
+                missing_fields.append('venue_type')
+            if event_data.get('venue_type') != "온라인":
+                if not event_data.get('scale'):
+                    missing_fields.append('scale')
+                for i, venue in enumerate(event_data.get('venues', [])):
                     if not venue.get('name'):
                         missing_fields.append(f'venues[{i}].name')
                     if not venue.get('address'):
