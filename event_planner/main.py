@@ -230,6 +230,14 @@ def handle_event_type(event_data: Dict[str, Any]) -> None:
             "contract_type"
         )
 
+    # 온라인 이벤트 설정
+    if event_data['event_type'] == "온라인 콘텐츠":
+        event_data['scale'] = 999
+        if 'venues' not in event_data:
+            event_data['venues'] = [{}]
+        event_data['venues'][0]['name'] = "온라인"
+        event_data['venues'][0]['address'] = "온라인"
+
 def handle_budget_info(event_data: Dict[str, Any]) -> None:
     st.header("예산 정보")
 
