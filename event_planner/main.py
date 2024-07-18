@@ -1296,6 +1296,10 @@ def main():
         st.session_state.step = 0
     if 'event_data' not in st.session_state:
         st.session_state.event_data = {}
+    if 'previous_button' not in st.session_state:
+        st.session_state.previous_button = False
+    if 'next_button' not in st.session_state:
+        st.session_state.next_button = False
 
     functions = {
         0: basic_info,
@@ -1337,11 +1341,6 @@ def main():
     functions[current_step]()
 
     col1, col2 = st.columns([1, 1])
-
-    if 'previous_button' not in st.session_state:
-        st.session_state.previous_button = False
-    if 'next_button' not in st.session_state:
-        st.session_state.next_button = False
 
     with col1:
         if current_step > 0:
