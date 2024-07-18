@@ -416,7 +416,11 @@ def handle_offline_event_venue(event_data: Dict[str, Any]) -> None:
         "venue_type"
     )
 
-    if event_data['venue_type'] != "온라인":
+    if event_data['venue_type'] == "온라인":
+        st.info("온라인 이벤트는 물리적 장소 정보가 필요하지 않습니다.")
+        event_data['scale'] = 0  # 온라인 이벤트의 경우 scale을 0으로 설정
+        event_data['venues'] = []  # 온라인 이벤트의 경우 빈 리스트로 설정
+    else:
         event_data['scale'] = st.number_input(
             "예상 참여 관객 수",
             min_value=0,
@@ -426,15 +430,12 @@ def handle_offline_event_venue(event_data: Dict[str, Any]) -> None:
             key="scale_input_venue"
         )
 
-    if event_data['venue_type'] == "온라인":
-        st.info("온라인 이벤트는 물리적 장소 정보가 필요하지 않습니다.")
-        event_data['venues'] = []
-    elif event_data['venue_status'] == "알 수 없는 상태":
-        handle_unknown_venue_status(event_data)
-    else:
-        if 'venues' not in event_data:
-            event_data['venues'] = [{'name': '', 'address': ''}]
-        handle_known_venue_status(event_data)
+        if event_data['venue_status'] == "알 수 없는 상태":
+            handle_unknown_venue_status(event_data)
+        else:
+            if 'venues' not in event_data:
+                event_data['venues'] = [{'name': '', 'address': ''}]
+            handle_known_venue_status(event_data)
 
 def handle_unknown_venue_status(event_data: Dict[str, Any]) -> None:
     major_regions = [
