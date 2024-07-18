@@ -850,12 +850,13 @@ def handle_item_details(item: str, component: Dict[str, Any], item_name: str = N
 
 def handle_other_items(component: Dict[str, Any], category: str) -> None:
     if 'other_items' not in component:
-        component['other_items'] = ['']
+        component['other_items'] = []
 
     for i, other_item in enumerate(component['other_items']):
         col1, col2 = st.columns([3, 1])
         with col1:
-            component['other_items'][i] = st.text_input(f"{category} 기타 항목 {i+1}", value=other_item, key=f"{category}_other_item_{i}")
+            new_value = st.text_input(f"{category} 기타 항목 {i+1}", value=other_item, key=f"{category}_other_item_{i}")
+            component['other_items'][i] = new_value
         with col2:
             if st.button(f"삭제 {i+1}", key=f"{category}_delete_other_item_{i}"):
                 component['other_items'].pop(i)
