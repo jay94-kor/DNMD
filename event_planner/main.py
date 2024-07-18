@@ -1186,17 +1186,8 @@ def check_required_fields(step):
 
     elif step == 1:  # 장소 정보
         if event_data.get('event_type') == "온라인 콘텐츠":
-            if event_data.get('location_needed') == "필요":
-                if event_data.get('location_type') == "프로덕션이 알아서 구해오기":
-                    if event_data.get('location_preference') == "실내" and len(event_data.get('indoor_location_description', '')) < 50:
-                        missing_fields.append('indoor_location_description')
-                    elif event_data.get('location_preference') == "실외" and len(event_data.get('outdoor_location_description', '')) < 50:
-                        missing_fields.append('outdoor_location_description')
-                elif event_data.get('location_type') == "직접 지정":
-                    required_fields = ['location_type', 'location_name', 'location_address', 'location_status']
-                    for field in required_fields:
-                        if not event_data.get(field):
-                            missing_fields.append(field)
+            # 온라인 콘텐츠의 경우 장소 정보가 필요하지 않음
+            pass
         else:  # 오프라인 이벤트
             required_fields = ['venue_status', 'venue_type', 'scale']
             for field in required_fields:
