@@ -823,28 +823,30 @@ def handle_preferred_vendor(component: Dict[str, Any], category: str) -> None:
     component['vendor_contact'] = st.text_input("선호 업체 연락처", value=component.get('vendor_contact', ''), key=f"{category}_vendor_contact")
     component['vendor_manager'] = st.text_input("선호 업체 담당자명", value=component.get('vendor_manager', ''), key=f"{category}_vendor_manager")
 
-def handle_item_details(item: str, component: Dict[str, Any]) -> None:
+def handle_item_details(item: str, component: Dict[str, Any], item_name: str = None) -> None:
     quantity_key = f'{item}_quantity'
     unit_key = f'{item}_unit'
     duration_key = f'{item}_duration'
     duration_unit_key = f'{item}_duration_unit'
     details_key = f'{item}_details'
 
+    display_name = item_name if item_name else item
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        component[quantity_key] = st.number_input(f"{item} 수량", min_value=0, value=component.get(quantity_key, 0), key=quantity_key)
+        component[quantity_key] = st.number_input(f"{display_name} 수량", min_value=0, value=component.get(quantity_key, 0), key=quantity_key)
 
     with col2:
-        component[unit_key] = st.text_input(f"{item} 단위", value=component.get(unit_key, '개'), key=unit_key)
+        component[unit_key] = st.text_input(f"{display_name} 단위", value=component.get(unit_key, '개'), key=unit_key)
 
     with col3:
-        component[duration_key] = st.number_input(f"{item} 기간", min_value=0, value=component.get(duration_key, 0), key=duration_key)
+        component[duration_key] = st.number_input(f"{display_name} 기간", min_value=0, value=component.get(duration_key, 0), key=duration_key)
 
     with col4:
-        component[duration_unit_key] = st.text_input(f"{item} 기간 단위", value=component.get(duration_unit_key, '개월'), key=duration_unit_key)
+        component[duration_unit_key] = st.text_input(f"{display_name} 기간 단위", value=component.get(duration_unit_key, '개월'), key=duration_unit_key)
 
-    component[details_key] = st.text_area(f"{item} 세부사항", value=component.get(details_key, ''), key=details_key)
+    component[details_key] = st.text_area(f"{display_name} 세부사항", value=component.get(details_key, ''), key=details_key)
 
 def handle_other_items(component: Dict[str, Any], category: str) -> None:
     if 'other_items' not in component:
@@ -855,13 +857,17 @@ def handle_other_items(component: Dict[str, Any], category: str) -> None:
         with col1:
             component['other_items'][i] = st.text_input(f"{category} 기타 항목 {i+1}", value=other_item, key=f"{category}_other_item_{i}")
         with col2:
-            if st.button("삭제", key=f"{category}_remove_other_item_{i}"):
+            if st.button(f"삭제 {i+1}", key=f"{category}_delete_other_item_{i}"):
                 component['other_items'].pop(i)
                 st.experimental_rerun()
 
-    if st.button("추가", key=f"{category}_add_other_item"):
+    if st.button(f"{category} 기타 항목 추가", key=f"{category}_add_other_item"):
         component['other_items'].append('')
         st.experimental_rerun()
+
+    for i, other_item in enumerate(component['other_items']):
+        if other_item:  # 빈 문자열이 아닌 경우에만 처리
+            handle_item_details(f"기타_{i+1}", component, item_name=other_item)
 
 def safe_operation(func):
     def wrapper(*args, **kwargs):
