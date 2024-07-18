@@ -719,7 +719,7 @@ def handle_category(category: str, event_data: Dict[str, Any]) -> None:
 
     for item in component['items']:
         if item == "기타":
-            component['other_details'] = st.text_area(f"{category} 기타 세부사항", value=component.get('other_details', ''), key=f"{category}_other_details")
+            handle_other_items(component, category)
         else:
             handle_item_details(item, component)
 
@@ -845,6 +845,23 @@ def handle_item_details(item: str, component: Dict[str, Any]) -> None:
         component[duration_unit_key] = st.text_input(f"{item} 기간 단위", value=component.get(duration_unit_key, '개월'), key=duration_unit_key)
 
     component[details_key] = st.text_area(f"{item} 세부사항", value=component.get(details_key, ''), key=details_key)
+
+def handle_other_items(component: Dict[str, Any], category: str) -> None:
+    if 'other_items' not in component:
+        component['other_items'] = ['']
+
+    for i, other_item in enumerate(component['other_items']):
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            component['other_items'][i] = st.text_input(f"{category} 기타 항목 {i+1}", value=other_item, key=f"{category}_other_item_{i}")
+        with col2:
+            if st.button("삭제", key=f"{category}_remove_other_item_{i}"):
+                component['other_items'].pop(i)
+                st.experimental_rerun()
+
+    if st.button("추가", key=f"{category}_add_other_item"):
+        component['other_items'].append('')
+        st.experimental_rerun()
 
 def safe_operation(func):
     def wrapper(*args, **kwargs):
